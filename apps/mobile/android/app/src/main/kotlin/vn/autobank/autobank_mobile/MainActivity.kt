@@ -23,12 +23,16 @@ class MainActivity : FlutterActivity() {
             if (intent?.action == "vn.autobank.NOTIFICATION") {
                 val title = intent.getStringExtra("title") ?: ""
                 val text = intent.getStringExtra("text") ?: ""
+                val bigText = intent.getStringExtra("bigText") ?: ""
                 val packageName = intent.getStringExtra("package") ?: ""
+                val postTime = intent.getLongExtra("postTime", System.currentTimeMillis())
                 
                 val notificationData = mapOf(
                     "title" to title,
                     "text" to text,
-                    "package" to packageName
+                    "bigText" to bigText,
+                    "package" to packageName,
+                    "postTime" to postTime
                 )
                 
                 eventSink?.success(notificationData)
@@ -41,14 +45,42 @@ class MainActivity : FlutterActivity() {
         
         // Setup MethodChannel for checking/requesting permissions
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "isNotificationListenerEnabled") {
-                val enabled = Settings.Secure.getString(contentResolver, "enabled_notification_listeners").contains(packageName)
-                result.success(enabled)
-            } else if (call.method == "openNotificationListenerSettings") {
-                startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
-                result.success(true)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "isNotificationListenerEnabled" -> {
+                    val listeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+                    val enabled = listeners != null && listeners.contains(packageName)
+                    result.success(enabled)
+                }
+                "openNotificationListenerSettings" -> {
+                    startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                    result.success(true)
+                }
+                "isBatteryOptimizationIgnored" -> {
+                    val powerManager = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+                    val ignored = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        powerManager?.isIgnoringBatteryOptimizations(packageName) ?: false
+                    } else {
+                        true
+                    }
+                    result.success(ignored)
+                }
+                "requestIgnoreBatteryOptimizations" -> {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = android.net.Uri.parse("package:$packageName")
+                        }
+                        startActivity(intent)
+                    }
+                    result.success(true)
+                }
+                "openAppSettings" -> {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = android.net.Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                    result.success(true)
+                }
+                else -> result.notImplemented()
             }
         }
 

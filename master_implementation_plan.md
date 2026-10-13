@@ -8,7 +8,7 @@ Tài liệu này được biên soạn lại từ bản thiết kế hệ thốn
 
 - **Mô hình Repository**: Monorepo (Quản lý chung mã nguồn Mobile, API, Web, Webhooks, v.v.).
 - **Mobile App**: Flutter (Dart) + Kotlin (Android Native cho việc lắng nghe thông báo).
-- **Backend API**: NestJS (TypeScript), PostgreSQL (Database chính), Redis (Cache & Queue).
+- **Backend API**: NestJS (TypeScript), MySQL (Database chính qua Prisma ORM), Redis (Cache & Queue).
 - **Web Dashboard**: Next.js (TypeScript).
 - **Architecture Pattern**: Clean Architecture (cho Mobile), Modular Monolith (cho Backend), Event-Driven (cho Luồng xử lý giao dịch).
 
@@ -19,37 +19,38 @@ Tài liệu này được biên soạn lại từ bản thiết kế hệ thốn
 ### Phase 1: Nền tảng cốt lõi Mobile (Hoàn thiện đồ án & Demo)
 *Mục tiêu: Một app Android có khả năng đọc thông báo biến động số dư, lưu trữ cục bộ, lọc trùng lặp và phát thông báo bằng giọng nói (TTS).*
 
-- [ ] **Step 1.1: Khởi tạo Monorepo & Kiến trúc Flutter**
+- [x] **Step 1.1: Khởi tạo Monorepo & Kiến trúc Flutter**
   - Khởi tạo thư mục gốc `autobank-platform`.
   - Khởi tạo Flutter project tại `apps/mobile`.
   - Thiết lập cấu trúc thư mục chuẩn Clean Architecture (`core`, `features`, `domain`, `data`, `presentation`).
-- [ ] **Step 1.2: Cầu nối Android Notification Listener (Kotlin)**
+- [x] **Step 1.2: Cầu nối Android Notification Listener (Kotlin)**
   - Cấu hình quyền `BIND_NOTIFICATION_LISTENER_SERVICE`.
   - Viết class `NotificationListener` bằng Kotlin để bắt thông báo.
   - Dùng `MethodChannel`/`EventChannel` truyền dữ liệu notification realtime từ Kotlin sang Dart.
-- [ ] **Step 1.3: Transaction Parser & Core Domain**
+- [x] **Step 1.3: Transaction Parser & Core Domain**
   - Định nghĩa model `NormalizedTransaction`.
   - Viết Regex/Parser xử lý text cho 2 ngân hàng phổ biến (MBBank, Vietcombank) để trích xuất: Tiền, Nội dung, Thời gian, Số tài khoản.
-  - **Viết Unit Test** cho các trường hợp parse chuỗi (Rất quan trọng).
-- [ ] **Step 1.4: Lưu trữ & Xử lý trùng lặp (Local Database)**
-  - Tích hợp SQLite (sqflite hoặc drift).
-  - Thuật toán `fingerprint` (bank + account + amount + content + time) để ngăn tạo 2 giao dịch trùng lặp nếu thông báo tới 2 lần.
-- [ ] **Step 1.5: UI & Text-to-Speech (TTS)**
-  - Giao diện Dashboard liệt kê lịch sử giao dịch đẹp, mượt.
-  - Tích hợp package TTS, đọc số tiền và nội dung đơn hàng ("Đã nhận hai trăm năm mươi nghìn đồng").
+  - **Viết Unit Test** cho các trường hợp parse chuỗi (Đạt 100% test pass).
+- [x] **Step 1.4: Lưu trữ & Xử lý trùng lặp (Local Database)**
+  - Tích hợp SQLite (`sqflite`).
+  - Thuật toán `fingerprint` SHA256 (bank + account + amount + type + content + time window) để ngăn tạo 2 giao dịch trùng lặp.
+- [x] **Step 1.5: UI & Text-to-Speech (TTS)**
+  - Giao diện Dashboard Material 3 liệt kê lịch sử giao dịch đẹp, mượt, có thống kê tiền trong ngày.
+  - Tích hợp package TTS, đọc số tiền tiếng Việt và mã đơn hàng ("Đã nhận một trăm nghìn đồng...").
+  - Tích hợp công cụ Giả lập giao dịch (Simulation) để test trực tiếp trên app.
 
 ### Phase 2: Backend Foundation & Đồng bộ Cloud
 *Mục tiêu: Đưa dữ liệu lên server, quản lý Merchant (Cửa hàng) và chuẩn bị hạ tầng mở rộng.*
 
-- [ ] **Step 2.1: Khởi tạo Backend NestJS**
-  - Setup NestJS tại `apps/api` với Prisma ORM và PostgreSQL.
-  - Setup Docker / docker-compose cho local dev (PostgreSQL, Redis).
+- [x] **Step 2.1: Khởi tạo Backend NestJS**
+  - Setup NestJS tại `apps/api` với Prisma ORM và MySQL (XAMPP / Local).
+  - Khởi tạo Schema đầy đủ: `merchants`, `users`, `merchant_members`, `bank_accounts`, `transactions`, `orders`, `webhook_logs`.
 - [ ] **Step 2.2: Authentication & Quản lý User/Merchant**
   - Tích hợp Firebase Auth làm Authentication Provider.
   - Xây dựng module `users`, `merchants`, và `merchant_members` (Phân quyền).
-- [ ] **Step 2.3: Core Transaction API**
-  - Mobile app gọi API đẩy giao dịch đã đọc được lên Backend.
-  - Xử lý Idempotency (chống trùng lặp trên server).
+- [x] **Step 2.3: Core Transaction API**
+  - Mobile app gọi API `POST /transactions` đẩy giao dịch lên Backend không đồng bộ.
+  - Xử lý Idempotency triệt để qua `fingerprint` trên database MySQL.
 - [ ] **Step 2.4: Realtime & Push Notification (FCM)**
   - Setup Firebase Cloud Messaging.
   - App nhận Push Notification khi server xử lý xong giao dịch mới.
@@ -57,15 +58,15 @@ Tài liệu này được biên soạn lại từ bản thiết kế hệ thốn
 ### Phase 3: Order, Reconciliation & Thanh toán tự động (Trái tim của hệ thống)
 *Mục tiêu: Khách hàng quét mã -> Ngân hàng báo nhận -> Server đối soát -> Trạng thái đơn hàng tự động chuyển sang PAID.*
 
-- [ ] **Step 3.1: Hệ thống Quản lý Đơn hàng (Order Engine)**
+- [x] **Step 3.1: Hệ thống Quản lý Đơn hàng (Order Engine)**
   - Tạo đơn hàng với mã định danh (vd: `DH1058`).
   - Sinh QR Code động (VietQR) tự động gán sẵn Số tiền + Nội dung là mã đơn.
-- [ ] **Step 3.2: Động cơ Đối soát (Reconciliation Engine)**
-  - Thuật toán matching đa cấp độ:
-    - *Level 1*: Đúng mã, đúng tiền -> Auto Paid.
-    - *Level 2*: Đúng mã, thiếu tiền -> Partially Paid.
-    - *Level 3*: Đúng mã, thừa tiền -> Overpaid.
-  - Phát Event (event-driven) khi một đơn được thanh toán xong.
+- [x] **Step 3.2: Động cơ Đối soát (Reconciliation Engine)**
+  - Thuật toán matching đa cấp độ (Kiểm thử tự động 100% pass):
+    - *Level 1*: Đúng mã, đúng tiền -> Auto PAID.
+    - *Level 2*: Đúng mã, thiếu tiền -> PARTIALLY_PAID.
+    - *Level 3*: Đúng mã, thừa tiền -> OVERPAID.
+  - Khóa giao dịch MySQL bảo toàn ACID.
 - [ ] **Step 3.3: Payment Inbox (Xử lý thủ công)**
   - UI để chủ shop tự phân bổ các giao dịch không xác định được (Unmatched).
 

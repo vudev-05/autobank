@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Đăng Nhập Quản Trị — Đọc Thông Báo Nhận Tiền</title>
+    <link rel="shortcut icon" href="../assets/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="../assets/css/admin.css" />
+  </head>
+  <body>
+    <div class="admin-login-wrapper">
+      <div class="admin-login-card">
+        <div class="admin-login-brand">
+          <img src="../assets/images/favicon.png" alt="AutoBank Admin" />
+          <h1>Hệ Thống Quản Trị</h1>
+          <p>Đọc Thông Báo Nhận Tiền · Enterprise Console</p>
+        </div>
+
+        <form id="admin-login-form">
+          <div class="admin-form-group">
+            <label for="admin-user-input">Tài khoản quản trị</label>
+            <div class="admin-input-wrap">
+              <input
+                type="text"
+                id="admin-user-input"
+                class="admin-input"
+                placeholder="Nhập tài khoản admin..."
+                autocomplete="username"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="admin-form-group">
+            <label for="admin-pass-input">Mật khẩu bảo mật</label>
+            <div class="admin-input-wrap">
+              <input
+                type="password"
+                id="admin-pass-input"
+                class="admin-input"
+                placeholder="Nhập mật khẩu..."
+                autocomplete="current-password"
+                required
+              />
+            </div>
+          </div>
+
+          <div id="admin-login-error" style="display: none; color: #ef4444; font-size: 0.85rem; margin-bottom: 16px; text-align: center; font-weight: 600;">
+            Tài khoản hoặc mật khẩu không chính xác!
+          </div>
+
+          <button type="submit" class="admin-btn admin-btn-primary admin-btn-block" id="admin-login-submit">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Đăng Nhập Quản Trị
+          </button>
+        </form>
+
+        <div style="margin-top: 24px; text-align: center; font-size: 0.8rem; color: #64748b;">
+          Tài khoản và mật khẩu được bảo vệ bởi tệp biến môi trường <code>.env</code>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-toast-container" class="admin-toast-container"></div>
+    <script type="module" src="../assets/js/admin-login.js"></script>
+  </body>
+</html>

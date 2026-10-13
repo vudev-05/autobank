@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cấu Hình Web & App — Đọc Thông Báo Nhận Tiền</title>
+    <link rel="shortcut icon" href="../assets/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="../assets/css/admin.css" />
+  </head>
+  <body>
+    <div class="admin-layout">
+      <!-- SIDEBAR -->
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-brand">
+          <img src="../assets/images/favicon.png" alt="AutoBank Logo" />
+          <div>
+            <strong>Đọc Thông Báo</strong>
+            <span>Admin Portal</span>
+          </div>
+        </div>
+
+        <nav class="admin-sidebar-nav">
+          <a href="index.html" class="admin-nav-item" data-page="overview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Tổng quan hệ thống
+          </a>
+
+          <a href="config.html" class="admin-nav-item active" data-page="config">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Cấu hình Web & App
+          </a>
+
+          <a href="banks.html" class="admin-nav-item" data-page="banks">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="5 6 12 3 19 6"/><line x1="4" y1="10" x2="4" y2="21"/><line x1="20" y1="10" x2="20" y2="21"/><line x1="8" y1="14" x2="8" y2="17"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="16" y1="14" x2="16" y2="17"/></svg>
+            65+ Ngân Hàng & Ví
+            <span class="admin-nav-badge" id="admin-badge-banks">66</span>
+          </a>
+
+          <a href="users.html" class="admin-nav-item" data-page="users">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Người dùng & Thiết bị
+            <span class="admin-nav-badge" id="admin-badge-users">3</span>
+          </a>
+
+          <a href="notifications.html" class="admin-nav-item" data-page="notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Bắn thông báo đến App
+          </a>
+
+          <a href="orders.html" class="admin-nav-item" data-page="orders">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Đơn hàng & Giao dịch
+            <span class="admin-nav-badge" id="admin-badge-orders">0</span>
+          </a>
+
+          <a href="payment-autobank.html" class="admin-nav-item" data-page="payment-autobank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Thanh toán AutoBank
+          </a>
+
+          <a href="keys.html" class="admin-nav-item" data-page="keys">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            API Keys & Kết nối
+          </a>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <div class="admin-user-pill">
+            <div class="admin-avatar">AD</div>
+            <div class="admin-user-info">
+              <strong id="admin-display-username">Administrator</strong>
+              <small>● Toàn quyền quản trị</small>
+            </div>
+          </div>
+          <button type="button" class="admin-logout-btn" id="admin-logout-btn" title="Đăng xuất">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="admin-main">
+        <header class="admin-topbar">
+          <div style="display: flex; align-items: center;">
+            <button id="admin-menu-toggle" class="admin-menu-toggle" type="button" aria-label="Menu" title="Mở danh mục">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="admin-topbar-title">
+              <span>Cấu hình Website & App Mobile</span>
+            </div>
+          </div>
+
+          <div class="admin-topbar-actions">
+            <div class="admin-live-badge">
+              <span class="admin-live-dot"></span>
+              Máy chủ: Đang hoạt động 24/7
+            </div>
+
+            <a href="../" target="_blank" class="admin-btn admin-btn-outline admin-btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Xem Trang Web
+            </a>
+          </div>
+        </header>
+
+        <div class="admin-content">
+          <form id="config-form">
+            <!-- BRANDING & SOCIAL -->
+            <div class="admin-card">
+              <div class="admin-card-head">
+                <div class="admin-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  Thông tin hiển thị Website & Nhận diện thương hiệu
+                </div>
+              </div>
+              <div class="admin-card-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                  <div class="admin-form-group">
+                    <label>Tên hệ thống thương hiệu</label>
+                    <input type="text" id="cfg-brand-name" class="admin-input" required />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Slogan khẩu hiệu</label>
+                    <input type="text" id="cfg-brand-slogan" class="admin-input" required />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Đường dẫn tải App CH Play (Google Play Store)</label>
+                    <input type="url" id="cfg-chplay-link" class="admin-input" required />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Link Video YouTube (Playlist, Kênh hoặc Video ID)</label>
+                    <div style="display: flex; gap: 8px;">
+                      <input type="text" id="cfg-youtube-link" class="admin-input" placeholder="Ví dụ: https://www.youtube.com/@Appbaochuyentien hoặc https://www.youtube.com/watch?v=..." required />
+                      <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-test-yt" title="Mở thử link YouTube" style="white-space: nowrap;">Kiểm tra</button>
+                    </div>
+                    <small style="color: #64748b; font-size: 0.76rem; display: block; margin-top: 4px;">Tự động đồng bộ ngay lập tức vào trình phát video và danh sách video trên Landing Page.</small>
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Hotline / Zalo hỗ trợ khách hàng</label>
+                    <input type="text" id="cfg-hotline" class="admin-input" required />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Email hỗ trợ</label>
+                    <input type="email" id="cfg-email" class="admin-input" required />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Link Fanpage Facebook</label>
+                    <input type="url" id="cfg-facebook" class="admin-input" />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Link Kênh TikTok</label>
+                    <input type="url" id="cfg-tiktok" class="admin-input" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- VIETQR RECEIVING ACCOUNT REDIRECT NOTICE -->
+            <div class="admin-card" style="border-left: 4px solid #38bdf8;">
+              <div class="admin-card-head">
+                <div class="admin-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  Tài khoản Ngân hàng nhận tiền &amp; Cổng AutoBank (ThueApi.Pro)
+                </div>
+                <a href="payment-autobank.html" class="admin-btn admin-btn-primary admin-btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                  Mở trang Cấu hình AutoBank
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </a>
+              </div>
+              <div class="admin-card-body">
+                <p style="color: #94a3b8; margin: 0; font-size: 0.9rem; line-height: 1.6;">
+                  Tài khoản ngân hàng nhận tiền chuyển khoản (VietQR) và Token API đã được đồng bộ tập trung duy nhất tại mục
+                  <a href="payment-autobank.html" style="color: #38bdf8; font-weight: 700;">Thanh toán AutoBank</a>
+                  để đảm bảo tính chính xác, không bị xung đột thông tin và tự động kích hoạt gói 24/7.
+                </p>
+              </div>
+            </div>
+
+            <!-- PRICING PACKAGES -->
+            <div class="admin-card">
+              <div class="admin-card-head">
+                <div class="admin-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg>
+                  Bảng giá & Thời hạn các gói cước
+                </div>
+              </div>
+              <div class="admin-card-body">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                  <div class="admin-form-group">
+                    <label>Gói dùng thử miễn phí</label>
+                    <input type="text" id="cfg-price-trial" class="admin-input" />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Giá gói 1 Tháng (VNĐ)</label>
+                    <input type="number" id="cfg-price-1m" class="admin-input" />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Giá gói 3 Tháng (VNĐ)</label>
+                    <input type="number" id="cfg-price-3m" class="admin-input" />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Giá gói 6 Tháng (VNĐ)</label>
+                    <input type="number" id="cfg-price-6m" class="admin-input" />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Giá gói 9 Tháng (VNĐ)</label>
+                    <input type="number" id="cfg-price-9m" class="admin-input" />
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Giá gói 1 Năm (VNĐ - Khuyên dùng)</label>
+                    <input type="number" id="cfg-price-1y" class="admin-input" />
+                  </div>
+                </div>
+              </div>
+            <!-- SYSTEM MAINTENANCE & BROADCAST -->
+            <div class="admin-card">
+              <div class="admin-card-head">
+                <div class="admin-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Thông Báo Bảo Trì & Cập Nhật Hệ Thống
+                </div>
+                <label class="admin-toggle" title="Bật/Tắt chế độ bảo trì">
+                  <input type="checkbox" id="cfg-maintenance-toggle" />
+                  <span class="admin-toggle-slider"></span>
+                </label>
+              </div>
+              <div class="admin-card-body">
+                <div class="admin-form-group">
+                  <label>Nội dung banner thông báo bảo trì hiển thị trên đầu trang Web & App</label>
+                  <input type="text" id="cfg-maintenance-msg" class="admin-input" placeholder="Ví dụ: Hệ thống đang bảo trì nâng cấp máy chủ định kỳ. Vui lòng quay lại sau 15 phút." />
+                </div>
+              </div>
+            </div>
+
+            <!-- ACTION BAR -->
+            <div class="admin-card">
+              <div class="admin-card-body" style="display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                  <button type="submit" class="admin-btn admin-btn-primary" id="btn-save-config">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Lưu toàn bộ cấu hình hệ thống
+                  </button>
+                  <button type="button" class="admin-btn admin-btn-outline" id="btn-reset-default">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Khôi phục mặc định
+                  </button>
+                </div>
+                <a href="../" target="_blank" class="admin-btn admin-btn-outline" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Xem kiểm tra Trang Web ↗
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+
+    <div id="admin-toast-container" class="admin-toast-container"></div>
+    <script type="module" src="../assets/js/admin-config.js"></script>
+  </body>
+</html>

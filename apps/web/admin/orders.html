@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Đơn Hàng & Giao Dịch — Đọc Thông Báo Nhận Tiền</title>
+    <link rel="shortcut icon" href="../assets/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="../assets/css/admin.css" />
+  </head>
+  <body>
+    <div class="admin-layout">
+      <!-- SIDEBAR -->
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-brand">
+          <img src="../assets/images/favicon.png" alt="AutoBank Logo" />
+          <div>
+            <strong>Đọc Thông Báo</strong>
+            <span>Admin Portal</span>
+          </div>
+        </div>
+
+        <nav class="admin-sidebar-nav">
+          <a href="index.html" class="admin-nav-item" data-page="overview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Tổng quan hệ thống
+          </a>
+
+          <a href="config.html" class="admin-nav-item" data-page="config">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Cấu hình Web & App
+          </a>
+
+          <a href="banks.html" class="admin-nav-item" data-page="banks">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="5 6 12 3 19 6"/><line x1="4" y1="10" x2="4" y2="21"/><line x1="20" y1="10" x2="20" y2="21"/><line x1="8" y1="14" x2="8" y2="17"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="16" y1="14" x2="16" y2="17"/></svg>
+            65+ Ngân Hàng & Ví
+            <span class="admin-nav-badge" id="admin-badge-banks">66</span>
+          </a>
+
+          <a href="users.html" class="admin-nav-item" data-page="users">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Người dùng & Thiết bị
+            <span class="admin-nav-badge" id="admin-badge-users">3</span>
+          </a>
+
+          <a href="notifications.html" class="admin-nav-item" data-page="notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Bắn thông báo đến App
+          </a>
+
+          <a href="orders.html" class="admin-nav-item active" data-page="orders">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Đơn hàng & Giao dịch
+            <span class="admin-nav-badge" id="admin-badge-orders">0</span>
+          </a>
+
+          <a href="payment-autobank.html" class="admin-nav-item" data-page="payment-autobank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Thanh toán AutoBank
+          </a>
+
+          <a href="keys.html" class="admin-nav-item" data-page="keys">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            API Keys & Kết nối
+          </a>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <div class="admin-user-pill">
+            <div class="admin-avatar">AD</div>
+            <div class="admin-user-info">
+              <strong id="admin-display-username">Administrator</strong>
+              <small>● Toàn quyền quản trị</small>
+            </div>
+          </div>
+          <button type="button" class="admin-logout-btn" id="admin-logout-btn" title="Đăng xuất">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="admin-main">
+        <header class="admin-topbar">
+          <div style="display: flex; align-items: center;">
+            <button id="admin-menu-toggle" class="admin-menu-toggle" type="button" aria-label="Menu" title="Mở danh mục">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="admin-topbar-title">
+              <span>Danh Sách Đơn Hàng & Giao Dịch VietQR</span>
+            </div>
+          </div>
+
+          <div class="admin-topbar-actions">
+            <div class="admin-live-badge">
+              <span class="admin-live-dot"></span>
+              Khớp lệnh tự động: 24/7 (MySQL)
+            </div>
+
+            <a href="../#pricing" target="_blank" class="admin-btn admin-btn-outline admin-btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Xem Bảng Giá
+            </a>
+          </div>
+        </header>
+
+        <div class="admin-content">
+          <div class="admin-card">
+            <div class="admin-card-head">
+              <div class="admin-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Quản Lý Đơn Hàng Nạp Gói Dịch Vụ
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <select id="filter-order-status" class="admin-input" style="width: 170px; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="PAID">Đã kích hoạt</option>
+                  <option value="PENDING">Chờ thanh toán</option>
+                </select>
+                <button type="button" class="admin-btn admin-btn-primary admin-btn-sm" id="btn-add-order">
+                  + Thêm Đơn Hàng Mới
+                </button>
+              </div>
+            </div>
+            <div class="admin-card-body" style="padding: 0;">
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Mã đơn hàng</th>
+                      <th>Khách hàng / SĐT</th>
+                      <th>Gói cước</th>
+                      <th>Số tiền</th>
+                      <th>Thời gian</th>
+                      <th>Trạng thái</th>
+                      <th>Hành động (Duyệt / Sửa / Xóa)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-orders-table-body">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- MODAL: ADD / EDIT ORDER -->
+    <div id="admin-order-modal" class="admin-modal-overlay">
+      <div class="admin-modal-box">
+        <div class="admin-modal-box-head">
+          <strong style="color: #fff; font-size: 1.1rem;" id="modal-order-title">Thêm Đơn Hàng Mới Thủ Công</strong>
+          <button type="button" class="admin-logout-btn" id="modal-order-close">&times;</button>
+        </div>
+        <form id="form-save-order">
+          <input type="hidden" id="edit-order-index" value="-1" />
+          <div class="admin-modal-box-body">
+            <div class="admin-form-group">
+              <label>Mã đơn hàng</label>
+              <input type="text" id="m-order-code" class="admin-input" placeholder="Ví dụ: ORD-892104 hoặc AB1234" required />
+            </div>
+
+            <div class="admin-form-group">
+              <label>Khách hàng (Tên / Email / SĐT)</label>
+              <input type="text" id="m-order-customer" class="admin-input" placeholder="Ví dụ: 0988123456 hoặc an.nguyen@gmail.com" required />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="admin-form-group">
+                <label>Gói cước</label>
+                <select id="m-order-pkg" class="admin-input">
+                  <option value="Gói 1 Tháng">Gói 1 Tháng (39.000đ)</option>
+                  <option value="Gói 3 Tháng">Gói 3 Tháng (99.000đ)</option>
+                  <option value="Gói 6 Tháng">Gói 6 Tháng (179.000đ)</option>
+                  <option value="Gói 9 Tháng">Gói 9 Tháng (249.000đ)</option>
+                  <option value="Gói 1 Năm" selected>Gói 1 Năm (299.000đ)</option>
+                </select>
+              </div>
+
+              <div class="admin-form-group">
+                <label>Số tiền (VNĐ)</label>
+                <input type="number" id="m-order-amount" class="admin-input" value="299000" required />
+              </div>
+            </div>
+
+            <div class="admin-form-group">
+              <label>Trạng thái đơn hàng</label>
+              <select id="m-order-status" class="admin-input">
+                <option value="PAID">Đã thanh toán (Kích hoạt ngay)</option>
+                <option value="PENDING">Chờ chuyển khoản</option>
+              </select>
+            </div>
+          </div>
+          <div class="admin-modal-box-footer">
+            <button type="button" class="admin-btn admin-btn-outline" id="modal-order-cancel">Hủy</button>
+            <button type="submit" class="admin-btn admin-btn-primary">Lưu đơn hàng</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="admin-toast-container" class="admin-toast-container"></div>
+    <script type="module" src="../assets/js/admin-orders.js"></script>
+  </body>
+</html>

@@ -6,9 +6,23 @@ import { MerchantsModule } from './merchants/merchants.module.js';
 import { BankConnectionsModule } from './bank-connections/bank-connections.module.js';
 import { TransactionsModule } from './transactions/transactions.module.js';
 import { OrdersModule } from './orders/orders.module.js';
+import { PrismaModule } from './prisma/prisma.module.js';
+import { AdminModule } from './admin/admin.module.js';
+import { TtsModule } from './tts/tts.module.js';
+import { ThueApiModule } from './thueapi/thueapi.module.js';
 
 @Module({
-  imports: [AuthModule, MerchantsModule, BankConnectionsModule, TransactionsModule, OrdersModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    MerchantsModule,
+    BankConnectionsModule,
+    TransactionsModule,
+    OrdersModule,
+    AdminModule,
+    TtsModule,
+    ThueApiModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tổng Quan Hệ Thống — Đọc Thông Báo Nhận Tiền</title>
+    <link rel="shortcut icon" href="../assets/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="../assets/css/admin.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="admin-layout">
+      <!-- SIDEBAR -->
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-brand">
+          <img src="../assets/images/favicon.png" alt="AutoBank Logo" />
+          <div>
+            <strong>Đọc Thông Báo</strong>
+            <span>Admin Portal</span>
+          </div>
+        </div>
+
+        <nav class="admin-sidebar-nav">
+          <a href="index.html" class="admin-nav-item active" data-page="overview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Tổng quan hệ thống
+          </a>
+
+          <a href="config.html" class="admin-nav-item" data-page="config">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Cấu hình Web & App
+          </a>
+
+          <a href="banks.html" class="admin-nav-item" data-page="banks">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="5 6 12 3 19 6"/><line x1="4" y1="10" x2="4" y2="21"/><line x1="20" y1="10" x2="20" y2="21"/><line x1="8" y1="14" x2="8" y2="17"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="16" y1="14" x2="16" y2="17"/></svg>
+            65+ Ngân Hàng & Ví
+            <span class="admin-nav-badge" id="admin-badge-banks">66</span>
+          </a>
+
+          <a href="users.html" class="admin-nav-item" data-page="users">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Người dùng & Thiết bị
+            <span class="admin-nav-badge" id="admin-badge-users">3</span>
+          </a>
+
+          <a href="notifications.html" class="admin-nav-item" data-page="notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Bắn thông báo đến App
+          </a>
+
+          <a href="orders.html" class="admin-nav-item" data-page="orders">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Đơn hàng & Giao dịch
+            <span class="admin-nav-badge" id="admin-badge-orders">0</span>
+          </a>
+
+          <a href="payment-autobank.html" class="admin-nav-item" data-page="payment-autobank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Thanh toán AutoBank
+          </a>
+
+          <a href="keys.html" class="admin-nav-item" data-page="keys">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            API Keys & Kết nối
+          </a>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <div class="admin-user-pill">
+            <div class="admin-avatar">AD</div>
+            <div class="admin-user-info">
+              <strong id="admin-display-username">Administrator</strong>
+              <small>● Toàn quyền quản trị</small>
+            </div>
+          </div>
+          <button type="button" class="admin-logout-btn" id="admin-logout-btn" title="Đăng xuất">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="admin-main">
+        <header class="admin-topbar">
+          <div style="display: flex; align-items: center;">
+            <button id="admin-menu-toggle" class="admin-menu-toggle" type="button" aria-label="Menu" title="Mở danh mục">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="admin-topbar-title">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <span>Thống Kê Toàn Bộ Hệ Thống</span>
+            </div>
+          </div>
+
+          <div class="admin-topbar-actions">
+            <div class="admin-live-badge">
+              <span class="admin-live-dot"></span>
+              Máy chủ: Hoạt động 24/7 (MySQL Live)
+            </div>
+
+            <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-refresh-stats" style="display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Làm mới dữ liệu
+            </button>
+
+            <a href="../" target="_blank" class="admin-btn admin-btn-outline admin-btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Xem Trang Web
+            </a>
+          </div>
+        </header>
+
+        <div class="admin-content">
+          <!-- 1. KPI STATS CARDS -->
+          <div class="admin-stats-grid">
+            <div class="admin-stat-card">
+              <div class="admin-stat-head">
+                <span class="admin-stat-title">TỔNG TÀI KHOẢN APP</span>
+                <div class="admin-stat-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                </div>
+              </div>
+              <div class="admin-stat-value" id="stat-total-users">0</div>
+              <div class="admin-stat-footer" id="stat-users-breakdown">
+                <span class="positive">● 0 hoạt động</span>
+              </div>
+            </div>
+
+            <div class="admin-stat-card">
+              <div class="admin-stat-head">
+                <span class="admin-stat-title">DOANH THU NẠP GÓI</span>
+                <div class="admin-stat-icon" style="background: rgba(2, 132, 199, 0.15); color: #38bdf8;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg>
+                </div>
+              </div>
+              <div class="admin-stat-value" id="stat-revenue">0đ</div>
+              <div class="admin-stat-footer" id="stat-revenue-breakdown">
+                <span class="positive">▲ 0 gói</span> thanh toán VietQR
+              </div>
+            </div>
+
+            <div class="admin-stat-card">
+              <div class="admin-stat-head">
+                <span class="admin-stat-title">GIAO DỊCH BÁO TIỀN NGÂN HÀNG</span>
+                <div class="admin-stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                </div>
+              </div>
+              <div class="admin-stat-value" id="stat-today-tx">0</div>
+              <div class="admin-stat-footer" id="stat-tx-breakdown">
+                Tổng nhận: <strong>0đ</strong>
+              </div>
+            </div>
+
+            <div class="admin-stat-card">
+              <div class="admin-stat-head">
+                <span class="admin-stat-title">TỶ LỆ BẢN QUYỀN & HOẠT ĐỘNG</span>
+                <div class="admin-stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+              </div>
+              <div class="admin-stat-value" id="stat-active-rate">100%</div>
+              <div class="admin-stat-footer" id="stat-rate-breakdown">
+                <span class="positive">● Lắng nghe 65+ ngân hàng</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. SUB-STATS PILLS -->
+          <div class="admin-substats-grid">
+            <div class="admin-substat-box">
+              <div>
+                <div class="admin-substat-label">Gói 1 Năm (Vip trọn gói)</div>
+                <small style="color: #94a3b8;">Khách hàng trả phí dài hạn</small>
+              </div>
+              <div class="admin-substat-num" id="pill-vip-users" style="color: #38bdf8;">0</div>
+            </div>
+
+            <div class="admin-substat-box">
+              <div>
+                <div class="admin-substat-label">Dùng thử 3 ngày</div>
+                <small style="color: #94a3b8;">Trải nghiệm đọc to miễn phí</small>
+              </div>
+              <div class="admin-substat-num" id="pill-trial-users" style="color: #fbbf24;">0</div>
+            </div>
+
+            <div class="admin-substat-box">
+              <div>
+                <div class="admin-substat-label">Chưa kích hoạt / Chờ nạp</div>
+                <small style="color: #94a3b8;">Tài khoản mới tạo trên app</small>
+              </div>
+              <div class="admin-substat-num" id="pill-pending-users" style="color: #94a3b8;">0</div>
+            </div>
+          </div>
+
+          <!-- 3. INTERACTIVE CHARTS -->
+          <div class="admin-charts-grid">
+            <div class="admin-chart-card">
+              <div class="admin-chart-head">
+                <div class="admin-chart-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                  Biểu Đồ Doanh Thu & Dòng Tiền Nạp Gói
+                </div>
+                <span class="admin-chart-badge" id="chart-revenue-badge">Theo Lịch Sử Thực Tế</span>
+              </div>
+              <div class="admin-chart-wrap">
+                <canvas id="revenueChart"></canvas>
+              </div>
+            </div>
+
+            <div class="admin-chart-card">
+              <div class="admin-chart-head">
+                <div class="admin-chart-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                  Cơ Cấu Phân Bổ Gói Cước Người Dùng
+                </div>
+                <span class="admin-chart-badge" id="chart-package-badge">Tỷ Lệ Tài Khoản</span>
+              </div>
+              <div class="admin-chart-wrap">
+                <canvas id="packageDonutChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. REVENUE & PACKAGE PURCHASE TABLE -->
+          <div class="admin-card">
+            <div class="admin-card-head">
+              <div class="admin-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Bảng Doanh Thu & Lịch Sử Nạp Gói (Hệ Thống Thực Tế)
+              </div>
+              <span style="font-size: 0.8rem; color: #94a3b8;">Dữ liệu từ đơn hàng thanh toán</span>
+            </div>
+            <div class="admin-card-body" style="padding: 0;">
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Mã đơn hàng</th>
+                      <th>Khách hàng / Shop</th>
+                      <th>Gói dịch vụ đã mua</th>
+                      <th>Số tiền</th>
+                      <th>Cổng thanh toán</th>
+                      <th>Thời gian</th>
+                      <th>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overview-orders-body">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. DETAILED ACCOUNT & LICENSE TABLE -->
+          <div class="admin-card">
+            <div class="admin-card-head">
+              <div class="admin-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Thống Kê Chi Tiết Tài Khoản & Hạn Sử Dụng (App Android)
+              </div>
+              <span style="font-size: 0.8rem; color: #94a3b8;">Đồng bộ trực tiếp từ thiết bị</span>
+            </div>
+            <div class="admin-card-body" style="padding: 0;">
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Chủ tài khoản</th>
+                      <th>Email Google</th>
+                      <th>Thiết bị kết nối</th>
+                      <th>Gói cước hiện tại</th>
+                      <th>Ngày hết hạn</th>
+                      <th>Trạng thái bản quyền</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overview-users-body">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="admin-toast-container" class="admin-toast-container"></div>
+    <script type="module" src="../assets/js/admin-overview.js"></script>
+  </body>
+</html>

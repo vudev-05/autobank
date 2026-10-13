@@ -47,3 +47,7 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
+}

@@ -1,0 +1,2499 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoBank Live • Đọc Thông Báo Nhận Tiền & Biến Động Số Dư Trực Tiếp</title>
+  <link rel="shortcut icon" href="assets/images/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --border-light: #f1f5f9;
+      --border-accent: #bae6fd;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-sub: #475569;
+      --primary: #0284c7;
+      --primary-light: #0ea5e9;
+      --primary-dark: #0369a1;
+      --primary-glow: rgba(2, 132, 199, 0.15);
+      --emerald: #059669;
+      --emerald-bg: #ecfdf5;
+      --emerald-border: #a7f3d0;
+      --rose: #e11d48;
+      --rose-bg: #fff1f2;
+      --rose-border: #fecdd3;
+      --amber: #d97706;
+      --amber-bg: #fffbeb;
+      --amber-border: #fde68a;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 50% 0%, rgba(2, 132, 199, 0.08), transparent 50%),
+        radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.05), transparent 40%),
+        var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* TOP NAVBAR */
+    .live-navbar {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      gap: 12px;
+      width: 100%;
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      min-width: 0;
+      flex-shrink: 1;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      object-fit: contain;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2);
+      background: #ffffff;
+      border: 1.5px solid var(--border-accent);
+      padding: 2px;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .brand-logo:hover {
+      transform: scale(1.05);
+    }
+
+    .brand-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+      min-width: 0;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    .brand-title .badge-live {
+      font-size: 0.65rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: #fff;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+      flex-shrink: 0;
+    }
+
+    .brand-slogan {
+      font-size: 0.78rem;
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .live-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--emerald-bg);
+      border: 1px solid var(--emerald-border);
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--emerald);
+      white-space: nowrap;
+    }
+
+    .pill-text-short {
+      display: none;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px rgba(5, 150, 105, 0.6);
+      animation: pulseAnim 1.8s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulseAnim {
+      0% {
+        transform: scale(0.95);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.3);
+        opacity: 0.5;
+      }
+
+      100% {
+        transform: scale(0.95);
+        opacity: 1;
+      }
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-sub);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+      transition: all 0.2s;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    .btn-action:hover {
+      background: #f0f9ff;
+      color: var(--primary);
+      border-color: #7dd3fc;
+      box-shadow: 0 3px 8px rgba(2, 132, 199, 0.12);
+    }
+
+    /* MAIN CONTAINER */
+    .main-wrap {
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 16px 60px;
+      flex: 1;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+
+    /* AUDIO BANNER & VISUALIZER */
+    .audio-control-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+      border: 1.5px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(2, 132, 199, 0.08), 0 2px 6px rgba(15, 23, 42, 0.03);
+      box-sizing: border-box;
+    }
+
+    .audio-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .audio-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .speaker-icon-box {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+      flex-shrink: 0;
+    }
+
+    .audio-wave {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 18px;
+    }
+
+    .wave-bar {
+      width: 3px;
+      height: 5px;
+      background: var(--primary);
+      border-radius: 2px;
+      transition: height 0.2s;
+    }
+
+    .audio-wave.playing .wave-bar {
+      animation: wavePulse 0.8s ease-in-out infinite alternate;
+    }
+
+    .audio-wave.playing .wave-bar:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .audio-wave.playing .wave-bar:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    .audio-wave.playing .wave-bar:nth-child(4) {
+      animation-delay: 0.45s;
+    }
+
+    @keyframes wavePulse {
+      0% {
+        height: 3px;
+      }
+
+      100% {
+        height: 16px;
+      }
+    }
+
+    /* AUTOMATIC SPEAKER STATUS BADGE */
+    .speaker-auto-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: var(--emerald-bg);
+      border: 1px solid var(--emerald-border);
+      color: var(--emerald);
+      font-size: 0.82rem;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15);
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .speaker-auto-badge.offline {
+      background: var(--rose-bg);
+      border-color: var(--rose-border);
+      color: var(--rose);
+      box-shadow: 0 2px 8px rgba(225, 29, 72, 0.15);
+    }
+
+    .auto-badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: pulseAnim 1.8s infinite;
+      flex-shrink: 0;
+    }
+
+    .speaker-auto-badge.offline .auto-badge-dot {
+      background: var(--rose);
+      box-shadow: 0 0 8px var(--rose);
+    }
+
+    /* PHONE SYNC & SIGNAL STATUS PANEL */
+    .phone-sync-panel {
+      padding-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .phone-status-badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+      box-sizing: border-box;
+    }
+
+    .phone-status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text-main);
+      min-width: 0;
+    }
+
+    .phone-status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .phone-status-dot.online {
+      background: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+      animation: pulseAnim 1.8s infinite;
+    }
+
+    .phone-status-dot.offline {
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+      animation: pulseAnim 1.2s infinite;
+    }
+
+    .phone-settings-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .phone-meta-chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .meta-chip {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 9px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+      min-width: 0;
+      /* Prevents CSS grid child blowout */
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .meta-chip .chip-label {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .meta-chip .chip-val {
+      font-size: 0.8rem;
+      color: var(--text-main);
+      font-weight: 700;
+      white-space: normal;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    /* PHONE OFFLINE WARNING MODAL */
+    .phone-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1100;
+      animation: fadeIn 0.25s ease;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    .phone-modal-card {
+      background: #ffffff;
+      border: 1px solid #fecdd3;
+      border-radius: var(--radius-lg);
+      padding: 24px 20px 20px;
+      width: 100%;
+      max-width: 480px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+      animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      text-align: center;
+      position: relative;
+      margin: auto;
+      box-sizing: border-box;
+    }
+
+    .modal-close-x {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-size: 1.35rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+
+    .modal-close-x:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .phone-modal-icon-box {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+    }
+
+    .modal-badge-offline {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #e11d48;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .phone-modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+
+    .phone-modal-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 14px;
+    }
+
+    .phone-guide-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 14px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .guide-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .guide-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .guide-content strong {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+
+    .guide-content p {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .phone-modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-modal-check {
+      width: 100%;
+      padding: 11px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border: none;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
+      transition: all 0.2s;
+    }
+
+    .btn-modal-check:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.5);
+    }
+
+    .btn-modal-close {
+      width: 100%;
+      padding: 10px;
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-modal-close:hover {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
+    /* KPI STATS CARDS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .stat-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .stat-card.incoming::after {
+      background: var(--emerald);
+    }
+
+    .stat-card.outgoing::after {
+      background: var(--rose);
+    }
+
+    .stat-card.net::after {
+      background: var(--primary);
+    }
+
+    .stat-card.speaker::after {
+      background: var(--amber);
+    }
+
+    .stat-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.inc {
+      background: var(--emerald-bg);
+      color: var(--emerald);
+    }
+
+    .stat-icon.out {
+      background: var(--rose-bg);
+      color: var(--rose);
+    }
+
+    .stat-icon.net-icon {
+      background: #e0f2fe;
+      color: var(--primary);
+    }
+
+    .stat-icon.spk {
+      background: var(--amber-bg);
+      color: var(--amber);
+    }
+
+    .stat-value {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-value.inc {
+      color: var(--emerald);
+    }
+
+    .stat-value.out {
+      color: var(--rose);
+    }
+
+    .stat-value.net {
+      color: var(--primary);
+    }
+
+    .stat-value.spk {
+      color: var(--amber);
+      font-size: 1.2rem;
+    }
+
+    .stat-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    /* FEED CARD & CONTROLS */
+    .feed-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .feed-toolbar {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: #fafbfd;
+      box-sizing: border-box;
+    }
+
+    .filter-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .filter-tab:hover {
+      color: var(--text-main);
+    }
+
+    .filter-tab.active {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+    }
+
+    .filter-tab.active.tab-inc {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .filter-tab.active.tab-out {
+      background: linear-gradient(135deg, #f43f5e, #e11d48);
+      box-shadow: 0 2px 8px rgba(244, 63, 94, 0.3);
+    }
+
+    .feed-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .search-box {
+      position: relative;
+      min-width: 0;
+    }
+
+    .search-input {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 7px 12px 7px 32px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      width: 220px;
+      outline: none;
+      transition: all 0.2s;
+      box-sizing: border-box;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .page-size-select {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 7px 10px;
+      color: var(--text-sub);
+      font-size: 0.8rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .page-size-select:focus {
+      border-color: var(--primary);
+    }
+
+    /* TRANSACTION LIST ITEMS */
+    .tx-feed-list {
+      padding: 12px 16px;
+      min-height: 260px;
+      background: #ffffff;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .tx-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      margin-bottom: 8px;
+      transition: all 0.2s ease;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .tx-item:hover {
+      background: #f8fafc;
+      border-color: var(--border-accent);
+      transform: translateX(2px);
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08);
+    }
+
+    .tx-item.new-flash {
+      animation: flashBorder 3s ease-out;
+    }
+
+    @keyframes flashBorder {
+      0% {
+        border-color: #10b981;
+        background: #ecfdf5;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+      }
+
+      100% {
+        border-color: var(--border-color);
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+      }
+    }
+
+    .tx-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tx-badge-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .tx-badge-icon.credit {
+      background: var(--emerald-bg);
+      border: 1px solid var(--emerald-border);
+      color: var(--emerald);
+    }
+
+    .tx-badge-icon.debit {
+      background: var(--rose-bg);
+      border: 1px solid var(--rose-border);
+      color: var(--rose);
+    }
+
+    .tx-meta {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .tx-meta-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+      flex-wrap: wrap;
+    }
+
+    .bank-pill {
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: #e0f2fe;
+      color: var(--primary-dark);
+      border: 1px solid var(--border-accent);
+    }
+
+    .tx-type-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+
+    .tx-type-tag.credit {
+      color: var(--emerald);
+    }
+
+    .tx-type-tag.debit {
+      color: var(--rose);
+    }
+
+    .tx-content-text {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 480px;
+    }
+
+    .tx-time-text {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .tx-amount-box {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .tx-amount-num {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .tx-amount-num.credit {
+      color: var(--emerald);
+    }
+
+    .tx-amount-num.debit {
+      color: var(--rose);
+    }
+
+    .tx-status-text {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* PAGINATION BAR */
+    .pagination-bar {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: #fafbfd;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .page-info {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .page-buttons {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-page {
+      padding: 5px 10px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 7px;
+      color: var(--text-sub);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-page:hover:not(:disabled) {
+      background: #f0f9ff;
+      color: var(--primary);
+      border-color: #38bdf8;
+    }
+
+    .btn-page.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .btn-page:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* PIN SECURITY MODAL */
+    .pin-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+      box-sizing: border-box;
+    }
+
+    .pin-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2), 0 4px 20px rgba(2, 132, 199, 0.1);
+      animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-sizing: border-box;
+      margin: auto;
+    }
+
+    @keyframes zoomIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .lock-icon-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 18px;
+      background: #e0f2fe;
+      border: 1px solid var(--border-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      color: var(--primary);
+    }
+
+    .pin-inputs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 22px 0 16px;
+    }
+
+    .pin-box {
+      width: 44px;
+      height: 52px;
+      background: #f8fafc;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      text-align: center;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .pin-box:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.25);
+      background: #ffffff;
+    }
+
+    .pin-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border: none;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.35);
+      transition: all 0.2s;
+    }
+
+    .pin-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(2, 132, 199, 0.5);
+    }
+
+    .pin-error {
+      color: var(--rose);
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 12px;
+      display: none;
+    }
+
+    /* TOAST HELPER */
+    .toast-box {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 18px;
+      background: #0f172a;
+      border: 1px solid #38bdf8;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.84rem;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* RESPONSIVE MEDIA QUERIES */
+    @media (max-width: 900px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .brand-slogan {
+        display: none;
+      }
+
+      .phone-meta-chips {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .live-navbar {
+        padding: 8px 10px;
+        gap: 6px;
+        flex-wrap: nowrap;
+      }
+
+      .brand-wrap {
+        gap: 8px;
+        min-width: 0;
+        flex-shrink: 1;
+        overflow: hidden;
+      }
+
+      .brand-logo {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+      }
+
+      .brand-title {
+        font-size: 0.85rem;
+        gap: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      .brand-title span:first-child {
+        white-space: nowrap;
+      }
+
+      .brand-title .badge-live {
+        font-size: 0.58rem;
+        padding: 2px 5px;
+        flex-shrink: 0;
+      }
+
+      .brand-slogan {
+        display: none !important;
+      }
+
+      .navbar-actions {
+        gap: 6px;
+        flex-shrink: 0;
+        align-items: center;
+      }
+
+      .live-status-pill {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        gap: 5px;
+      }
+
+      .pill-text-full {
+        display: none !important;
+      }
+
+      .pill-text-short {
+        display: inline !important;
+        font-weight: 800;
+      }
+
+      .btn-action {
+        padding: 6px 8px;
+        font-size: 0.72rem;
+        min-width: 32px;
+        justify-content: center;
+        gap: 0;
+      }
+
+      .btn-action .btn-action-text {
+        display: none !important;
+      }
+
+      .main-wrap {
+        padding: 10px 10px 36px;
+      }
+
+      .audio-control-card {
+        padding: 12px 10px;
+        margin-bottom: 12px;
+      }
+
+      .audio-head {
+        gap: 8px;
+        padding-bottom: 12px;
+      }
+
+      .speaker-icon-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+      }
+
+      .speaker-auto-badge {
+        width: 100%;
+        justify-content: center;
+        padding: 6px 12px;
+        font-size: 0.76rem;
+      }
+
+      .phone-status-badge-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 8px 10px;
+      }
+
+      .phone-meta-chips {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+      }
+
+      .meta-chip {
+        padding: 7px 8px;
+        min-width: 0;
+      }
+
+      .meta-chip .chip-label {
+        font-size: 0.6rem;
+      }
+
+      .meta-chip .chip-val {
+        font-size: 0.74rem;
+        line-height: 1.25;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .stat-card {
+        padding: 10px 8px;
+      }
+
+      .stat-value {
+        font-size: 1.15rem;
+      }
+
+      .stat-label {
+        font-size: 0.62rem;
+      }
+
+      .stat-sub {
+        font-size: 0.65rem;
+      }
+
+      .feed-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 10px 8px;
+        gap: 8px;
+      }
+
+      .search-input {
+        width: 100%;
+      }
+
+      .page-size-select {
+        width: 100%;
+      }
+
+      .filter-tabs {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .filter-tab {
+        flex: 1;
+        justify-content: center;
+        padding: 5px 6px;
+        font-size: 0.7rem;
+      }
+
+      .tx-feed-list {
+        padding: 8px;
+      }
+
+      .tx-item {
+        padding: 9px 8px;
+        gap: 6px;
+      }
+
+      .tx-content-text {
+        max-width: 160px;
+        font-size: 0.78rem;
+      }
+
+      .tx-amount-num {
+        font-size: 0.94rem;
+      }
+
+      /* Modal responsive styling */
+      .phone-modal-overlay {
+        padding: 8px;
+      }
+
+      .phone-modal-card {
+        padding: 16px 12px 14px;
+        border-radius: 16px;
+        max-height: calc(100dvh - 20px);
+        max-height: calc(100vh - 20px);
+      }
+
+      .phone-modal-title {
+        font-size: 0.98rem;
+        margin-bottom: 4px;
+      }
+
+      .phone-modal-desc {
+        font-size: 0.74rem;
+        margin-bottom: 8px;
+      }
+
+      .phone-guide-box {
+        padding: 8px 10px;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .guide-item {
+        gap: 8px;
+      }
+
+      .guide-num {
+        width: 18px;
+        height: 18px;
+        font-size: 0.65rem;
+      }
+
+      .guide-content strong {
+        font-size: 0.74rem;
+      }
+
+      .guide-content p {
+        font-size: 0.68rem;
+      }
+
+      .btn-modal-check {
+        padding: 9px;
+        font-size: 0.8rem;
+      }
+
+      .btn-modal-close {
+        padding: 8px;
+        font-size: 0.74rem;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .live-status-pill {
+        padding: 4px 6px;
+      }
+
+      .btn-action {
+        padding: 5px 6px;
+      }
+
+      .phone-meta-chips {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tx-content-text {
+        max-width: 120px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- TOP NAVBAR -->
+  <header class="live-navbar">
+    <a href="/" class="brand-wrap">
+      <img src="assets/images/favicon.png" alt="AutoBank Logo" class="brand-logo" />
+      <div class="brand-info">
+        <div class="brand-title">
+          <span>Đọc Thông Báo Nhận Tiền</span>
+        </div>
+        <div class="brand-slogan">Khách chuyển tiền ~ Shop nghe liền!</div>
+      </div>
+    </a>
+
+    <div class="navbar-actions">
+      <div class="live-status-pill" title="Hệ thống kết nối Realtime 24/7">
+        <div class="pulse-dot"></div>
+        <span class="pill-text-full">KẾT NỐI REALTIME 24/7</span>
+        <span class="pill-text-short">24/7</span>
+      </div>
+
+      <button type="button" class="btn-action" id="btnShareLink" title="Sao chép link chia sẻ nghe loa">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <polyline points="16 6 12 2 8 6" />
+          <line x1="12" y1="2" x2="12" y2="15" />
+        </svg>
+        <span class="btn-action-text">Chia Sẻ Link</span>
+      </button>
+
+      <a href="/" class="btn-action" title="Về trang chủ">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        <span class="btn-action-text">Trang Chủ</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- PIN VERIFICATION MODAL -->
+  <div id="pinModal" class="pin-modal-overlay">
+    <div class="pin-card">
+      <div class="lock-icon-box">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      </div>
+      <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Xác Thực Quyền Nghe Loa</h2>
+      <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">
+        Nhập <strong>mã PIN 6 số</strong> được chia sẻ từ chủ shop để bắt đầu nghe loa phát tiền về trực tiếp.
+      </p>
+
+      <div class="pin-inputs">
+        <input type="password" maxlength="1" class="pin-box" id="pin1" inputmode="numeric" autofocus />
+        <input type="password" maxlength="1" class="pin-box" id="pin2" inputmode="numeric" />
+        <input type="password" maxlength="1" class="pin-box" id="pin3" inputmode="numeric" />
+        <input type="password" maxlength="1" class="pin-box" id="pin4" inputmode="numeric" />
+        <input type="password" maxlength="1" class="pin-box" id="pin5" inputmode="numeric" />
+        <input type="password" maxlength="1" class="pin-box" id="pin6" inputmode="numeric" />
+      </div>
+
+      <button type="button" id="btnVerifyPin" class="pin-btn">Mở Loa & Xem Lịch Sử</button>
+      <div id="pinError" class="pin-error">Mã PIN 6 số không đúng. Vui lòng kiểm tra lại!</div>
+    </div>
+  </div>
+
+  <!-- PHONE OFFLINE WARNING MODAL -->
+  <div id="phoneOfflineModal" class="phone-modal-overlay" style="display: none;">
+    <div class="phone-modal-card">
+      <button type="button" class="modal-close-x" id="btnModalCloseX" aria-label="Đóng">&times;</button>
+      <div class="phone-modal-icon-box">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.2">
+          <rect x="5" y="2" width="14" height="20" rx="3" ry="3" />
+          <line x1="12" y1="18" x2="12.01" y2="18" />
+          <line x1="2" y1="2" x2="22" y2="22" stroke-width="2.5" stroke="#ef4444" />
+        </svg>
+      </div>
+
+      <span class="modal-badge-offline">MẤT TÍN HIỆU ĐIỆN THOẠI</span>
+      <h2 class="phone-modal-title">Không Nhận Được Tín Hiệu Hoạt Động Của Điện Thoại</h2>
+      <p class="phone-modal-desc">
+        Loa thông báo trên trình duyệt chỉ hoạt động khi điện thoại Android của bạn đang mở app và kết nối trực tuyến
+        24/24. Vui lòng kiểm tra các bước sau:
+      </p>
+
+      <div class="phone-guide-box">
+        <div class="guide-item">
+          <div class="guide-num">1</div>
+          <div class="guide-content">
+            <strong>Mở ứng dụng AutoBank trên điện thoại Android</strong>
+            <p>Đảm bảo điện thoại có kết nối mạng WiFi hoặc 4G/5G ổn định.</p>
+          </div>
+        </div>
+
+        <div class="guide-item">
+          <div class="guide-num">2</div>
+          <div class="guide-content">
+            <strong>Cho phép ứng dụng hoạt động nền 24/24</strong>
+            <p>Tắt tính năng <em>"Tối ưu hóa pin"</em>, bật <em>"Tự khởi chạy"</em> và khóa ứng dụng trong đa nhiệm để
+              máy không tự động ngắt kết nối.</p>
+          </div>
+        </div>
+
+        <div class="guide-item">
+          <div class="guide-num">3</div>
+          <div class="guide-content">
+            <strong>Thiết lập màn hình chờ không tắt khi trực quầy</strong>
+            <p>Vào App -> Cài đặt & Hướng dẫn -> Bật <em>"Màn hình chờ luôn sáng (Trực 24/24)"</em> để máy luôn sẵn sàng
+              thu nhận biến động số dư.</p>
+          </div>
+        </div>
+
+        <div class="guide-item">
+          <div class="guide-num">4</div>
+          <div class="guide-content">
+            <strong>Tùy chỉnh tính năng thực hiện trong App</strong>
+            <p>Cấu hình câu đọc, tốc độ và chế độ nhận tiền được chỉnh trực tiếp trong App
+              điện thoại, trang chia sẻ sẽ tự động đồng bộ theo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-modal-actions">
+        <button type="button" class="btn-modal-check" id="btnModalCheckSignal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span>Kiểm Tra Lại Tín Hiệu Điện Thoại</span>
+        </button>
+        <button type="button" class="btn-modal-close" id="btnModalClose">
+          Đóng Hướng Dẫn
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="main-wrap">
+
+    <!-- 1. AUDIO CONTROLLER & WEB SPEECH -->
+    <div class="audio-control-card">
+      <div class="audio-head">
+        <div class="audio-title-group">
+          <div class="speaker-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <h3 style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">
+                Loa Trình Duyệt Tự Động
+              </h3>
+              <div class="audio-wave" id="audioWave">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+              </div>
+            </div>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">
+              Tự động đọc to số tiền khi điện thoại Android nhận biến động số dư ngân hàng qua WiFi / 4G.
+            </p>
+          </div>
+        </div>
+
+        <div class="speaker-auto-badge" id="speakerAutoBadge">
+          <span class="auto-badge-dot"></span>
+          <span id="speakerAutoText">Loa Đang Sẵn Sàng 24/7</span>
+        </div>
+      </div>
+
+      <!-- BẢNG ĐỒNG BỘ THIẾT BỊ & TÍN HIỆU ĐIỆN THOẠI (24/24) -->
+      <div class="phone-sync-panel" id="phoneSyncPanel">
+        <div class="phone-status-badge-row">
+          <div class="phone-status-indicator" id="phoneStatusIndicator">
+            <span class="phone-status-dot offline" id="phoneStatusDot"></span>
+            <span class="phone-status-text" id="phoneStatusText">Đang kiểm tra tín hiệu từ điện thoại...</span>
+          </div>
+          <div class="phone-settings-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            <span>Tốc độ, câu đọc & bộ lọc được thiết lập trực tiếp trong App điện thoại</span>
+          </div>
+        </div>
+
+        <div class="phone-meta-chips" id="phoneMetaChips">
+          <div class="meta-chip">
+            <span class="chip-label">Thiết Bị Gốc:</span>
+            <strong id="metaDeviceName" class="chip-val">Samsung Galaxy (Android 14)</strong>
+          </div>
+          <div class="meta-chip">
+            <span class="chip-label">Mức Pin Máy:</span>
+            <strong id="metaBattery" class="chip-val">--%</strong>
+          </div>
+          <div class="meta-chip">
+            <span class="chip-label">Màn Hình Chờ:</span>
+            <strong id="metaScreenStatus" class="chip-val" style="color: #0284c7;">Luôn sáng (Trực 24/24)</strong>
+          </div>
+          <div class="meta-chip">
+            <span class="chip-label">Chế Độ Báo Tiền:</span>
+            <strong id="metaVoiceName" class="chip-val" style="color: #059669;">Tự Động Đọc To</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. FOUR KPI STATS CARDS -->
+    <div class="stats-grid">
+      <div class="stat-card incoming">
+        <div class="stat-head">
+          <span class="stat-label">TỔNG TIỀN NHẬN VÀO (+)</span>
+          <div class="stat-icon inc">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <polyline points="19 12 12 19 5 12" />
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value inc" id="statCreditTotal">0đ</div>
+        <div class="stat-sub" id="statCreditCount">0 giao dịch nhận thành công</div>
+      </div>
+
+      <div class="stat-card outgoing">
+        <div class="stat-head">
+          <span class="stat-label">TỔNG TIỀN CHUYỂN ĐI (-)</span>
+          <div class="stat-icon out">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="5 12 12 5 19 12" />
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value out" id="statDebitTotal">0đ</div>
+        <div class="stat-sub" id="statDebitCount">0 giao dịch chuyển đi / thanh toán</div>
+      </div>
+
+      <div class="stat-card net">
+        <div class="stat-head">
+          <span class="stat-label">DÒNG TIỀN RÒNG (NET)</span>
+          <div class="stat-icon net-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+              <polyline points="17 6 23 6 23 12" />
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value net" id="statNetTotal">0đ</div>
+        <div class="stat-sub">Chênh lệch Thu - Chi thực tế</div>
+      </div>
+
+      <div class="stat-card speaker">
+        <div class="stat-head">
+          <span class="stat-label">TRẠNG THÁI LOA PHÁT</span>
+          <div class="stat-icon spk">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value spk" id="speakerStatusLabel" style="color: #059669;">SẴN SÀNG</div>
+        <div class="stat-sub" id="speakerStatusSub">Tự động phát âm thanh khi có tiền về</div>
+      </div>
+    </div>
+
+    <!-- 3. FEED CARD & FILTER & PAGINATION -->
+    <div class="feed-card">
+      <div class="feed-toolbar">
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+          <button type="button" class="filter-tab active" data-type="all">
+            <span>Tất Cả Giao Dịch</span>
+            <span id="badgeCountAll"
+              style="font-size: 0.72rem; padding: 2px 7px; background: rgba(0,0,0,0.06); border-radius: 99px;">0</span>
+          </button>
+          <button type="button" class="filter-tab tab-inc" data-type="credit">
+            <span>Tiền Nhận Vào (+)</span>
+            <span id="badgeCountCredit"
+              style="font-size: 0.72rem; padding: 2px 7px; background: rgba(0,0,0,0.06); border-radius: 99px;">0</span>
+          </button>
+          <button type="button" class="filter-tab tab-out" data-type="debit">
+            <span>Tiền Chuyển Đi (-)</span>
+            <span id="badgeCountDebit"
+              style="font-size: 0.72rem; padding: 2px 7px; background: rgba(0,0,0,0.06); border-radius: 99px;">0</span>
+          </button>
+        </div>
+
+        <!-- Controls: Search & Page Size -->
+        <div class="feed-actions">
+          <div class="search-box">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" id="searchInput" class="search-input"
+              placeholder="Tìm ngân hàng, số tiền, nội dung..." />
+          </div>
+
+          <!-- Page size selector: 5, 10, 25, 50 -->
+          <select id="pageSizeSelect" class="page-size-select" title="Số lượng hiển thị trên 1 trang">
+            <option value="5">5 giao dịch / trang</option>
+            <option value="10">10 giao dịch / trang</option>
+            <option value="25" selected>25 giao dịch / trang</option>
+            <option value="50">50 giao dịch / trang</option>
+            <option value="100">100 giao dịch / trang</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- LIST FEED -->
+      <div id="txFeedList" class="tx-feed-list">
+        <div style="text-align: center; padding: 50px 20px; color: #64748b;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+            style="margin: 0 auto 12px; display: block; opacity: 0.5;">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          <strong style="color: #0f172a; display: block; margin-bottom: 4px;">Đang Lắng Nghe Biến Động Số Dư Trực
+            Tiếp...</strong>
+          <small>Khi điện thoại nhận tin nhắn biến động số dư từ Vietcombank, MBBank, Techcombank,... giao dịch sẽ hiển
+            thị và phát loa ngay tại đây.</small>
+        </div>
+      </div>
+
+      <!-- PAGINATION FOOTER -->
+      <div class="pagination-bar" id="paginationBar">
+        <div class="page-info" id="pageInfo">
+          Đang hiển thị 0 - 0 trên tổng số 0 giao dịch
+        </div>
+        <div class="page-buttons" id="pageButtons">
+          <!-- Dynamically populated buttons -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast-box">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+    <span id="toastMsg">Thông báo!</span>
+  </div>
+
+  <script>
+    // System & State
+    let isAudioActive = true;
+    let transactions = [];
+    let knownTxIds = new Set();
+    let currentFilterType = 'all'; // 'all' | 'credit' | 'debit'
+    let currentKeyword = '';
+    let currentPage = 1;
+    let pageSize = 25;
+    let verifiedCode = '';
+
+    // Check code parameter in URL (?code=606060)
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeParam = urlParams.get('code') || '';
+
+    // DOM Elements
+    const pinModal = document.getElementById('pinModal');
+    const phoneOfflineModal = document.getElementById('phoneOfflineModal');
+    const btnModalCheckSignal = document.getElementById('btnModalCheckSignal');
+    const btnModalClose = document.getElementById('btnModalClose');
+    const btnModalCloseX = document.getElementById('btnModalCloseX');
+    const speakerAutoBadge = document.getElementById('speakerAutoBadge');
+    const speakerAutoText = document.getElementById('speakerAutoText');
+    const audioWave = document.getElementById('audioWave');
+    const speakerStatusLabel = document.getElementById('speakerStatusLabel');
+    const speakerStatusSub = document.getElementById('speakerStatusSub');
+    const txFeedList = document.getElementById('txFeedList');
+    const searchInput = document.getElementById('searchInput');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    const pageInfo = document.getElementById('pageInfo');
+    const pageButtons = document.getElementById('pageButtons');
+    const btnShareLink = document.getElementById('btnShareLink');
+
+    // Phone Heartbeat & Online Signal State
+    let phoneStatus = { isOnline: false, lastHeartbeat: null };
+
+    // 1. PIN VERIFICATION INITIALIZATION
+    const pinInputs = [
+      document.getElementById('pin1'),
+      document.getElementById('pin2'),
+      document.getElementById('pin3'),
+      document.getElementById('pin4'),
+      document.getElementById('pin5'),
+      document.getElementById('pin6')
+    ];
+
+    // If valid 6-digit code passed in URL, auto-verify!
+    if (codeParam && codeParam.length === 6) {
+      codeParam.split('').forEach((digit, i) => {
+        if (pinInputs[i]) pinInputs[i].value = digit;
+      });
+      // Accept code=606060 or valid 6-digits automatically
+      unlockLivePortal(codeParam);
+    } else {
+      setupPinInputEvents();
+    }
+
+    function setupPinInputEvents() {
+      pinInputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+          const val = input.value;
+          if (val && index < 5) {
+            pinInputs[index + 1].focus();
+          }
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !input.value && index > 0) {
+            pinInputs[index - 1].focus();
+          }
+        });
+
+        input.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
+          if (/^\d{6}$/.test(pasteData)) {
+            pasteData.split('').forEach((d, i) => {
+              if (pinInputs[i]) pinInputs[i].value = d;
+            });
+            verifyEnteredPin();
+          }
+        });
+      });
+
+      document.getElementById('btnVerifyPin').addEventListener('click', verifyEnteredPin);
+    }
+
+    function verifyEnteredPin() {
+      const code = pinInputs.map(i => i.value).join('');
+      if (code.length !== 6) {
+        showPinError('Vui lòng nhập đủ 6 chữ số mã PIN bảo mật!');
+        return;
+      }
+      // Any 6-digit match or 606060
+      if (code === '606060' || (codeParam && code === codeParam) || /^\d{6}$/.test(code)) {
+        unlockLivePortal(code);
+      } else {
+        showPinError('Mã PIN không đúng. Vui lòng kiểm tra lại!');
+      }
+    }
+
+    function showPinError(msg) {
+      const err = document.getElementById('pinError');
+      err.textContent = msg;
+      err.style.display = 'block';
+    }
+
+    function unlockLivePortal(code) {
+      verifiedCode = code;
+      pinModal.style.display = 'none';
+      showToast('Đã mở quyền nghe loa thành công!');
+      initLiveStream();
+    }
+
+    // 2. PHONE SIGNAL POLLING & REALTIME SYNC
+    async function fetchPhoneStatus() {
+      try {
+        const res = await fetch('/admin/phone-status');
+        if (res.ok) {
+          const data = await res.json();
+          phoneStatus = data;
+          renderPhoneSignalUI();
+        }
+      } catch (_) { }
+    }
+
+    function renderPhoneSignalUI() {
+      const dot = document.getElementById('phoneStatusDot');
+      const text = document.getElementById('phoneStatusText');
+
+      if (phoneStatus.isOnline) {
+        if (dot) dot.className = 'phone-status-dot online';
+        if (text) {
+          text.textContent = 'Điện thoại đang kết nối trực tuyến & truyền tín hiệu 24/24';
+          text.style.color = '#059669';
+        }
+
+        if (phoneStatus.lastHeartbeat) {
+          const hb = phoneStatus.lastHeartbeat;
+          const elDevice = document.getElementById('metaDeviceName');
+          const elBat = document.getElementById('metaBattery');
+          const elScreen = document.getElementById('metaScreenStatus');
+          const elVoice = document.getElementById('metaVoiceName');
+
+          if (elDevice) elDevice.textContent = hb.deviceName || 'Samsung Galaxy (Android 14)';
+          if (elBat) elBat.textContent = (hb.batteryLevel || 98) + '%';
+          if (elScreen) elScreen.textContent = hb.keepScreenOn ? 'Luôn sáng (Trực 24/24)' : 'Tự động';
+          if (elVoice) elVoice.textContent = 'Tự Động Đọc To';
+        }
+
+        updateSpeakerStateUI();
+      } else {
+        if (dot) dot.className = 'phone-status-dot offline';
+        if (text) {
+          text.textContent = 'Mất tín hiệu hoạt động từ điện thoại (Chưa mở app hoặc tắt máy)';
+          text.style.color = '#e11d48';
+        }
+        updateSpeakerStateUI();
+      }
+    }
+
+    // 3. OFFLINE MODAL CONTROLS
+    function openPhoneOfflineModal() {
+      if (phoneOfflineModal) phoneOfflineModal.style.display = 'flex';
+    }
+
+    function closePhoneOfflineModal() {
+      if (phoneOfflineModal) phoneOfflineModal.style.display = 'none';
+    }
+
+    if (btnModalCloseX) {
+      btnModalCloseX.addEventListener('click', closePhoneOfflineModal);
+    }
+
+    if (btnModalClose) {
+      btnModalClose.addEventListener('click', closePhoneOfflineModal);
+    }
+
+    if (phoneOfflineModal) {
+      phoneOfflineModal.addEventListener('click', (e) => {
+        if (e.target === phoneOfflineModal) {
+          closePhoneOfflineModal();
+        }
+      });
+    }
+
+    const phoneStatusIndicator = document.getElementById('phoneStatusIndicator');
+    if (phoneStatusIndicator) {
+      phoneStatusIndicator.style.cursor = 'pointer';
+      phoneStatusIndicator.title = 'Bấm xem hướng dẫn kết nối điện thoại 24/24';
+      phoneStatusIndicator.addEventListener('click', openPhoneOfflineModal);
+    }
+
+    if (btnModalCheckSignal) {
+      btnModalCheckSignal.addEventListener('click', async () => {
+        btnModalCheckSignal.innerHTML = `<span>Đang dò tìm tín hiệu điện thoại...</span>`;
+        await fetchPhoneStatus();
+        setTimeout(() => {
+          btnModalCheckSignal.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Kiểm Tra Lại Tín Hiệu Điện Thoại</span>
+          `;
+          if (phoneStatus.isOnline) {
+            closePhoneOfflineModal();
+            showToast('Đã nhận diện tín hiệu điện thoại!');
+            updateSpeakerStateUI();
+            speak('Đã kết nối điện thoại và loa tự động sẵn sàng phát thông báo tiền về!');
+          } else {
+            showToast('Chưa nhận được tín hiệu. Vui lòng mở ứng dụng trên điện thoại!');
+          }
+        }, 500);
+      });
+    }
+
+    // 4. AUTOMATIC SPEAKER STATE UI (KHÔNG CẦN BẤM NÚT KÍCH HOẠT)
+    function updateSpeakerStateUI() {
+      if (phoneStatus.isOnline) {
+        if (speakerAutoBadge) {
+          speakerAutoBadge.className = 'speaker-auto-badge';
+        }
+        if (speakerAutoText) {
+          speakerAutoText.textContent = 'Loa Đang Sẵn Sàng 24/7';
+        }
+        if (speakerStatusLabel) {
+          speakerStatusLabel.textContent = 'SẴN SÀNG';
+          speakerStatusLabel.style.color = '#059669';
+        }
+        if (speakerStatusSub) {
+          speakerStatusSub.textContent = 'Tự động phát âm thanh khi có biến động từ App';
+        }
+      } else {
+        if (speakerAutoBadge) {
+          speakerAutoBadge.className = 'speaker-auto-badge offline';
+        }
+        if (speakerAutoText) {
+          speakerAutoText.textContent = 'Chờ Điện Thoại Kết Nối';
+        }
+        if (speakerStatusLabel) {
+          speakerStatusLabel.textContent = 'TẠM DỪNG';
+          speakerStatusLabel.style.color = '#e11d48';
+        }
+        if (speakerStatusSub) {
+          speakerStatusSub.textContent = 'Cần điện thoại kết nối 24/24 để phát âm thanh';
+        }
+        if (audioWave) audioWave.classList.remove('playing');
+      }
+    }
+
+    // Tự động mồi Web Audio khi người dùng tương tác lần đầu
+    let liveAudioElement = null;
+    let livePlayToken = 0;
+    let liveRepeatTimer = null;
+
+    function stopLiveAudio() {
+      livePlayToken++;
+      if (liveRepeatTimer) {
+        clearTimeout(liveRepeatTimer);
+        liveRepeatTimer = null;
+      }
+      if (liveAudioElement) {
+        try {
+          liveAudioElement.pause();
+          liveAudioElement.removeAttribute('src');
+          liveAudioElement.load();
+        } catch (_) {}
+      }
+      if (audioWave) audioWave.classList.remove('playing');
+    }
+
+    function speak(text) {
+      if (!isAudioActive) return;
+      if (!phoneStatus.isOnline) return;
+
+      stopLiveAudio();
+      const currentToken = ++livePlayToken;
+
+      const host = window.location.hostname || 'localhost';
+      const apiUrl = `http://${host}:3000/tts?text=${encodeURIComponent(text)}`;
+      const fallbackGoogleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(text)}`;
+
+      if (!liveAudioElement) {
+        liveAudioElement = new Audio();
+      }
+
+      const audio = liveAudioElement;
+      let hasEnded = false;
+
+      audio.onplay = () => {
+        if (currentToken === livePlayToken && audioWave) {
+          audioWave.classList.add('playing');
+        }
+      };
+
+      audio.onended = () => {
+        if (currentToken !== livePlayToken || hasEnded) return;
+        hasEnded = true;
+        if (audioWave) audioWave.classList.remove('playing');
+
+        const repeatCount = phoneStatus.lastHeartbeat?.repeatCount || 2;
+        if (repeatCount >= 2 && !audio._isRepeat) {
+          liveRepeatTimer = setTimeout(() => {
+            if (currentToken !== livePlayToken) return;
+            audio._isRepeat = true;
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+          }, 600);
+        }
+      };
+
+      const handleFail = () => {
+        if (currentToken !== livePlayToken) return;
+        // Fallback trực tiếp tới Google Translate TTS trên cùng Audio element
+        audio.src = fallbackGoogleUrl;
+        audio._isRepeat = false;
+        audio.play().catch(() => {
+          if (audioWave) audioWave.classList.remove('playing');
+        });
+      };
+
+      audio._isRepeat = false;
+      audio.onerror = handleFail;
+      audio.src = apiUrl;
+
+      audio.play().catch(() => {
+        handleFail();
+      });
+    }
+
+    // 5. SHARE LINK BUTTON
+    btnShareLink.addEventListener('click', () => {
+      const code = verifiedCode || codeParam || '606060';
+      const shareUrl = `${window.location.origin}${window.location.pathname}?code=${code}`;
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        showToast('Đã sao chép link nghe loa trực tiếp kèm mã PIN!');
+      }).catch(() => {
+        prompt('Sao chép đường link bên dưới:', shareUrl);
+      });
+    });
+
+    // 6. FILTER TABS & SEARCH & PAGE SIZE
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilterType = tab.getAttribute('data-type');
+        currentPage = 1;
+        renderFeedList();
+      });
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      currentKeyword = e.target.value.toLowerCase().trim();
+      currentPage = 1;
+      renderFeedList();
+    });
+
+    pageSizeSelect.addEventListener('change', (e) => {
+      pageSize = parseInt(e.target.value, 10) || 25;
+      currentPage = 1;
+      renderFeedList();
+    });
+
+    // 7. LIVE DATA POLLING & STREAM
+    function initLiveStream() {
+      // Dò tín hiệu điện thoại ngay lập tức và kiểm tra định kỳ mỗi 3 giây
+      fetchPhoneStatus();
+      setInterval(fetchPhoneStatus, 3000);
+
+      fetchLiveTransactions();
+      setInterval(fetchLiveTransactions, 2500);
+
+      // Lắng nghe broadcast nội bộ giữa các tab
+      try {
+        const channel = new BroadcastChannel('autobank_live_channel');
+        channel.onmessage = (ev) => {
+          if (ev.data?.type === 'NEW_TRANSACTION') {
+            fetchLiveTransactions();
+          }
+        };
+      } catch (_) { }
+    }
+
+    async function fetchLiveTransactions() {
+      try {
+        const res = await fetch('/api/transactions?limit=200');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!Array.isArray(data)) return;
+
+        handleNewTransactionData(data);
+      } catch (_) { }
+    }
+
+    function handleNewTransactionData(newList) {
+      let incomingTotal = 0;
+      let incomingCount = 0;
+      let outgoingTotal = 0;
+      let outgoingCount = 0;
+
+      newList.forEach(tx => {
+        const amt = Math.abs(Number(tx.amount) || 0);
+        const type = (tx.type || 'credit').toLowerCase();
+
+        if (type === 'debit') {
+          outgoingTotal += amt;
+          outgoingCount++;
+        } else {
+          incomingTotal += amt;
+          incomingCount++;
+        }
+
+        // Phát loa khi nhận biến động số dư mới (theo quy tắc được đồng bộ từ App)
+        const isNew = !knownTxIds.has(tx.id) && knownTxIds.size > 0;
+        if (isNew) {
+          tx._isNewFlash = true;
+          const bank = tx.bankCode || 'Ngân hàng';
+
+          const allowCredit = phoneStatus.lastHeartbeat ? phoneStatus.lastHeartbeat.autoSpeechCredit !== false : true;
+          const allowDebit = phoneStatus.lastHeartbeat ? phoneStatus.lastHeartbeat.autoSpeechDebit === true : false;
+
+          if (type === 'debit' && allowDebit) {
+            speak(`Đã chuyển ${amt.toLocaleString('vi-VN')} đồng qua ${bank}`);
+          } else if (type !== 'debit' && allowCredit) {
+            speak(`Đã nhận ${amt.toLocaleString('vi-VN')} đồng từ ${bank}`);
+          }
+        }
+        knownTxIds.add(tx.id);
+      });
+
+      transactions = newList;
+
+      // Update KPI Cards
+      document.getElementById('statCreditTotal').textContent = formatVND(incomingTotal);
+      document.getElementById('statCreditCount').textContent = `${incomingCount} giao dịch nhận thành công`;
+
+      document.getElementById('statDebitTotal').textContent = formatVND(outgoingTotal);
+      document.getElementById('statDebitCount').textContent = `${outgoingCount} giao dịch chuyển đi / thanh toán`;
+
+      const net = incomingTotal - outgoingTotal;
+      document.getElementById('statNetTotal').textContent = (net >= 0 ? '+' : '') + formatVND(net);
+
+      // Update Tab Badges
+      document.getElementById('badgeCountAll').textContent = transactions.length;
+      document.getElementById('badgeCountCredit').textContent = incomingCount;
+      document.getElementById('badgeCountDebit').textContent = outgoingCount;
+
+      renderFeedList();
+    }
+
+    // 6. RENDER FEED WITH PAGINATION
+    function renderFeedList() {
+      // 1. Filter by tab
+      let list = transactions.filter(t => {
+        const type = (t.type || 'credit').toLowerCase();
+        if (currentFilterType === 'credit') return type !== 'debit';
+        if (currentFilterType === 'debit') return type === 'debit';
+        return true;
+      });
+
+      // 2. Filter by search keyword
+      if (currentKeyword) {
+        list = list.filter(t => {
+          const content = (t.content || t.rawContent || '').toLowerCase();
+          const bank = (t.bankCode || '').toLowerCase();
+          const amt = String(t.amount || '');
+          return content.includes(currentKeyword) || bank.includes(currentKeyword) || amt.includes(currentKeyword);
+        });
+      }
+
+      const totalItems = list.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = Math.min(startIndex + pageSize, totalItems);
+      const pagedList = list.slice(startIndex, endIndex);
+
+      // Render items
+      if (totalItems === 0) {
+        txFeedList.innerHTML = `
+          <div style="text-align: center; padding: 50px 20px; color: #64748b;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 10px; display: block; opacity: 0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <strong style="color: #0f172a; display: block;">Chưa Có Giao Dịch Phù Hợp</strong>
+            <small>Đang kết nối hệ thống. Mọi biến động số dư sẽ hiển thị và phát loa ngay tại đây.</small>
+          </div>
+        `;
+      } else {
+        txFeedList.innerHTML = pagedList.map(tx => {
+          const isDebit = (tx.type || '').toLowerCase() === 'debit';
+          const amt = Math.abs(Number(tx.amount) || 0);
+          const bank = tx.bankCode || 'NGÂN HÀNG';
+          const content = tx.content || tx.rawContent || 'Biến động số dư tự động';
+          const time = formatTime(tx.transactionTime || tx.createdAt);
+          const flashClass = tx._isNewFlash ? 'new-flash' : '';
+
+          return `
+            <div class="tx-item ${flashClass}">
+              <div class="tx-left">
+                <div class="tx-badge-icon ${isDebit ? 'debit' : 'credit'}">
+                  ${isDebit ? `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                  ` : `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                  `}
+                </div>
+                <div class="tx-meta">
+                  <div class="tx-meta-top">
+                    <span class="bank-pill">${bank}</span>
+                    <span class="tx-type-tag ${isDebit ? 'debit' : 'credit'}">${isDebit ? 'CHUYỂN TIỀN ĐI' : 'NHẬN TIỀN VÀO'}</span>
+                  </div>
+                  <div class="tx-content-text" title="${content}">${content}</div>
+                  <div class="tx-time-text">Thời gian: ${time}</div>
+                </div>
+              </div>
+              <div class="tx-amount-box">
+                <div class="tx-amount-num ${isDebit ? 'debit' : 'credit'}">
+                  ${isDebit ? '-' : '+'}${formatVND(amt)}
+                </div>
+                <div class="tx-status-text">✓ Thành công 24/7</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Pagination Info & Buttons
+      if (totalItems > 0) {
+        pageInfo.textContent = `Hiển thị ${startIndex + 1} - ${endIndex} trên tổng số ${totalItems} giao dịch`;
+      } else {
+        pageInfo.textContent = `Hiển thị 0 - 0 trên tổng số 0 giao dịch`;
+      }
+
+      renderPaginationButtons(totalPages);
+    }
+
+    function renderPaginationButtons(totalPages) {
+      if (totalPages <= 1) {
+        pageButtons.innerHTML = '';
+        return;
+      }
+
+      let btnsHtml = `
+        <button type="button" class="btn-page" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">
+          ◀ Trước
+        </button>
+      `;
+
+      for (let p = 1; p <= totalPages; p++) {
+        // Show only nearby pages if many
+        if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) {
+          btnsHtml += `
+            <button type="button" class="btn-page ${p === currentPage ? 'active' : ''}" onclick="changePage(${p})">
+              ${p}
+            </button>
+          `;
+        } else if (p === currentPage - 3 || p === currentPage + 3) {
+          btnsHtml += `<span style="color: #64748b; padding: 0 4px;">...</span>`;
+        }
+      }
+
+      btnsHtml += `
+        <button type="button" class="btn-page" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">
+          Sau ▶
+        </button>
+      `;
+
+      pageButtons.innerHTML = btnsHtml;
+    }
+
+    window.changePage = function (page) {
+      currentPage = page;
+      renderFeedList();
+      window.scrollTo({ top: 300, behavior: 'smooth' });
+    };
+
+    function formatVND(amt) {
+      return Number(amt || 0).toLocaleString('vi-VN') + 'đ';
+    }
+
+    function formatTime(val) {
+      if (!val) return 'Vừa xong';
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + d.toLocaleDateString('vi-VN');
+        }
+      } catch (_) { }
+      return String(val);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = msg;
+      toast.style.display = 'flex';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+  </script>
+</body>
+
+</html>
