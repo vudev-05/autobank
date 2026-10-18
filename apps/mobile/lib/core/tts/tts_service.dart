@@ -12,6 +12,7 @@ class TtsService {
 
   final FlutterTts _flutterTts = FlutterTts();
   bool _isInitialized = false;
+  bool _isInitializing = false;
   bool isEnabled = true;
 
   // Trạng thái nhắc lại 2 lần (khi có thông báo sẽ đọc 1 lần và nhắc lại)
@@ -102,7 +103,8 @@ class TtsService {
   String get currentVoiceId => _currentVoiceId;
 
   Future<void> init() async {
-    if (_isInitialized) return;
+    if (_isInitialized || _isInitializing) return;
+    _isInitializing = true;
     try {
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -111,9 +113,6 @@ class TtsService {
         }
       } catch (_) {}
       await loadScheduleSettings();
-      try {
-        await _flutterTts.setEngine('com.google.android.tts');
-      } catch (_) {}
       try {
         await _flutterTts.setLanguage('vi-VN');
       } catch (_) {}
@@ -126,7 +125,9 @@ class TtsService {
         await _applyAcoustics();
       } catch (_) {}
       _isInitialized = true;
-    } catch (_) {}
+    } catch (_) {} finally {
+      _isInitializing = false;
+    }
   }
 
   /// Tự động dò tìm các gói giọng đọc Tiếng Việt Chị Google trên thiết bị
