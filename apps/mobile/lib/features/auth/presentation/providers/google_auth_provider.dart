@@ -420,6 +420,8 @@ class GoogleAuthProvider extends ChangeNotifier {
     final String shopName;
     final String phone;
     final String? boundDeviceId;
+    final bool isTrialStarted;
+    final bool hasUsedTrial;
 
     if (backendUser != null) {
       if (backendUser['status'] == 'BLOCKED') {
@@ -434,8 +436,8 @@ class GoogleAuthProvider extends ChangeNotifier {
 
       packagePlan = (backendUser['packagePlan'] ?? 'Chưa kích hoạt gói').toString();
       final backendStatus = (backendUser['status'] ?? 'PENDING_PLAN').toString().toUpperCase();
-      final bool hasUsedTrial = backendUser['hasUsedTrial'] == true || (packagePlan != 'Chưa kích hoạt gói' && packagePlan != 'Chưa đăng ký gói' && !packagePlan.contains('Dùng thử'));
-      final bool isTrialStarted = backendUser['hasUsedTrial'] == true || (hasUsedTrial && packagePlan.contains('Dùng thử'));
+      hasUsedTrial = backendUser['hasUsedTrial'] == true || (packagePlan != 'Chưa kích hoạt gói' && packagePlan != 'Chưa đăng ký gói' && !packagePlan.contains('Dùng thử'));
+      isTrialStarted = backendUser['hasUsedTrial'] == true || (hasUsedTrial && packagePlan.contains('Dùng thử'));
       final isNewUserWithoutPlan = packagePlan == 'Chưa kích hoạt gói' || packagePlan == 'Chưa đăng ký gói' || !hasUsedTrial;
       isActivated = backendStatus == 'ACTIVE' && !isNewUserWithoutPlan;
       createdAt = DateTime.tryParse('${backendUser['createdAt']}') ?? DateTime.now();
@@ -457,6 +459,8 @@ class GoogleAuthProvider extends ChangeNotifier {
       shopName = 'Cửa hàng $name';
       phone = '';
       boundDeviceId = _currentDeviceId;
+      hasUsedTrial = false;
+      isTrialStarted = false;
     }
 
     final realAcc = GoogleUserAccount(
@@ -468,8 +472,8 @@ class GoogleAuthProvider extends ChangeNotifier {
       phone: phone,
       boundDeviceId: boundDeviceId,
       createdAt: createdAt,
-      isTrialStarted: backendUser != null ? isTrialStarted : false,
-      hasUsedTrial: backendUser != null ? hasUsedTrial : false,
+      isTrialStarted: isTrialStarted,
+      hasUsedTrial: hasUsedTrial,
       isActivated: isActivated,
       isLifetime: packagePlan.contains('Vĩnh Viễn') || packagePlan.toLowerCase().contains('lifetime'),
       activePackageName: packagePlan,

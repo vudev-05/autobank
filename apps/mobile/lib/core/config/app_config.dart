@@ -7,6 +7,10 @@ class AppConfig {
   static const int apiPort = 3000;
   static const int webPort = 5173;
 
+  /// Tên miền chính thức của hệ thống AutoBank Production
+  static const String productionApiBaseUrl = 'https://api.docthongbaobank.com';
+  static const String productionWebBaseUrl = 'https://docthongbaobank.com';
+
   /// Cho phép cập nhật động từ Cấu hình Tên Miền trên Web Admin
   static String? _dynamicApiBaseUrl;
   static String? _dynamicWebBaseUrl;
@@ -23,21 +27,13 @@ class AppConfig {
   /// Lấy Base URL của NestJS API tuỳ theo nền tảng đang chạy hoặc tên miền cấu hình động
   static String get apiBaseUrl {
     if (kIsWeb) {
-      // Khi chạy Flutter Web trên cùng máy tính, luôn trỏ về backend local
       return 'http://localhost:$apiPort';
     }
     if (_dynamicApiBaseUrl != null && _dynamicApiBaseUrl!.isNotEmpty) {
       return _dynamicApiBaseUrl!;
     }
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        // Chạy trên điện thoại thật dùng IP LAN
-        return 'http://$serverHost:$apiPort';
-      case TargetPlatform.iOS:
-        return 'http://$serverHost:$apiPort';
-      default:
-        return 'http://localhost:$apiPort';
-    }
+    // Mặc định kết nối thẳng tới VPS production chính thức
+    return productionApiBaseUrl;
   }
 
   /// Web URL để tạo link chia sẻ đơn hàng / live sync
@@ -48,7 +44,7 @@ class AppConfig {
     if (_dynamicWebBaseUrl != null && _dynamicWebBaseUrl!.isNotEmpty) {
       return _dynamicWebBaseUrl!;
     }
-    return 'http://$serverHost:$webPort';
+    return productionWebBaseUrl;
   }
 
   /// Google Web Client ID (dùng để yêu cầu idToken từ Google Sign-In SDK)
@@ -57,5 +53,5 @@ class AppConfig {
 
   /// Google Android Client ID (dành riêng cho ứng dụng Android)
   static const String googleAndroidClientId =
-      '326124862102-mbibb162b8dp9fnoqij6ms3k3ba6mc71.apps.googleusercontent.com';
+      '326124862102-nmmicgns6ioajr2f07hjsb79fqc8slm7.apps.googleusercontent.com';
 }
