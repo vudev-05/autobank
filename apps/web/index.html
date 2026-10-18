@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Đọc thông báo nhận tiền — Loa báo tiền tự động 65+ Ngân hàng & Ví điện tử</title>
+  <title>Đọc Thông Báo Nhận Tiền — Loa Báo Tiền Tự Động 65+ Ngân Hàng & Ví Điện Tử</title>
   <meta name="description"
     content="Đọc thông báo nhận tiền bằng giọng nói tiếng Việt tự động cho Vietcombank, Techcombank, MBBank, BIDV, MoMo, ZaloPay... Loa báo biến động số dư tức thì cho shop, quán và hộ kinh doanh." />
   <meta name="keywords"
@@ -370,7 +370,7 @@
               <div class="seo-hero-v2__stats-card" style="border-color: #bae6fd; background: rgba(255,255,255,0.95);">
                 <div id="seo-play-stats" class="seo-play-stats" aria-label="Thống kê ứng dụng">
                   <div class="seo-play-stat">
-                    <span class="seo-play-stat-value" style="color: #0284c7;">50.000+</span>
+                    <span class="seo-play-stat-value" style="color: #0284c7;">100.000+</span>
                     <span class="seo-play-stat-label">Chủ shop tin dùng</span>
                   </div>
                   <div class="seo-play-stat">
@@ -498,17 +498,50 @@
             </span>
             <h2 class="ab-voice-sim-title" style="color: #0f172a;">Nghe thử Loa Đọc Thông Báo Nhận Tiền</h2>
             <p class="ab-voice-sim-desc">
-              Thử nghiệm âm thanh chuông ting-ting kết hợp giọng đọc tiếng Việt đọc to chính xác số tiền chuyển khoản
-              như khi bạn đang bán hàng tại quầy thực tế!
+              Trải nghiệm giọng đọc tiếng Việt siêu tốc (0ms), hỗ trợ đầy đủ các kịch bản đọc báo nhận tiền (+) hoặc trừ tiền (-) tùy biến như trong App!
             </p>
           </div>
 
+          <!-- App-Like 2-Tab Selector: Nhận Tiền vs Trừ Tiền (Giống 100% Mobile App) -->
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; background: #e2e8f0; padding: 4px; border-radius: 12px; gap: 4px; max-width: 480px; margin: 0 auto 18px;">
+              <button type="button" id="ab-voice-mode-credit" class="ab-voice-mode-btn active" style="flex: 1; padding: 10px 14px; border-radius: 9px; border: none; font-weight: 800; font-size: 0.92rem; cursor: pointer; transition: all 0.2s; background: #0284c7; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);">
+                <span style="font-size: 1rem;">🟢</span> Nhận Tiền (Tiền Vào)
+              </button>
+              <button type="button" id="ab-voice-mode-debit" class="ab-voice-mode-btn" style="flex: 1; padding: 10px 14px; border-radius: 9px; border: none; font-weight: 700; font-size: 0.92rem; cursor: pointer; transition: all 0.2s; background: transparent; color: #475569; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <span style="font-size: 1rem;">🔴</span> Trừ Tiền (Tiền Ra)
+              </button>
+            </div>
+
+            <!-- Reading Presets from App -->
+            <label style="display: block; font-weight: 800; font-size: 0.9rem; color: #0f172a; margin-bottom: 8px;">Kịch bản đọc mẫu (Chuẩn App AutoBank):</label>
+            <div class="ab-voice-presets-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px;">
+              <button type="button" class="ab-voice-preset-chip active" data-preset="BANK_STANDARD" style="padding: 10px 12px; border: 1.5px solid #0284c7; background: #f0f9ff; border-radius: 12px; font-weight: 700; font-size: 0.82rem; color: #0369a1; cursor: pointer; text-align: left; transition: all 0.2s;">
+                <span style="display: block; font-size: 0.9rem;">🏦 Chuẩn ngân hàng</span>
+                <small style="color: #64748b; font-size: 0.72rem; font-weight: 500;">Ting + Đã nhận + Tiền + Ngân hàng</small>
+              </button>
+              <button type="button" class="ab-voice-preset-chip" data-preset="STORE_POLITE" style="padding: 10px 12px; border: 1.5px solid #e2e8f0; background: #fff; border-radius: 12px; font-weight: 700; font-size: 0.82rem; color: #334155; cursor: pointer; text-align: left; transition: all 0.2s;">
+                <span style="display: block; font-size: 0.9rem;">🏪 Bán hàng lịch sự</span>
+                <small style="color: #64748b; font-size: 0.72rem; font-weight: 500;">Ting + Tiền + Cảm ơn quý khách</small>
+              </button>
+              <button type="button" class="ab-voice-preset-chip" data-preset="FAST_RUSH" style="padding: 10px 12px; border: 1.5px solid #e2e8f0; background: #fff; border-radius: 12px; font-weight: 700; font-size: 0.82rem; color: #334155; cursor: pointer; text-align: left; transition: all 0.2s;">
+                <span style="display: block; font-size: 0.9rem;">⚡ Siêu nhanh cao điểm</span>
+                <small style="color: #64748b; font-size: 0.72rem; font-weight: 500;">Chỉ đọc số tiền tức thì (0ms)</small>
+              </button>
+              <button type="button" class="ab-voice-preset-chip" data-preset="FULL_RECONCILE" style="padding: 10px 12px; border: 1.5px solid #e2e8f0; background: #fff; border-radius: 12px; font-weight: 700; font-size: 0.82rem; color: #334155; cursor: pointer; text-align: left; transition: all 0.2s;">
+                <span style="display: block; font-size: 0.9rem;">📋 Đối soát chi tiết</span>
+                <small style="color: #64748b; font-size: 0.72rem; font-weight: 500;">Đầy đủ chuông, ngân hàng, mã đơn</small>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bank & Amount Selectors -->
           <div class="ab-voice-controls-grid">
             <div class="ab-voice-field">
               <label for="ab-voice-bank-select">Chọn ngân hàng / ví thử nghiệm:</label>
               <select id="ab-voice-bank-select" class="ab-voice-select">
-                <option value="Vietcombank">Vietcombank</option>
                 <option value="Techcombank" selected>Techcombank</option>
+                <option value="Vietcombank">Vietcombank</option>
                 <option value="MB Bank">MBBank</option>
                 <option value="BIDV">BIDV</option>
                 <option value="VietinBank">VietinBank</option>
@@ -523,23 +556,84 @@
             </div>
 
             <div class="ab-voice-field">
-              <label for="ab-voice-amount-input">Số tiền nhận (VNĐ):</label>
+              <label for="ab-voice-amount-input" id="ab-voice-amount-label">Số tiền thử nghiệm (VNĐ):</label>
               <input type="number" id="ab-voice-amount-input" class="ab-voice-input" value="250000" min="1000"
                 step="1000" />
-              <div class="ab-voice-pills">
-                <button type="button" class="ab-voice-pill" data-voice-amount="50000">50.000đ</button>
-                <button type="button" class="ab-voice-pill active" data-voice-amount="250000">250.000đ</button>
-                <button type="button" class="ab-voice-pill" data-voice-amount="500000">500.000đ</button>
-                <button type="button" class="ab-voice-pill" data-voice-amount="1500000">1.500.000đ</button>
-                <button type="button" class="ab-voice-pill" data-voice-amount="5000000">5.000.000đ</button>
+              <div class="ab-voice-pills" id="ab-voice-quick-pills">
+                <!-- Dynamically generated according to Credit/Debit tab -->
+                <button type="button" class="ab-voice-pill" data-voice-amount="50000">50.000 ₫</button>
+                <button type="button" class="ab-voice-pill active" data-voice-amount="250000">250.000 ₫</button>
+                <button type="button" class="ab-voice-pill" data-voice-amount="500000">500.000 ₫</button>
+                <button type="button" class="ab-voice-pill" data-voice-amount="1500000">1.500.000 ₫</button>
+                <button type="button" class="ab-voice-pill" data-voice-amount="5000000">5.000.000 ₫</button>
               </div>
             </div>
           </div>
 
-          <div class="ab-voice-player-card"
-            style="background: linear-gradient(135deg, #075985 0%, #0369a1 50%, #0284c7 100%);">
+          <!-- App Form Builder Options (Tiền tố, Hậu tố, Ngân hàng) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; padding: 14px; background: rgba(255,255,255,0.9); border: 1px solid #bae6fd; border-radius: 14px;">
+            <div>
+              <label for="ab-voice-prefix-select" style="font-size: 0.82rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">1. Câu mở đầu / Tiền tố:</label>
+              <select id="ab-voice-prefix-select" class="ab-voice-select" style="font-size: 0.85rem; padding: 7px 10px;">
+                <option value="Đã nhận" selected>Đã nhận</option>
+                <option value="Tài khoản vừa cộng">Tài khoản vừa cộng</option>
+                <option value="Khách chuyển khoản">Khách chuyển khoản</option>
+                <option value="Thu tiền thành công">Thu tiền thành công</option>
+                <option value="Ting ting! Đã nhận">Ting ting! Đã nhận</option>
+                <option value="Khách thanh toán">Khách thanh toán</option>
+                <option value="">Không đọc câu mở đầu</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="ab-voice-bank-style-select" style="font-size: 0.82rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">2. Cách đọc ngân hàng:</label>
+              <select id="ab-voice-bank-style-select" class="ab-voice-select" style="font-size: 0.85rem; padding: 7px 10px;">
+                <option value="tu" selected>từ [Ngân hàng]</option>
+                <option value="qua">qua [Ngân hàng]</option>
+                <option value="vao">vào tài khoản [Ngân hàng]</option>
+                <option value="ten">Chỉ đọc tên [Ngân hàng]</option>
+                <option value="none">Không đọc tên ngân hàng</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="ab-voice-suffix-select" style="font-size: 0.82rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">3. Lời cảm ơn / Hậu tố:</label>
+              <select id="ab-voice-suffix-select" class="ab-voice-select" style="font-size: 0.85rem; padding: 7px 10px;">
+                <option value="Cảm ơn quý khách!" selected>Cảm ơn quý khách!</option>
+                <option value="Chúc ngày mới đắt hàng!">Chúc ngày mới đắt hàng!</option>
+                <option value="Hẹn gặp lại quý khách!">Hẹn gặp lại quý khách!</option>
+                <option value="Giao dịch thành công!">Giao dịch thành công!</option>
+                <option value="">Không đọc lời cảm ơn</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Speed & Acoustics -->
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 12px 14px; background: rgba(255,255,255,0.9); border: 1px solid #bae6fd; border-radius: 14px;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #0369a1; margin-right: 4px;">Tốc độ đọc:</span>
+              <button type="button" class="ab-voice-speed-pill" data-speed="0.5" style="padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer;">0.5x (Chậm)</button>
+              <button type="button" class="ab-voice-speed-pill" data-speed="0.75" style="padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer;">0.75x</button>
+              <button type="button" class="ab-voice-speed-pill" data-speed="1.0" style="padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer;">1.0x (Chuẩn)</button>
+              <button type="button" class="ab-voice-speed-pill active" data-speed="1.15" style="padding: 4px 10px; border-radius: 8px; border: 1px solid #0284c7; background: #0284c7; color: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer;">1.15x (Khuyên dùng)</button>
+              <button type="button" class="ab-voice-speed-pill" data-speed="1.30" style="padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer;">1.30x (Nhanh)</button>
+              <button type="button" class="ab-voice-speed-pill" data-speed="1.50" style="padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer;">1.5x</button>
+              <button type="button" class="ab-voice-speed-pill" data-speed="1.75" style="padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer;">1.75x</button>
+              <button type="button" class="ab-voice-speed-pill" data-speed="2.0" style="padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer;">2.0x (Nhanh 2x)</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #0369a1; cursor: pointer; margin: 0;">
+                <input type="checkbox" id="ab-voice-opt-chime" checked style="accent-color: #0284c7; width: 16px; height: 16px;" />
+                Chuông Ting-Ting
+              </label>
+            </div>
+          </div>
+
+          <!-- Bottom Master Player Card (Đồng bộ Màu Xanh Nước Chuẩn Website) -->
+          <div class="ab-voice-player-card" id="ab-voice-player-card"
+            style="background: linear-gradient(135deg, #075985 0%, #0369a1 50%, #0284c7 100%); margin-top: 18px; transition: background 0.3s ease; box-shadow: 0 14px 34px rgba(2, 132, 199, 0.28);">
             <div class="ab-voice-player-info">
-              <div class="ab-voice-speaker-icon">
+              <div class="ab-voice-speaker-icon" style="background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                   stroke-linecap="round" stroke-linejoin="round">
                   <path d="M11 5L6 9H2v6h4l5 4V5z" />
@@ -547,13 +641,14 @@
                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                 </svg>
               </div>
-              <div>
-                <strong style="display: block; font-size: 1.15rem; font-weight: 800; color: #fff;">Chế độ Loa Bán Hàng
-                  Trực Tuyến</strong>
-                <span id="ab-voice-status" style="font-size: 0.88rem; color: #e0f2fe; display: block; margin-top: 2px;">
-                  Bấm nút bên cạnh để nghe giọng đọc tiếng Việt mô phỏng tức thì
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <strong id="ab-voice-card-title" style="font-size: 1.12rem; font-weight: 800; color: #fff;">Nghe Thử Câu Đọc Nhận Tiền</strong>
+                </div>
+                <span id="ab-voice-status" style="font-size: 0.9rem; color: #e0f2fe; display: block; margin-top: 4px; font-weight: 600; line-height: 1.4; word-break: break-word;">
+                  "🔔 Ting! Đã nhận 250.000 ₫ từ Techcombank. Cảm ơn quý khách!"
                 </span>
-                <div class="ab-voice-wave" id="ab-voice-wave">
+                <div class="ab-voice-wave" id="ab-voice-wave" style="margin-top: 6px;">
                   <span class="ab-wave-bar" style="background: #7dd3fc;"></span>
                   <span class="ab-wave-bar" style="background: #7dd3fc;"></span>
                   <span class="ab-wave-bar" style="background: #7dd3fc;"></span>
@@ -564,7 +659,7 @@
             </div>
 
             <button type="button" class="ab-voice-btn-trigger" id="ab-voice-play-btn"
-              style="background: #ffffff; color: #0284c7; box-shadow: 0 8px 24px rgba(0,0,0,0.18);">
+              style="background: #ffffff; color: #0284c7; box-shadow: 0 8px 24px rgba(0,0,0,0.18); font-weight: 800; white-space: nowrap;">
               <span style="display: inline-flex; align-items: center; gap: 8px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5 3 19 12 5 21 5 3" />
@@ -924,7 +1019,7 @@
           </div>
         </div>
 
-        <div class="pricing-grid-6">
+        <div id="pricing-packages-container" class="pricing-grid-6">
           <!-- Tier 1: Trial 3 Days -->
           <div class="single-price text-center">
             <div class="price-icon mx-auto">
@@ -1503,8 +1598,8 @@
                 </a>
               </li>
               <li>
-                <a href="https://www.youtube.com/@vudev05" class="youtube"
-                  aria-label="YouTube Đọc thông báo nhận tiền" rel="noopener noreferrer" target="_blank">
+                <a href="#" class="youtube" id="footer-yt-link"
+                  aria-label="YouTube Đọc thông báo nhận tiền" rel="noopener noreferrer" target="_blank" style="display: none;">
                   <svg class="seo-ui-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
                     aria-hidden="true">
                     <path

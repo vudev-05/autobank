@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/web_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -26,6 +27,19 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   // Danh mục đang lọc trong tab Cá Nhân (null = tất cả)
   String? _selectedExpenseCategory;
+
+  // Ô tìm kiếm cho từng tab
+  String _businessSearchQuery = '';
+  String _personalSearchQuery = '';
+  final TextEditingController _businessSearchCtrl = TextEditingController();
+  final TextEditingController _personalSearchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _businessSearchCtrl.dispose();
+    _personalSearchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +93,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       if (tx.amount > maxRevenue) maxRevenue = tx.amount;
     }
 
-    // 4. PHÂN TÍCH THEO NGÂN HÀNG & VÍ THỰC TẾ
+    // 4. PHÂN TÍCH THEO NGÂN HÀNG & CỔNG THANH TOÁN
     final Map<String, double> bankDistribution = {};
     final Map<String, int> bankCount = {};
     for (final tx in creditTx) {
@@ -87,7 +101,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       bankCount[tx.bankCode] = (bankCount[tx.bankCode] ?? 0) + 1;
     }
 
-    // 5. PHÂN TÍCH KHUNG GIỜ CAO ĐIỂM BÁN HÀNG THỰC TẾ
+    // 5. PHÂN TÍCH KHUNG GIỜ BÁN HÀNG
     final Map<String, double> hourlySlots = {
       'Sáng\n06-11h': 0.0,
       'Trưa\n11-14h': 0.0,
@@ -110,7 +124,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       }
     }
 
-    // 6. PHÂN TÍCH CHI TIÊU CÁ NHÂN THEO DANH MỤC THỰC TẾ
+    // 6. PHÂN TÍCH CHI TIÊU CÁ NHÂN THEO DANH MỤC
     final Map<String, double> categoryDistribution = {};
     final Map<String, int> categoryCount = {};
     for (final tx in debitTx) {
@@ -154,12 +168,28 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         actions: [
           if (_currentTab == 1)
             IconButton(
-              tooltip: 'Thêm khoản chi mới',
+              tooltip: 'Ghi chép khoản chi mới',
               icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFFE11D48)),
               onPressed: () => _showAddExpenseModal(context, txProvider),
             ),
           IconButton(
-            tooltip: 'Làm mới dữ liệu',
+            tooltip: 'Xuất tóm tắt báo cáo',
+            icon: const Icon(Icons.ios_share_rounded, color: Color(0xFF0F172A), size: 21),
+            onPressed: () => _exportReportSummary(
+              context,
+              startDate: startDate,
+              endDate: endDate,
+              totalRevenue: totalRevenue,
+              totalExpense: totalExpense,
+              netCashFlow: netCashFlow,
+              creditCount: creditCount,
+              debitCount: debitCount,
+              bankDistribution: bankDistribution,
+              categoryDistribution: categoryDistribution,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Làm mới số liệu',
             icon: const Icon(Icons.refresh_rounded, color: WebTheme.primary),
             onPressed: () {
               txProvider.loadLocalTransactions();
@@ -179,14 +209,14 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 110),
         children: [
-          // 1. THANH CHỌN TAB: DOANH NGHIỆP VS CÁ NHÂN
+          // 1. THANH CHỌN TAB: DOANH NGHIỆP VS CÁ NHÂN (FINTECH PILL SEGMENT)
           _buildMainTabSegment(),
 
           const SizedBox(height: 12),
 
-          // 2. BỘ LỌC KỲ HẠN THỜI GIAN (HÔM NAY / 7 NGÀY / THÁNG NÀY / TOÀN BỘ / CHỌN NGÀY)
+          // 2. BỘ LỌC KỲ HẠN THỜI GIAN
           _buildPeriodSelector(),
 
           const SizedBox(height: 14),
@@ -197,6 +227,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             _buildBusinessHeroCard(totalRevenue, totalExpense, netCashFlow),
             const SizedBox(height: 12),
             _buildBusinessKpiGrid(creditCount, avgRevenue, maxRevenue),
+            const SizedBox(height: 14),
+            _buildBusinessTopOrders(creditTx),
             const SizedBox(height: 14),
             _buildBusinessHourlyChart(hourlySlots, totalRevenue),
             const SizedBox(height: 14),
@@ -220,18 +252,18 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  // 1. THANH CHUYỂN ĐỔI TAB CHÍNH (DOANH NGHIỆP vs CÁ NHÂN)
+  // 1. THANH CHUYỂN ĐỔI TAB CHÍNH (DOANH NGHIỆP vs CÁ NHÂN) - THIẾT KẾ CHUẨN FINTECH, ICON VECTOR CAO CẤP
   Widget _buildMainTabSegment() {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: WebTheme.cardBorder),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 4,
+            color: Color(0x0A000000),
+            blurRadius: 6,
             offset: Offset(0, 2),
           ),
         ],
@@ -241,30 +273,41 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           Expanded(
             child: InkWell(
               onTap: () => setState(() => _currentTab = 0),
-              borderRadius: BorderRadius.circular(9),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 9),
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   gradient: _currentTab == 0
                       ? const LinearGradient(colors: [Color(0xFF0284C7), Color(0xFF0369A1)])
                       : null,
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: _currentTab == 0
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF0284C7).withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.storefront_rounded,
-                      size: 16,
+                      Icons.domain_rounded,
+                      size: 17,
                       color: _currentTab == 0 ? Colors.white : const Color(0xFF64748B),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 7),
                     Text(
-                      '🏢 Doanh Nghiệp',
+                      'Doanh Nghiệp',
                       style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                         color: _currentTab == 0 ? Colors.white : const Color(0xFF475569),
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ],
@@ -276,30 +319,41 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           Expanded(
             child: InkWell(
               onTap: () => setState(() => _currentTab = 1),
-              borderRadius: BorderRadius.circular(9),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 9),
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   gradient: _currentTab == 1
                       ? const LinearGradient(colors: [Color(0xFFE11D48), Color(0xFFBE123C)])
                       : null,
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: _currentTab == 1
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFFE11D48).withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.person_pin_rounded,
-                      size: 16,
+                      Icons.account_balance_wallet_rounded,
+                      size: 17,
                       color: _currentTab == 1 ? Colors.white : const Color(0xFF64748B),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 7),
                     Text(
-                      '👤 Cá Nhân (Chi Tiêu)',
+                      'Cá Nhân (Chi Tiêu)',
                       style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                         color: _currentTab == 1 ? Colors.white : const Color(0xFF475569),
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ],
@@ -422,8 +476,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   // PHẦN A: GIAO DIỆN TAB DOANH NGHIỆP (BÁN HÀNG & DÒNG TIỀN)
   // =========================================================================
 
-  // HERO CARD DOANH NGHIỆP (TỔNG THU - TỔNG CHI - DÒNG TIỀN RÒNG) - NỀN SÁNG CAO CẤP, KHÔNG CÓ NỀN ĐEN
+  // HERO CARD DOANH NGHIỆP (TỔNG THU - TỔNG CHI - DÒNG TIỀN RÒNG & BIÊN LỢI NHUẬN)
   Widget _buildBusinessHeroCard(double totalRevenue, double totalExpense, double netFlow) {
+    final txProvider = context.read<TransactionProvider>();
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -446,62 +501,92 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.query_stats_rounded, color: Color(0xFF0284C7), size: 18),
-                  SizedBox(width: 8),
+                  Icon(Icons.query_stats_rounded, color: Color(0xFF0284C7), size: 16),
+                  SizedBox(width: 6),
                   Text(
                     'BÁO CÁO DÒNG TIỀN THỰC TẾ',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF0369A1),
-                      letterSpacing: 0.5,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0xFF86EFAC)),
                 ),
-                child: const Text(
-                  'Cộng dồn theo ngày ✓',
-                  style: TextStyle(fontSize: 9.5, color: Color(0xFF15803D), fontWeight: FontWeight.bold),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_rounded, size: 11, color: Color(0xFF15803D)),
+                    SizedBox(width: 3),
+                    Text(
+                      'Sổ cái đối soát chuẩn',
+                      style: TextStyle(fontSize: 9, color: Color(0xFF15803D), fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // DÒNG TIỀN RÒNG / LỢI NHUẬN
+          // DÒNG TIỀN RÒNG / LỢI NHUẬN + NÚT ĐIỀU CHỈNH DOANH THU
           Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 CurrencyFormatter.formatVND(netFlow),
                 style: TextStyle(
-                  fontSize: 27,
+                  fontSize: 26,
                   fontWeight: FontWeight.w900,
                   color: netFlow >= 0 ? const Color(0xFF16A34A) : const Color(0xFFE11D48),
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
                   color: netFlow >= 0 ? const Color(0xFFF0FDF4) : const Color(0xFFFFF1F2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  netFlow >= 0 ? '(Dương dòng tiền)' : '(Âm dòng tiền)',
+                  netFlow >= 0 ? '(Dương)' : '(Âm)',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: netFlow >= 0 ? const Color(0xFF16A34A) : const Color(0xFFE11D48),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: () => _showAdjustRevenueModal(context, txProvider),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF93C5FD)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.tune_rounded, size: 12, color: Color(0xFF0284C7)),
+                      SizedBox(width: 3),
+                      Text(
+                        '+/- Điều chỉnh',
+                        style: TextStyle(fontSize: 10, color: Color(0xFF0284C7), fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -509,6 +594,38 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           ),
           const SizedBox(height: 3),
           const Text('Dòng tiền ròng (Tổng Tiền Vào - Tổng Tiền Ra)', style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+
+          // TỶ SUẤT DÒNG TIỀN RÒNG
+          if (totalRevenue > 0) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    netFlow >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                    size: 14,
+                    color: netFlow >= 0 ? const Color(0xFF16A34A) : const Color(0xFFE11D48),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Biên dòng tiền ròng: ${((netFlow / totalRevenue) * 100).toStringAsFixed(1)}% doanh thu',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: netFlow >= 0 ? const Color(0xFF16A34A) : const Color(0xFFE11D48),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
 
@@ -629,11 +746,118 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
+  // TOP 3 ĐƠN HÀNG GIÁ TRỊ CAO NHẤT (TOP TRANSACTIONS)
+  Widget _buildBusinessTopOrders(List<NormalizedTransaction> creditTx) {
+    if (creditTx.isEmpty) return const SizedBox.shrink();
+
+    final sorted = List<NormalizedTransaction>.from(creditTx)
+      ..sort((a, b) => b.amount.compareTo(a.amount));
+    final top3 = sorted.take(3).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: WebTheme.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.workspace_premium_rounded, size: 18, color: Color(0xFFEAB308)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Đơn Hàng Giá Trị Cao Nhất (Top Giao Dịch)',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: WebTheme.textHeading),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF9C3),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text('Top 3', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF854D0E))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...top3.asMap().entries.map((entry) {
+            final rank = entry.key + 1;
+            final tx = entry.value;
+            final time = tx.transactionTime;
+            final rankColor = rank == 1
+                ? const Color(0xFFEAB308)
+                : (rank == 2 ? const Color(0xFF94A3B8) : const Color(0xFFB45309));
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: rankColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '#$rank',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: rankColor),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tx.orderCode != null && tx.orderCode!.isNotEmpty
+                              ? 'Đơn #${tx.orderCode} (${tx.bankCode})'
+                              : 'Nhận từ ${tx.bankCode}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} • ${time.day.toString().padLeft(2, '0')}/${time.month.toString().padLeft(2, '0')}',
+                          style: const TextStyle(fontSize: 10, color: WebTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '+${CurrencyFormatter.formatVND(tx.amount)}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF16A34A)),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   // BIỂU ĐỒ KHUNG GIỜ CAO ĐIỂM BÁN HÀNG THỰC TẾ
   Widget _buildBusinessHourlyChart(Map<String, double> hourlySlots, double total) {
     double maxSlotVal = 0.0;
+    String peakSlot = '';
     hourlySlots.forEach((k, v) {
-      if (v > maxSlotVal) maxSlotVal = v;
+      if (v > maxSlotVal) {
+        maxSlotVal = v;
+        peakSlot = k.replaceAll('\n', ' ');
+      }
     });
 
     return Container(
@@ -650,15 +874,30 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: WebTheme.textHeading),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(4),
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
                 ),
-                child: const Text('Dữ liệu giờ thực ⭐', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule_rounded, size: 12, color: Color(0xFF0284C7)),
+                    SizedBox(width: 4),
+                    Text('Giờ thực tế', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                  ],
+                ),
               ),
             ],
           ),
+          if (peakSlot.isNotEmpty && maxSlotVal > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Giờ vàng đông khách nhất: $peakSlot (+${CurrencyFormatter.formatVND(maxSlotVal)})',
+              style: const TextStyle(fontSize: 10.5, color: Color(0xFF0284C7), fontWeight: FontWeight.w600),
+            ),
+          ],
           const SizedBox(height: 14),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -717,7 +956,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  // PHÂN BỔ THEO NGÂN HÀNG & VÍ
+  // PHÂN BỔ THEO NGÂN HÀNG & CỔNG THANH TOÁN
   Widget _buildBankDistributionCard(Map<String, double> banks, Map<String, int> counts, double total) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -752,6 +991,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               final amount = entry.value;
               final count = counts[bankName] ?? 1;
               final pct = total > 0 ? (amount / total) : 0.0;
+              final bankColor = _getBankBrandColor(bankName);
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -764,12 +1004,23 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(4),
+                                color: bankColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(color: bankColor.withValues(alpha: 0.25)),
                               ),
-                              child: Text(bankName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.account_balance_rounded, size: 12, color: bankColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    bankName,
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: bankColor),
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Text('$count đơn', style: const TextStyle(fontSize: 11, color: WebTheme.textMuted)),
@@ -788,7 +1039,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         value: pct.clamp(0.02, 1.0),
                         minHeight: 5,
                         backgroundColor: const Color(0xFFF1F5F9),
-                        color: WebTheme.primary,
+                        color: bankColor,
                       ),
                     ),
                   ],
@@ -800,13 +1051,23 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  // LỊCH SỬ GIAO DỊCH DOANH NGHIỆP (KÈM LỌC TẤT CẢ / THU / CHI)
+  // LỊCH SỬ GIAO DỊCH DOANH NGHIỆP (KÈM TÌM KIẾM & BỘ LỌC TẤT CẢ / THU / CHI)
   Widget _buildBusinessTransactionHistory(List<NormalizedTransaction> txList, TransactionProvider txProvider) {
     List<NormalizedTransaction> displayed = txList;
     if (_businessTxFilter == 1) {
       displayed = txList.where((t) => t.type == TransactionType.credit).toList();
     } else if (_businessTxFilter == 2) {
       displayed = txList.where((t) => t.type == TransactionType.debit).toList();
+    }
+
+    if (_businessSearchQuery.isNotEmpty) {
+      final q = _businessSearchQuery.toLowerCase();
+      displayed = displayed.where((t) {
+        return t.bankCode.toLowerCase().contains(q) ||
+            t.content.toLowerCase().contains(q) ||
+            (t.orderCode != null && t.orderCode!.toLowerCase().contains(q)) ||
+            t.amount.toString().contains(q);
+      }).toList();
     }
 
     return Container(
@@ -829,6 +1090,46 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             ],
           ),
           const SizedBox(height: 10),
+
+          // Ô tìm kiếm giao dịch
+          Container(
+            height: 38,
+            margin: const EdgeInsets.only(bottom: 10),
+            child: TextField(
+              controller: _businessSearchCtrl,
+              onChanged: (val) => setState(() => _businessSearchQuery = val.trim()),
+              style: const TextStyle(fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm theo ngân hàng, mã đơn, số tiền...',
+                hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                prefixIcon: const Icon(Icons.search_rounded, size: 16, color: Color(0xFF64748B)),
+                suffixIcon: _businessSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 14, color: Color(0xFF64748B)),
+                        onPressed: () {
+                          _businessSearchCtrl.clear();
+                          setState(() => _businessSearchQuery = '');
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF0284C7)),
+                ),
+              ),
+            ),
+          ),
 
           // Segment lọc Thu / Chi / Tất cả
           Row(
@@ -919,22 +1220,26 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   // PHẦN B: GIAO DIỆN TAB CÁ NHÂN (PHẦN MỀM QUẢN LÝ CHI TIÊU)
   // =========================================================================
 
-  // HERO CARD CHI TIÊU CÁ NHÂN
+  // HERO CARD CHI TIÊU CÁ NHÂN (NỀN TRẮNG, VIỀN ĐỎ PASTEL, CHỮ ĐỎ FINTECH CAO CẤP)
   Widget _buildPersonalExpenseHeroCard(double totalExpense, int count, double maxExpense, DateTime start, DateTime end) {
+    final days = end.difference(start).inDays + 1;
+    final effectiveDays = days > 0 ? days : 1;
+    final dailyAvg = totalExpense / effectiveDays;
+    final now = DateTime.now();
+    final daysInCurrentMonth = DateTime(now.year, now.month + 1, 0).day;
+    final projectedMonth = dailyAvg * daysInCurrentMonth;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE11D48), Color(0xFF9F1239)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(WebTheme.radiusLg),
+        border: Border.all(color: const Color(0xFFFECDD3), width: 1.2),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x30E11D48),
+            color: Color(0x0DE11D48),
             blurRadius: 14,
-            offset: Offset(0, 6),
+            offset: Offset(0, 5),
           ),
         ],
       ),
@@ -946,53 +1251,65 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.pie_chart_rounded, color: Colors.white70, size: 16),
-                  SizedBox(width: 6),
+                  Icon(Icons.pie_chart_rounded, color: Color(0xFFE11D48), size: 18),
+                  SizedBox(width: 8),
                   Text(
                     'TỔNG TIỀN ĐÃ CHI TIÊU TRONG KỲ',
-                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 0.5),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFBE123C),
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFFFFF1F2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFECDD3)),
                 ),
                 child: Text(
                   '${start.day}/${start.month} - ${end.day}/${end.month}',
-                  style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 10, color: Color(0xFFE11D48), fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
             CurrencyFormatter.formatVND(totalExpense),
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: Color(0xFFE11D48),
               letterSpacing: -0.5,
             ),
+          ),
+          const SizedBox(height: 3),
+          const Text(
+            'Tổng các khoản tiền đã chi ra trong khoảng thời gian đã chọn',
+            style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFFFF1F2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFECDD3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Số khoản đã chi', style: TextStyle(fontSize: 10, color: Colors.white70)),
-                      const SizedBox(height: 2),
-                      Text('$count giao dịch', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                      const Text('Số khoản đã chi', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF9F1239))),
+                      const SizedBox(height: 3),
+                      Text('$count giao dịch', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFFE11D48))),
                     ],
                   ),
                 ),
@@ -1000,22 +1317,51 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               const SizedBox(width: 8),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFFFF1F2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFECDD3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Khoản chi lớn nhất', style: TextStyle(fontSize: 10, color: Colors.white70)),
-                      const SizedBox(height: 2),
-                      Text(CurrencyFormatter.formatVND(maxExpense), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                      const Text('Chi tiêu trung bình/ngày', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF9F1239))),
+                      const SizedBox(height: 3),
+                      Text(CurrencyFormatter.formatVND(dailyAvg), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFFE11D48))),
                     ],
                   ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.speed_rounded, size: 14, color: Color(0xFFE11D48)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Dự phóng tháng: ~${CurrencyFormatter.formatVND(projectedMonth)}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFBE123C)),
+                    ),
+                  ],
+                ),
+                Text(
+                  'Khoản lớn nhất: ${CurrencyFormatter.formatVND(maxExpense)}',
+                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1227,7 +1573,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           ),
           const SizedBox(height: 8),
 
-          // Danh sách từng quỹ danh mục (Ví dụ Tiền ăn 3tr 1 tháng...)
+          // Danh sách từng quỹ danh mục
           ...budgets.entries.map((entry) {
             final cat = entry.key;
             final budgetAmt = entry.value;
@@ -1271,8 +1617,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     children: [
                       Row(
                         children: [
-                          Text(_getCategoryIcon(cat), style: const TextStyle(fontSize: 15)),
-                          const SizedBox(width: 6),
+                          _buildCategoryBadge(cat, size: 14, padding: 5),
+                          const SizedBox(width: 8),
                           Text(
                             cat,
                             style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
@@ -1351,8 +1697,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Text(_getCategoryIcon(category), style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
+            _buildCategoryBadge(category, size: 18, padding: 6),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Quỹ $category (Tháng)',
@@ -1494,7 +1840,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     children: txProvider.expenseCategories.map((cat) {
                       final isSelected = selectedCategory == cat;
                       return ChoiceChip(
-                        label: Text('${_getCategoryIcon(cat)} $cat'),
+                        avatar: Icon(
+                          _getCategoryIconData(cat),
+                          size: 14,
+                          color: isSelected ? Colors.white : _getCategoryColor(cat),
+                        ),
+                        label: Text(cat),
                         selected: isSelected,
                         selectedColor: const Color(0xFFE11D48),
                         labelStyle: TextStyle(
@@ -1640,7 +1991,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               final count = counts[catName] ?? 1;
               final pct = totalExpense > 0 ? (amount / totalExpense) : 0.0;
               final color = _getCategoryColor(catName);
-              final icon = _getCategoryIcon(catName);
 
               final isFiltered = _selectedExpenseCategory == catName;
 
@@ -1671,8 +2021,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         children: [
                           Row(
                             children: [
-                              Text(icon, style: const TextStyle(fontSize: 14)),
-                              const SizedBox(width: 6),
+                              _buildCategoryBadge(catName, size: 14, padding: 4),
+                              const SizedBox(width: 8),
                               Text(
                                 catName,
                                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
@@ -1714,11 +2064,22 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  // DANH SÁCH LỊCH SỬ TỪNG GIAO DỊCH CHI TIÊU (BẤM VÀO ĐỂ GÁN DANH MỤC)
+  // DANH SÁCH LỊCH SỬ TỪNG GIAO DỊCH CHI TIÊU (KÈM TÌM KIẾM & BẤM VÀO ĐỂ GÁN DANH MỤC)
   Widget _buildPersonalExpenseHistory(List<NormalizedTransaction> debitList, TransactionProvider txProvider) {
     List<NormalizedTransaction> displayed = debitList;
     if (_selectedExpenseCategory != null) {
       displayed = debitList.where((t) => (t.category ?? 'Chưa phân loại') == _selectedExpenseCategory).toList();
+    }
+
+    if (_personalSearchQuery.isNotEmpty) {
+      final q = _personalSearchQuery.toLowerCase();
+      displayed = displayed.where((t) {
+        return t.content.toLowerCase().contains(q) ||
+            t.bankCode.toLowerCase().contains(q) ||
+            (t.category != null && t.category!.toLowerCase().contains(q)) ||
+            (t.note != null && t.note!.toLowerCase().contains(q)) ||
+            t.amount.toString().contains(q);
+      }).toList();
     }
 
     return Container(
@@ -1740,7 +2101,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Chạm vào giao dịch để gán danh mục (tiền nhà, tiền ăn, đi chơi...)',
+                      'Chạm vào giao dịch để gán danh mục & ghi chú',
                       style: TextStyle(fontSize: 10, color: WebTheme.textMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1757,13 +2118,53 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               ],
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+
+          // Ô tìm kiếm giao dịch chi tiêu
+          Container(
+            height: 38,
+            margin: const EdgeInsets.only(bottom: 10),
+            child: TextField(
+              controller: _personalSearchCtrl,
+              onChanged: (val) => setState(() => _personalSearchQuery = val.trim()),
+              style: const TextStyle(fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm theo nội dung, danh mục, ngân hàng...',
+                hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                prefixIcon: const Icon(Icons.search_rounded, size: 16, color: Color(0xFF64748B)),
+                suffixIcon: _personalSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 14, color: Color(0xFF64748B)),
+                        onPressed: () {
+                          _personalSearchCtrl.clear();
+                          setState(() => _personalSearchQuery = '');
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE11D48)),
+                ),
+              ),
+            ),
+          ),
 
           if (displayed.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(
-                child: Text('Không có khoản chi nào trong danh mục này', style: TextStyle(fontSize: 12, color: WebTheme.textMuted)),
+                child: Text('Không có khoản chi nào thỏa mãn bộ lọc', style: TextStyle(fontSize: 12, color: WebTheme.textMuted)),
               ),
             )
           else
@@ -1771,7 +2172,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               final cat = tx.category;
               final hasCat = cat != null && cat.isNotEmpty;
               final catColor = hasCat ? _getCategoryColor(cat) : const Color(0xFFD97706);
-              final catIcon = hasCat ? _getCategoryIcon(cat) : '❓';
               final time = tx.transactionTime;
 
               return InkWell(
@@ -1787,14 +2187,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: catColor.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(catIcon, style: const TextStyle(fontSize: 16)),
-                      ),
+                      _buildCategoryBadge(hasCat ? cat : 'Khác', size: 16, padding: 8),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -1869,7 +2262,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   // CÁC HỘP THOẠI & MODAL TƯƠNG TÁC
   // =========================================================================
 
-  // HỘP THOẠI GÁN / CHỌN DANH MỤC CHO 1 GIAO DỊCH (TIỀN NHÀ, TIỀN ĂN, ĐI CHƠI...)
+  // HỘP THOẠI GÁN / CHỌN DANH MỤC CHO 1 GIAO DỊCH
   void _showCategorizeDialog(BuildContext context, NormalizedTransaction tx, TransactionProvider txProvider) {
     String? selectedCategory = tx.category;
     final noteCtrl = TextEditingController(text: tx.note ?? '');
@@ -1963,10 +2356,14 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     children: txProvider.expenseCategories.map((cat) {
                       final isSelected = selectedCategory == cat;
                       final color = _getCategoryColor(cat);
-                      final icon = _getCategoryIcon(cat);
 
                       return ChoiceChip(
-                        label: Text('$icon $cat'),
+                        avatar: Icon(
+                          _getCategoryIconData(cat),
+                          size: 14,
+                          color: isSelected ? Colors.white : color,
+                        ),
+                        label: Text(cat),
                         selected: isSelected,
                         selectedColor: color,
                         labelStyle: TextStyle(
@@ -2164,7 +2561,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     children: txProvider.expenseCategories.map((cat) {
                       final isSelected = selectedCat == cat;
                       return ChoiceChip(
-                        label: Text('${_getCategoryIcon(cat)} $cat'),
+                        avatar: Icon(
+                          _getCategoryIconData(cat),
+                          size: 14,
+                          color: isSelected ? Colors.white : _getCategoryColor(cat),
+                        ),
+                        label: Text(cat),
                         selected: isSelected,
                         selectedColor: _getCategoryColor(cat),
                         labelStyle: TextStyle(
@@ -2256,7 +2658,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                   tx.type == TransactionType.credit ? 'Chi Tiết Tiền Nhận Được' : 'Chi Tiết Khoản Chi Ra',
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(ctx)),
               ],
             ),
             const Divider(),
@@ -2325,6 +2727,144 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
+  // =========================================================================
+  // XUẤT TÓM TẮT ĐỐI SOÁT BÁO CÁO (EXPORT FINANCIAL SUMMARY)
+  // =========================================================================
+  void _exportReportSummary(
+    BuildContext context, {
+    required DateTime startDate,
+    required DateTime endDate,
+    required double totalRevenue,
+    required double totalExpense,
+    required double netCashFlow,
+    required int creditCount,
+    required int debitCount,
+    required Map<String, double> bankDistribution,
+    required Map<String, double> categoryDistribution,
+  }) {
+    final startStr = '${startDate.day.toString().padLeft(2, '0')}/${startDate.month.toString().padLeft(2, '0')}/${startDate.year}';
+    final endStr = '${endDate.day.toString().padLeft(2, '0')}/${endDate.month.toString().padLeft(2, '0')}/${endDate.year}';
+
+    final buffer = StringBuffer();
+    buffer.writeln('====================================');
+    buffer.writeln('   BÁO CÁO TÀI CHÍNH ĐỐI SOÁT DÒNG TIỀN');
+    buffer.writeln('====================================');
+    buffer.writeln('Thời gian thống kê: $startStr -> $endStr');
+    buffer.writeln('');
+    buffer.writeln('1. TỔNG QUAN DOANH NGHIỆP & BÁN HÀNG:');
+    buffer.writeln('   - Tổng thu (Tiền vào): +${CurrencyFormatter.formatVND(totalRevenue)} ($creditCount giao dịch)');
+    buffer.writeln('   - Tổng chi (Tiền ra): -${CurrencyFormatter.formatVND(totalExpense)} ($debitCount giao dịch)');
+    buffer.writeln('   - Dòng tiền ròng: ${netCashFlow >= 0 ? '+' : ''}${CurrencyFormatter.formatVND(netCashFlow)}');
+    if (totalRevenue > 0) {
+      buffer.writeln('   - Tỷ suất dòng tiền: ${((netCashFlow / totalRevenue) * 100).toStringAsFixed(1)}%');
+      buffer.writeln('   - Giá trị trung bình/đơn: ${CurrencyFormatter.formatVND(totalRevenue / (creditCount > 0 ? creditCount : 1))}');
+    }
+    buffer.writeln('');
+    if (bankDistribution.isNotEmpty) {
+      buffer.writeln('2. DÒNG TIỀN THEO CỔNG THANH TOÁN / NGÂN HÀNG:');
+      for (final entry in bankDistribution.entries) {
+        final pct = totalRevenue > 0 ? ((entry.value / totalRevenue) * 100).toStringAsFixed(1) : '0';
+        buffer.writeln('   • ${entry.key}: ${CurrencyFormatter.formatVND(entry.value)} ($pct%)');
+      }
+      buffer.writeln('');
+    }
+    if (categoryDistribution.isNotEmpty) {
+      buffer.writeln('3. PHÂN BỔ CHI TIÊU THEO DANH MỤC CÁ NHÂN:');
+      for (final entry in categoryDistribution.entries) {
+        final pct = totalExpense > 0 ? ((entry.value / totalExpense) * 100).toStringAsFixed(1) : '0';
+        buffer.writeln('   • ${entry.key}: ${CurrencyFormatter.formatVND(entry.value)} ($pct%)');
+      }
+      buffer.writeln('');
+    }
+    buffer.writeln('Xuất từ AutoBank FinTech Engine lúc: ${DateTime.now()}');
+    buffer.writeln('====================================');
+
+    final text = buffer.toString();
+    Clipboard.setData(ClipboardData(text: text));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 22),
+            SizedBox(width: 8),
+            Text('Đã Xuất Báo Cáo Thành Công', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Bản tóm tắt đối soát tài chính đã được sao chép vào bộ nhớ tạm của máy. Bạn có thể dán vào Zalo, Excel, Gmail hoặc gửi cho kế toán.',
+              style: TextStyle(fontSize: 12, color: WebTheme.textMuted),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: SingleChildScrollView(
+                child: Text(
+                  text,
+                  style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: Color(0xFF334155)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Đóng', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0284C7),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.copy_rounded, size: 14, color: Colors.white),
+            label: const Text('Sao Chép Lại', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: text));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Đã sao chép lại báo cáo vào clipboard!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // HELPER: MÀU SẮC & ICON CHUẨN VECTOR FINTECH (KHÔNG DÙNG EMOJI)
+  // =========================================================================
+
+  Color _getBankBrandColor(String bankCode) {
+    final b = bankCode.toUpperCase();
+    if (b.contains('VCB') || b.contains('VIETCOM')) return const Color(0xFF15803D);
+    if (b.contains('MB') || b.contains('MILITARY')) return const Color(0xFF1D4ED8);
+    if (b.contains('TECH') || b.contains('TCB')) return const Color(0xFFDC2626);
+    if (b.contains('ACB')) return const Color(0xFF0284C7);
+    if (b.contains('VP') || b.contains('VPB')) return const Color(0xFF059669);
+    if (b.contains('TP') || b.contains('TPB')) return const Color(0xFF9333EA);
+    if (b.contains('BIDV')) return const Color(0xFF0D9488);
+    if (b.contains('MOMO')) return const Color(0xFFA21CAF);
+    if (b.contains('ZALO')) return const Color(0xFF0284C7);
+    return const Color(0xFF475569);
+  }
+
   Color _getCategoryColor(String cat) {
     switch (cat) {
       case 'Tiền ăn':
@@ -2341,29 +2881,343 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         return const Color(0xFFF59E0B);
       case 'Xăng xe':
         return const Color(0xFF475569);
+      case 'Học tập':
+      case 'Giáo dục':
+        return const Color(0xFF3B82F6);
+      case 'Y tế':
+      case 'Sức khỏe':
+        return const Color(0xFFEF4444);
+      case 'Lương / Thu nhập':
+        return const Color(0xFF10B981);
+      case 'Đầu tư':
+        return const Color(0xFF6366F1);
       default:
         return const Color(0xFF64748B);
     }
   }
 
-  String _getCategoryIcon(String cat) {
+  IconData _getCategoryIconData(String cat) {
     switch (cat) {
       case 'Tiền ăn':
-        return '🍔';
+        return Icons.restaurant_rounded;
       case 'Tiền nhà':
-        return '🏠';
+        return Icons.home_work_rounded;
       case 'Đi chơi':
-        return '🎉';
+        return Icons.celebration_rounded;
       case 'Du lịch':
-        return '✈️';
+        return Icons.flight_takeoff_rounded;
       case 'Mua sắm':
-        return '🛍️';
+        return Icons.shopping_bag_rounded;
       case 'Tiền điện nước':
-        return '💡';
+        return Icons.bolt_rounded;
       case 'Xăng xe':
-        return '⛽';
+        return Icons.local_gas_station_rounded;
+      case 'Học tập':
+      case 'Giáo dục':
+        return Icons.school_rounded;
+      case 'Y tế':
+      case 'Sức khỏe':
+        return Icons.medical_services_rounded;
+      case 'Lương / Thu nhập':
+        return Icons.payments_rounded;
+      case 'Đầu tư':
+        return Icons.trending_up_rounded;
       default:
-        return '🏷️';
+        return Icons.sell_rounded;
     }
+  }
+
+  Widget _buildCategoryBadge(
+    String cat, {
+    double size = 15,
+    double padding = 6,
+    Color? color,
+    Color? bg,
+  }) {
+    final effectiveColor = color ?? _getCategoryColor(cat);
+    final effectiveBg = bg ?? effectiveColor.withValues(alpha: 0.12);
+
+    return Container(
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
+        color: effectiveBg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(
+        _getCategoryIconData(cat),
+        size: size,
+        color: effectiveColor,
+      ),
+    );
+  }
+
+  void _showAdjustRevenueModal(BuildContext context, TransactionProvider txProvider) {
+    bool isAddition = true;
+    final amountCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    final double currentTotal = txProvider.todayTotal;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final amt = double.tryParse(amountCtrl.text.replaceAll(',', '').replaceAll('.', '')) ?? 0.0;
+          final previewTotal = isAddition
+              ? (currentTotal + amt)
+              : (currentTotal - amt).clamp(0.0, double.infinity);
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.tune_rounded, color: WebTheme.primary),
+                          SizedBox(width: 8),
+                          Text(
+                            'Tùy chỉnh Doanh Thu (+/-)',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: WebTheme.textHeading),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(sheetCtx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Điều chỉnh trực tiếp số liệu dòng tiền và doanh thu để khớp với thực tế.',
+                    style: TextStyle(fontSize: 12, color: WebTheme.textMuted),
+                  ),
+                  const SizedBox(height: 14),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setDialogState(() => isAddition = true),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isAddition ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isAddition ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0),
+                                width: isAddition ? 1.8 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_circle_rounded, size: 18, color: isAddition ? const Color(0xFF15803D) : const Color(0xFF64748B)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '+ THÊM DOANH THU',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: isAddition ? const Color(0xFF15803D) : const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setDialogState(() => isAddition = false),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: !isAddition ? const Color(0xFFFEE2E2) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: !isAddition ? const Color(0xFFDC2626) : const Color(0xFFE2E8F0),
+                                width: !isAddition ? 1.8 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.remove_circle_rounded, size: 18, color: !isAddition ? const Color(0xFFB91C1C) : const Color(0xFF64748B)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '- TRỪ DOANH THU',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: !isAddition ? const Color(0xFFB91C1C) : const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  TextField(
+                    controller: amountCtrl,
+                    keyboardType: TextInputType.number,
+                    autofocus: true,
+                    onChanged: (_) => setDialogState(() {}),
+                    decoration: InputDecoration(
+                      labelText: 'Số tiền cần ${isAddition ? 'cộng thêm' : 'trừ bớt'} (VNĐ)',
+                      prefixIcon: Icon(
+                        isAddition ? Icons.add_rounded : Icons.remove_rounded,
+                        color: isAddition ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                      ),
+                      hintText: 'Ví dụ: 100000',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [50000, 100000, 200000, 500000, 1000000].map((quickAmt) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ActionChip(
+                            label: Text('${isAddition ? '+' : '-'}${CurrencyFormatter.formatVND(quickAmt.toDouble())}'),
+                            labelStyle: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isAddition ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                            ),
+                            backgroundColor: isAddition ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                            onPressed: () {
+                              amountCtrl.text = quickAmt.toString();
+                              setDialogState(() {});
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  TextField(
+                    controller: noteCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Lý do điều chỉnh (Tùy chọn)',
+                      hintText: isAddition ? 'Bù tiền mặt, đơn thanh toán ngoài...' : 'Sai lệch số liệu, hoàn tiền khách...',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Hiện tại:', style: TextStyle(fontSize: 11, color: WebTheme.textMuted)),
+                            SizedBox(height: 2),
+                            Text('Sau điều chỉnh:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: WebTheme.textHeading)),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              CurrencyFormatter.formatVND(currentTotal),
+                              style: const TextStyle(fontSize: 12, color: WebTheme.textMuted),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              CurrencyFormatter.formatVND(previewTotal),
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                                color: isAddition ? const Color(0xFF16A34A) : const Color(0xFF0284C7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: isAddition ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () async {
+                        if (amt <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Vui lòng nhập số tiền lớn hơn 0đ')),
+                          );
+                          return;
+                        }
+                        Navigator.pop(sheetCtx);
+                        await txProvider.adjustTodayRevenue(
+                          amount: amt,
+                          isAddition: isAddition,
+                          note: noteCtrl.text.trim(),
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: isAddition ? const Color(0xFF16A34A) : const Color(0xFF0284C7),
+                              content: Text('Đã ${isAddition ? 'cộng thêm' : 'trừ bớt'} ${CurrencyFormatter.formatVND(amt)} vào doanh thu hôm nay!'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Xác nhận ${isAddition ? 'Cộng' : 'Trừ'} ${amt > 0 ? CurrencyFormatter.formatVND(amt) : ''}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

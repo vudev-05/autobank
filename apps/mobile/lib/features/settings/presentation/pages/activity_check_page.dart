@@ -169,7 +169,7 @@ class _ActivityCheckPageState extends State<ActivityCheckPage> {
                     title: 'Quyền đọc thông báo ngân hàng',
                     isGranted: _notificationListenerGranted,
                     description: 'Bắt buộc để ứng dụng lắng nghe biến động số dư tức thì từ hơn 65+ ngân hàng và ví điện tử.',
-                    guide: 'Bấm nút bên dưới > Tìm "AutoBank PRO" > Gạt công tắc sang BẬT để cho phép.',
+                    guide: 'Bấm nút bên dưới > Tìm "Đọc Thông Báo Nhận Tiền" > Gạt công tắc sang BẬT để cho phép.',
                     actionText: _notificationListenerGranted ? 'Kiểm tra lại' : 'Cấp quyền ngay',
                     onAction: () async {
                       await NotificationService.openSettings();
@@ -182,16 +182,18 @@ class _ActivityCheckPageState extends State<ActivityCheckPage> {
 
                   // 2. CHẠY NỀN KHÔNG BỊ TẮT (BATTERY OPTIMIZATION)
                   _buildPermissionCard(
-                    title: 'Chạy nền 24/7 (Bỏ tối ưu pin)',
+                    title: 'Cài đặt Pin Ứng dụng: Chọn "Không hạn chế"',
                     isGranted: _batteryOptimizationIgnored,
-                    description: 'Giúp ứng dụng không bị Android tự động tắt khi khóa màn hình hoặc để qua đêm.',
-                    guide: 'Chọn "Không hạn chế" hoặc cho phép ứng dụng hoạt động không giới hạn pin.',
-                    actionText: _batteryOptimizationIgnored ? 'Đã kích hoạt' : 'Tắt tối ưu pin',
+                    description: 'Đây là Cài đặt Pin của riêng ứng dụng AutoBank (KHÔNG phải chế độ tiết kiệm pin của máy). Mặc định Android để là "Tối ưu hóa" (Optimized) và sẽ tắt app khi khóa màn hình. Bạn cần chọn "Không hạn chế" (Unrestricted) để máy duy trì đọc tiền 24/7.',
+                    guide: 'Bấm nút "Tắt tối ưu pin (Nhanh)" để cấp quyền trực tiếp, hoặc bấm "Mở Cài đặt Pin App" > Chọn Pin > Tích chọn "Không hạn chế" (Unrestricted).',
+                    actionText: _batteryOptimizationIgnored ? 'Đã bật Không hạn chế' : 'Tắt tối ưu pin (Nhanh)',
                     onAction: () async {
                       await NotificationService.requestIgnoreBatteryOptimizations();
                       await Future.delayed(const Duration(seconds: 1));
                       _checkAllPermissions();
                     },
+                    secondaryActionText: 'Mở Cài đặt Pin App',
+                    onSecondaryAction: () => NotificationService.openAppSettings(),
                   ),
 
                   const SizedBox(height: 14),
@@ -251,6 +253,8 @@ class _ActivityCheckPageState extends State<ActivityCheckPage> {
     required String guide,
     required String actionText,
     required VoidCallback onAction,
+    String? secondaryActionText,
+    VoidCallback? onSecondaryAction,
   }) {
     final statusColor = isGranted ? const Color(0xFF10B981) : const Color(0xFFEF4444);
     final statusBg = isGranted ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2);
@@ -334,25 +338,45 @@ class _ActivityCheckPageState extends State<ActivityCheckPage> {
             ),
           ],
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                backgroundColor: isGranted ? const Color(0xFFF1F5F9) : const Color(0xFF0284C7),
-                foregroundColor: isGranted ? const Color(0xFF475569) : Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (secondaryActionText != null && onSecondaryAction != null && !isGranted) ...[
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF64748B),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    ),
+                  ),
+                  onPressed: onSecondaryAction,
+                  child: Text(
+                    secondaryActionText,
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  backgroundColor: isGranted ? const Color(0xFFF1F5F9) : const Color(0xFF0284C7),
+                  foregroundColor: isGranted ? const Color(0xFF475569) : Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: Icon(
+                  isGranted ? Icons.refresh : Icons.arrow_forward_rounded,
+                  size: 14,
+                ),
+                label: Text(
+                  actionText,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                onPressed: onAction,
               ),
-              icon: Icon(
-                isGranted ? Icons.refresh : Icons.arrow_forward_rounded,
-                size: 14,
-              ),
-              label: Text(
-                actionText,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-              onPressed: onAction,
-            ),
+            ],
           ),
         ],
       ),

@@ -751,8 +751,9 @@ body {
   padding: 20px;
 }
 
-.admin-modal-overlay.is-open {
-  display: flex;
+.admin-modal-overlay.is-open,
+.admin-modal-overlay.active {
+  display: flex !important;
 }
 
 .admin-modal-box {

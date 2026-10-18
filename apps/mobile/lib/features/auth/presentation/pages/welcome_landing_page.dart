@@ -116,196 +116,174 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                 const Divider(height: 1, color: Color(0xFFE2E8F0)),
                 const SizedBox(height: 14),
 
-                const Text(
-                  'CHỌN TÀI KHOẢN GOOGLE TRÊN THIẾT BỊ:',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Danh sách tài khoản có sẵn
-                ...auth.accounts.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final acc = entry.value;
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
+                if (auth.isSignedIn) ...[
+                  // ĐÃ ĐĂNG NHẬP: Hiển thị thông tin tài khoản Google thật
+                  Container(
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: () {
-                          auth.selectAccountByIndex(idx);
-                          Navigator.pop(modalCtx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: WebTheme.emerald,
-                              content: Text('🎉 Chào mừng ${acc.name} quay trở lại!'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: const Color(0xFF0284C7),
+                          child: Text(
+                            auth.avatarInitial,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundColor: const Color(0xFF0284C7),
+                              Text(
+                                auth.displayName,
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                              ),
+                              Text(
+                                auth.email,
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: auth.isActivated ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
                                 child: Text(
-                                  acc.initial,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  auth.activePackageName,
+                                  style: TextStyle(
+                                    fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    color: auth.isActivated ? const Color(0xFF16A34A) : const Color(0xFF64748B),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      acc.name,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                    Text(
-                                      acc.email,
-                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: acc.isActivated ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        acc.activePackageName,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: acc.isActivated ? const Color(0xFF16A34A) : const Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF94A3B8)),
                             ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  );
-                }),
-
-                const SizedBox(height: 8),
-
-                // Nút tạo thêm tài khoản mới
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
                   ),
-                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 18, color: Color(0xFF0284C7)),
-                  label: const Text(
-                    'Đăng nhập tài khoản Google khác',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.pop(modalCtx),
+                    child: const Text('Tiếp tục vào ứng dụng', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   ),
-                  onPressed: () {
-                    _showAddAccountDialog(context, auth);
-                  },
-                ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.lock_rounded, size: 14, color: Color(0xFF16A34A)),
+                        SizedBox(width: 6),
+                        Text(
+                          'Tài khoản đang khóa phiên trực 24/7',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF15803D), fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  // CHƯA ĐĂNG NHẬP: Đăng nhập 100% tài khoản Google thật
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 22),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Sử dụng tài khoản Google thật để đồng bộ bản quyền và trực máy 24/7 an toàn.',
+                            style: TextStyle(fontSize: 12.5, color: Color(0xFF166534), fontWeight: FontWeight.w500, height: 1.3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
 
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    '🔒 Chúng tôi chỉ đồng bộ tên & email Google để kích hoạt bản quyền. Không bao giờ can thiệp mật khẩu ngân hàng của bạn.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500, height: 1.4),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E293B),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    icon: const GoogleLogo(size: 20),
+                    label: auth.isLoading
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text(
+                            'Đăng nhập với Google',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                    onPressed: auth.isLoading
+                        ? null
+                        : () async {
+                            final success = await auth.signInWithRealGoogle();
+                            if (!context.mounted) return;
+                            if (success) {
+                              Navigator.pop(modalCtx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: WebTheme.emerald,
+                                  content: Text('🎉 Đăng nhập thành công: ${auth.email}'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            } else if (auth.errorMessage != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Colors.red.shade700,
+                                  duration: const Duration(seconds: 8),
+                                  content: Text(auth.errorMessage!),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
                   ),
-                ),
+                  const SizedBox(height: 14),
+                  Center(
+                    child: Text(
+                      '🔒 Xác thực an toàn qua Google OAuth 2.0. Hệ thống không lưu trữ hay yêu cầu mật khẩu của bạn.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500, height: 1.4),
+                    ),
+                  ),
+                ],
               ],
             ),
           );
         },
-      ),
-    );
-  }
-
-  void _showAddAccountDialog(BuildContext context, GoogleAuthProvider auth) {
-    final nameCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    final shopCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            GoogleLogo(size: 20),
-            SizedBox(width: 8),
-            Text('Thêm tài khoản Google', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Họ và tên chủ quán', hintText: 'VD: Trần Quốc Vũ'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: emailCtrl,
-              decoration: const InputDecoration(labelText: 'Email Google (@gmail.com)', hintText: 'VD: autobank@gmail.com'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: shopCtrl,
-              decoration: const InputDecoration(labelText: 'Tên cửa hàng / Quán', hintText: 'VD: Cà phê Phố Cổ'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0284C7)),
-            onPressed: () {
-              if (emailCtrl.text.trim().isEmpty) return;
-              auth.signInWithGoogle(
-                name: nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : 'Người dùng AutoBank',
-                email: emailCtrl.text.trim(),
-                initial: nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim()[0].toUpperCase() : 'G',
-                shop: shopCtrl.text.trim().isNotEmpty ? shopCtrl.text.trim() : 'Cửa hàng AutoBank',
-              );
-              Navigator.pop(dialogCtx); // Close dialog
-              Navigator.pop(context); // Close bottom sheet
-            },
-            child: const Text('Đăng nhập ngay'),
-          ),
-        ],
       ),
     );
   }
@@ -390,7 +368,7 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                           ),
                           icon: const GoogleLogo(size: 20),
                           label: const Text(
-                            'ĐĂNG NHẬP VÀO SỬ DỤNG NGAY',
+                            'ĐĂNG NHẬP BẰNG GOOGLE',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w900,

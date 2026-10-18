@@ -12,6 +12,10 @@
     "build:api": "npm run build --workspace=apps/api",
     "test:api": "npm run test --workspace=apps/api",
     "dev:web": "npm run dev --workspace=@autobank/web",
-    "build:web": "npm run build --workspace=@autobank/web"
+    "build:web": "npm run build --workspace=@autobank/web",
+    "dev:app": "cd apps/mobile && flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0"
+  },
+  "devDependencies": {
+    "ssh2": "^1.17.0"
   }
 }

@@ -241,6 +241,21 @@ async function main() {
   });
   console.log(`✓ Đã nạp thông báo Push Broadcast.`);
 
+  // 7. Khóa kết nối API Keys vào MySQL
+  const sampleApiKeys = [
+    { name: 'AutoBank Android App Mobile (Production)', key: 'ak_mobile_android_live_9a8b7c6d', role: 'FULL', status: 'ACTIVE' },
+    { name: 'Máy POS Quầy Thu Ngân 01', key: 'ak_pos_cashier_01_7e6d5c4b', role: 'READ_ONLY', status: 'ACTIVE' },
+    { name: 'Webhook Nhận Biến Động Số Dư (VietQR)', key: 'ak_webhook_vietqr_listener_1192', role: 'WEBHOOK', status: 'ACTIVE' },
+  ];
+  for (const k of sampleApiKeys) {
+    await prisma.apiKey.upsert({
+      where: { key: k.key },
+      update: k,
+      create: k,
+    });
+  }
+  console.log(`✓ Đã nạp thành công các API Keys vào MySQL.`);
+
   console.log('\n======================================================');
   console.log('✅ TOÀN BỘ DỮ LIỆU ĐÃ ĐƯỢC LƯU VÀO MYSQL (autobank) THÀNH CÔNG!');
   console.log('======================================================');

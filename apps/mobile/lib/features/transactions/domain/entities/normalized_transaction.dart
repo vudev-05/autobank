@@ -96,6 +96,33 @@ class NormalizedTransaction {
     );
   }
 
+  factory NormalizedTransaction.fromJson(Map<String, dynamic> json) {
+    return NormalizedTransaction(
+      id: (json['id'] ?? '').toString(),
+      bankCode: (json['bankCode'] ?? json['bank_code'] ?? 'OTHER_BANK').toString(),
+      accountNumber: (json['accountNumber'] ?? json['account_number'] ?? '').toString(),
+      amount: (json['amount'] is num)
+          ? (json['amount'] as num).toDouble()
+          : (double.tryParse((json['amount'] ?? '0').toString()) ?? 0.0),
+      type: TransactionType.values.firstWhere(
+        (e) => e.name.toLowerCase() == (json['type'] ?? 'credit').toString().toLowerCase(),
+        orElse: () => TransactionType.unknown,
+      ),
+      content: (json['content'] ?? '').toString(),
+      orderCode: json['orderCode'] as String? ?? json['order_code'] as String?,
+      transactionTime: json['transactionTime'] != null
+          ? (DateTime.tryParse(json['transactionTime'].toString()) ?? DateTime.now())
+          : (json['transaction_time'] != null
+              ? (DateTime.tryParse(json['transaction_time'].toString()) ?? DateTime.now())
+              : DateTime.now()),
+      rawContent: (json['rawContent'] ?? json['raw_content'] ?? '').toString(),
+      fingerprint: (json['fingerprint'] ?? '').toString(),
+      isSynced: true,
+      category: json['category'] as String?,
+      note: json['note'] as String?,
+    );
+  }
+
   NormalizedTransaction copyWith({
     String? id,
     String? bankCode,

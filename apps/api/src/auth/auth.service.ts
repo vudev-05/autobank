@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import crypto from 'node:crypto';
 
@@ -119,15 +119,22 @@ export class AuthService {
       throw new UnauthorizedException('Issuer tài khoản Google không hợp lệ');
     }
 
-    // Xác thực Google Client ID nếu đã cấu hình trong .env
+    // Xác thực Google Client ID: Chấp nhận Web Client ID, Android Client ID hoặc cùng Project Google Cloud
     const configuredClientId = process.env.GOOGLE_CLIENT_ID;
-    if (configuredClientId) {
-      if (data.aud !== configuredClientId) {
-        this.logger.warn(`Audience mismatch: expected ${configuredClientId}, received ${data.aud}`);
-        throw new UnauthorizedException('Google Client ID (Audience) không trùng khớp với cấu hình hệ thống');
-      }
-    } else {
-      this.logger.warn('CẢNH BÁO: GOOGLE_CLIENT_ID chưa cấu hình trong .env (xem GOOGLE_OAUTH_SETUP.md)');
+    const androidClientId = process.env.GOOGLE_ANDROID_CLIENT_ID || '326124862102-mbibb162b8dp9fnoqij6ms3k3ba6mc71.apps.googleusercontent.com';
+    const webClientId = '326124862102-oddd2tnbc6he6fk820bc15n3kpte3uo6.apps.googleusercontent.com';
+
+    const validClients = [configuredClientId, androidClientId, webClientId].filter(Boolean);
+    const tokenAud = data.aud || '';
+    const tokenAzp = data.azp || '';
+
+    const isAudValid = validClients.some(cid => cid && (tokenAud === cid || tokenAzp === cid)) ||
+                       tokenAud.includes('326124862102') ||
+                       tokenAzp.includes('326124862102');
+
+    if (!isAudValid) {
+      this.logger.warn(`Audience mismatch: expected one of ${JSON.stringify(validClients)}, received aud=${tokenAud}, azp=${tokenAzp}`);
+      throw new UnauthorizedException('Google Client ID (Audience) không trùng khớp với cấu hình hệ thống');
     }
 
     return {
@@ -159,20 +166,21 @@ export class AuthService {
         throw new ForbiddenException('Tài khoản của bạn đã bị tạm khóa bởi Quản trị viên. Vui lòng liên hệ hỗ trợ!');
       }
 
-      // Cập nhật thông tin thiết bị nếu có
+      // Cập nhật thông tin thiết bị nếu có - Luôn giữ nguyên tên quán đã lưu trong MySQL
       user = await this.prisma.appDeviceUser.update({
         where: { email: googleUser.email },
         data: {
           name: googleUser.name || user.name,
           device: dto.deviceName || user.device,
           deviceId: dto.deviceId || user.deviceId,
-          phone: dto.phone || user.phone,
-          shopName: dto.shopName || user.shopName,
+          phone: user.phone || dto.phone,
+          shopName: user.shopName || dto.shopName,
         },
       });
     } else {
-      // Người dùng mới: cấp 3 ngày dùng thử miễn phí
-      const trialExpiry = new Date(Date.now() + 3 * 86400000);
+      // Người dùng mới: Chưa chọn gói, chưa kích hoạt dùng thử!
+      // Bắt buộc người dùng phải chọn gói ngay trên app trước khi được vào dùng.
+      const yesterday = new Date(Date.now() - 86400000);
       user = await this.prisma.appDeviceUser.create({
         data: {
           name: googleUser.name,
@@ -180,15 +188,33 @@ export class AuthService {
           device: dto.deviceName || 'Thiết bị di động',
           deviceId: dto.deviceId,
           version: '1.2.0',
-          packagePlan: 'Dùng thử 3 ngày',
-          hasUsedTrial: true,
-          expiresAt: trialExpiry,
-          status: 'ACTIVE',
+          packagePlan: 'Chưa kích hoạt gói',
+          hasUsedTrial: false,
+          expiresAt: yesterday,
+          status: 'PENDING_PLAN',
           phone: dto.phone,
           shopName: dto.shopName || `Cửa hàng ${googleUser.name}`,
         },
       });
     }
+
+    try {
+      await this.prisma.$executeRawUnsafe(`
+        INSERT INTO \`users\` (\`id\`, \`name\`, \`email\`, \`phone\`, \`shopName\`, \`packagePlan\`, \`status\`, \`device\`, \`version\`, \`deviceId\`, \`expiresAt\`, \`createdAt\`, \`updatedAt\`)
+        VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          \`name\` = VALUES(\`name\`),
+          \`phone\` = VALUES(\`phone\`),
+          \`shopName\` = VALUES(\`shopName\`),
+          \`packagePlan\` = VALUES(\`packagePlan\`),
+          \`status\` = VALUES(\`status\`),
+          \`device\` = VALUES(\`device\`),
+          \`version\` = VALUES(\`version\`),
+          \`deviceId\` = VALUES(\`deviceId\`),
+          \`expiresAt\` = VALUES(\`expiresAt\`),
+          \`updatedAt\` = NOW()
+      `, user.name, user.email, user.phone || null, user.shopName || null, user.packagePlan || '1 Năm', user.status || 'ACTIVE', user.device || 'Thiết bị di động', user.version || '1.2.0', user.deviceId || null, user.expiresAt ? new Date(user.expiresAt) : null);
+    } catch (_) {}
 
     const token = this.signToken({
       email: user.email,
@@ -212,6 +238,7 @@ export class AuthService {
         hasUsedTrial: user.hasUsedTrial,
         expiresAt: user.expiresAt,
         status: user.status,
+        createdAt: user.createdAt,
       },
     };
   }
@@ -244,7 +271,87 @@ export class AuthService {
       hasUsedTrial: user.hasUsedTrial,
       expiresAt: user.expiresAt,
       status: user.status,
+      createdAt: user.createdAt,
       isExpired: new Date(user.expiresAt) < new Date(),
+    };
+  }
+
+  // Bộ nhớ bảo vệ chống brute-force đăng nhập quản trị
+  private adminLoginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
+  /**
+   * Đăng nhập Quản trị viên an toàn (xác thực backend + chống brute force)
+   */
+  async loginAdmin(dto: { username: string; password: string; clientIp?: string }) {
+    const cleanUser = (dto.username || '').trim();
+    const cleanPass = (dto.password || '').trim();
+    const key = `${cleanUser}_${dto.clientIp || 'unknown'}`;
+    const now = Date.now();
+    const record = this.adminLoginAttempts.get(key) || { count: 0, lockedUntil: 0 };
+
+    if (record.lockedUntil > now) {
+      const waitMin = Math.ceil((record.lockedUntil - now) / 60000);
+      throw new HttpException(
+        `Phát hiện hành vi dò mật khẩu bất thường. Tài khoản tạm khóa bảo mật trong ${waitMin} phút!`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const envUser = process.env.ADMIN_USERNAME || 'admin';
+    const envPass = process.env.ADMIN_PASSWORD || 'autobank@2026';
+
+    let isValid = false;
+
+    // 1. Kiểm tra tài khoản admin trong database
+    try {
+      const adminAcc = await this.prisma.adminAccount.findUnique({
+        where: { username: cleanUser },
+      });
+      if (adminAcc && adminAcc.password === cleanPass) {
+        isValid = true;
+      }
+    } catch (_) {}
+
+    // 2. Kiểm tra fallback từ biến môi trường máy chủ
+    if (!isValid && cleanUser === envUser && cleanPass === envPass) {
+      isValid = true;
+    }
+
+    if (!isValid) {
+      record.count += 1;
+      if (record.count >= 5) {
+        record.lockedUntil = now + 15 * 60 * 1000; // Khóa 15 phút
+        this.adminLoginAttempts.set(key, record);
+        this.logger.warn(`[Security Alert] Admin login brute force attempt from IP ${dto.clientIp || 'unknown'} - LOCKED for 15m`);
+        throw new HttpException(
+          'Đã nhập sai mật khẩu quá 5 lần! Hệ thống tạm thời khóa đăng nhập 15 phút để bảo vệ máy chủ.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      this.adminLoginAttempts.set(key, record);
+      throw new UnauthorizedException(`Tài khoản hoặc mật khẩu quản trị không chính xác (Còn ${5 - record.count} lần thử)`);
+    }
+
+    // Đăng nhập thành công -> Xóa bản ghi đếm số lần sai
+    this.adminLoginAttempts.delete(key);
+
+    // Ký token JWT đặc quyền SUPER_ADMIN
+    const token = this.signToken(
+      {
+        email: cleanUser,
+        sub: 'super_admin_id',
+        name: 'Quản trị viên hệ thống',
+        role: 'SUPER_ADMIN',
+      },
+      86400 * 7, // 7 ngày
+    );
+
+    return {
+      success: true,
+      token,
+      role: 'SUPER_ADMIN',
+      username: cleanUser,
+      message: 'Đăng nhập Quản trị viên thành công',
     };
   }
 }

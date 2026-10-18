@@ -39,6 +39,77 @@
     packages['6month'] = { name: 'Gói 6 Tháng', price: p6, text: p6.toLocaleString('vi-VN') + 'đ' };
     packages['9month'] = { name: 'Gói 9 Tháng', price: p9, text: p9.toLocaleString('vi-VN') + 'đ' };
     packages['1year'] = { name: 'Gói 1 Năm (Tiết kiệm nhất)', price: py, text: py.toLocaleString('vi-VN') + 'đ' };
+
+    if (Array.isArray(cfg.packages) && cfg.packages.length > 0) {
+      cfg.packages.forEach(pkg => {
+        if (pkg.isActive !== false) {
+          const k = pkg.key || 'pkg_' + pkg.durationDays;
+          packages[k] = {
+            name: pkg.name,
+            price: Number(pkg.price || 0),
+            text: Number(pkg.price || 0).toLocaleString('vi-VN') + 'đ',
+            badge: pkg.badge || '',
+            days: pkg.durationDays,
+            desc: pkg.description || '',
+          };
+          if (k === '1m') packages['1month'] = packages[k];
+          if (k === '3m') packages['3month'] = packages[k];
+          if (k === '6m') packages['6month'] = packages[k];
+          if (k === '9m') packages['9month'] = packages[k];
+          if (k === '1y') packages['1year'] = packages[k];
+          if (k === 'lifetime') packages['lifetime'] = packages[k];
+        }
+      });
+    }
+
+    // Đồng bộ giá hiển thị trực tiếp trên Landing Page HTML
+    const updateCardPrice = (key, text) => {
+      const btn = document.querySelector(`[data-package="${key}"]`);
+      if (btn) {
+        const card = btn.closest('.single-price');
+        if (card) {
+          const priceEl = card.querySelector('.package-price');
+          if (priceEl) priceEl.textContent = text;
+        }
+      }
+    };
+    if (packages['1month']) updateCardPrice('1month', packages['1month'].text);
+    if (packages['3month']) updateCardPrice('3month', packages['3month'].text);
+    if (packages['6month']) updateCardPrice('6month', packages['6month'].text);
+    if (packages['9month']) updateCardPrice('9month', packages['9month'].text);
+    if (packages['1year']) updateCardPrice('1year', packages['1year'].text);
+
+    // Đồng bộ hotline & Zalo trên Landing Page
+    if (cfg.hotline) {
+      document.querySelectorAll('a[href^="tel:"]').forEach(a => {
+        a.href = `tel:${cfg.hotline}`;
+        if (/^0\d+/.test(a.textContent.trim())) {
+          a.textContent = cfg.hotline;
+        }
+      });
+      document.querySelectorAll('a[href*="zalo.me"]').forEach(a => {
+        a.href = `https://zalo.me/${cfg.hotline}`;
+      });
+      document.querySelectorAll('.seo-contact-card__value').forEach(el => {
+        if (/^0\d+/.test(el.textContent.trim())) {
+          el.textContent = cfg.hotline;
+        } else if (el.textContent.includes('zalo.me')) {
+          el.textContent = `zalo.me/${cfg.hotline}`;
+        }
+      });
+    }
+
+    // Hiển thị Marketing Banner nếu admin cấu hình trong MySQL
+    if (cfg.marketingBanner && cfg.marketingBanner.trim()) {
+      let banner = document.getElementById('autobank-live-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'autobank-live-banner';
+        banner.style.cssText = 'background: linear-gradient(90deg, #1e3a8a, #2563eb); color: #fff; text-align: center; padding: 10px 16px; font-size: 13.5px; font-weight: 600; position: sticky; top: 0; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; gap: 8px;';
+        document.body.prepend(banner);
+      }
+      banner.innerHTML = `<span>📢</span> <span>${cfg.marketingBanner}</span>`;
+    }
   }
 
   function refreshConfigFromAdmin() {
@@ -383,6 +454,15 @@
           </div>
         </div>
 
+        <!-- MÃ GIẢM GIÁ VOUCHER -->
+        <div style="margin-bottom: 16px; background: #f8fafc; padding: 12px 14px; border-radius: 12px; border: 1px dashed #cbd5e1;">
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="ab-coupon-input" placeholder="Mã giảm giá (ví dụ: WELCOME10)" style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; text-transform: uppercase; font-family: monospace; font-weight: 700;" />
+            <button type="button" id="ab-coupon-btn" style="padding: 8px 14px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Áp dụng</button>
+          </div>
+          <div id="ab-coupon-msg" style="margin-top: 6px; font-size: 0.82rem; font-weight: 600; display: none;"></div>
+        </div>
+
         <div class="ab-info-grid">
           <div class="ab-info-row">
             <span class="ab-info-label">Ngân hàng:</span>
@@ -398,7 +478,7 @@
           </div>
           <div class="ab-info-row">
             <span class="ab-info-label">Số tiền:</span>
-            <span class="ab-info-val" style="color: #0284c7; font-size: 1.05rem;">${pkg.text} <button type="button" class="ab-copy-btn" data-copy="${pkg.price}">Sao chép</button></span>
+            <span class="ab-info-val" id="ab-price-val" style="color: #0284c7; font-size: 1.05rem;">${pkg.text} <button type="button" class="ab-copy-btn" data-copy="${pkg.price}">Sao chép</button></span>
           </div>
           <div class="ab-info-row">
             <span class="ab-info-label">Nội dung CK:</span>
@@ -414,6 +494,58 @@
           <button type="button" class="ab-btn-test" data-copy="${appDeepLink}" style="font-weight: 700;">Sao chép link mở App</button>
         </div>
       `;
+
+      // Handle Coupon Code Validation & Dynamic QR Update
+      let currentPrice = pkg.price;
+      const couponInput = document.getElementById('ab-coupon-input');
+      const couponBtn = document.getElementById('ab-coupon-btn');
+      const couponMsg = document.getElementById('ab-coupon-msg');
+      const qrImg = document.querySelector('.ab-qr-img');
+      const priceVal = document.getElementById('ab-price-val');
+
+      if (couponBtn && couponInput) {
+        couponBtn.onclick = async () => {
+          const code = couponInput.value.trim().toUpperCase();
+          if (!code) {
+            couponMsg.style.display = 'block';
+            couponMsg.style.color = '#ef4444';
+            couponMsg.textContent = 'Vui lòng nhập mã giảm giá!';
+            return;
+          }
+          couponBtn.disabled = true;
+          couponBtn.textContent = '...';
+          try {
+            const res = await fetch(`${API_BASE}/admin/coupons/validate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, amount: pkg.price }),
+            });
+            const data = await res.json();
+            if (res.ok && data.valid) {
+              currentPrice = data.finalAmount;
+              couponMsg.style.display = 'block';
+              couponMsg.style.color = '#16a34a';
+              couponMsg.textContent = `✓ Đã áp dụng mã "${data.code}": Giảm ${Number(data.discount).toLocaleString('vi-VN')}đ!`;
+              const updatedQr = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${currentPrice}&addInfo=${orderCode}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+              if (qrImg) qrImg.src = updatedQr;
+              if (priceVal) {
+                priceVal.innerHTML = `<span style="text-decoration: line-through; color: #94a3b8; font-size: 0.9rem; margin-right: 6px;">${pkg.text}</span> ${currentPrice.toLocaleString('vi-VN')}đ <button type="button" class="ab-copy-btn" data-copy="${currentPrice}">Sao chép</button>`;
+              }
+            } else {
+              couponMsg.style.display = 'block';
+              couponMsg.style.color = '#ef4444';
+              couponMsg.textContent = data.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.';
+            }
+          } catch (_) {
+            couponMsg.style.display = 'block';
+            couponMsg.style.color = '#ef4444';
+            couponMsg.textContent = 'Lỗi kết nối máy chủ khi kiểm tra mã.';
+          } finally {
+            couponBtn.disabled = false;
+            couponBtn.textContent = 'Áp dụng';
+          }
+        };
+      }
 
       // Auto-trigger deep link on mobile devices
       if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
@@ -503,6 +635,9 @@
       });
     });
   }
+
+  window.attachPricingButtons = attachPricingButtons;
+  window.autobankPaymentModal = { open: openModal, attachPricingButtons };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', attachPricingButtons);

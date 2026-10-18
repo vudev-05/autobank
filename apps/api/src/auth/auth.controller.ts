@@ -1,9 +1,29 @@
-import { Controller, Post, Get, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, Req, UnauthorizedException } from '@nestjs/common';
+import type { Request } from 'express';
 import { AuthService } from './auth.service.js';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  /**
+   * Đăng nhập Quản trị viên an toàn (Backend Authentication + JWT)
+   */
+  @Post('admin/login')
+  async loginAdmin(
+    @Body() body: { username?: string; password?: string },
+    @Req() req: Request,
+  ) {
+    if (!body || !body.username || !body.password) {
+      throw new UnauthorizedException('Vui lòng nhập đầy đủ tài khoản và mật khẩu quản trị');
+    }
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket?.remoteAddress || req.ip;
+    return this.authService.loginAdmin({
+      username: body.username,
+      password: body.password,
+      clientIp,
+    });
+  }
 
   /**
    * Đăng nhập / Xác thực tài khoản bằng Google ID Token

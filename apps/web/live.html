@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AutoBank Live • Đọc Thông Báo Nhận Tiền & Biến Động Số Dư Trực Tiếp</title>
+  <title>Đọc Thông Báo Nhận Tiền • Loa Phát Biến Động Số Dư Trực Tiếp</title>
   <link rel="shortcut icon" href="assets/images/favicon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -172,6 +172,49 @@
       font-weight: 700;
       color: var(--emerald);
       white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+
+    .live-status-pill.offline {
+      background: #fff1f2 !important;
+      border-color: #fecdd3 !important;
+      color: #e11d48 !important;
+    }
+
+    .live-status-pill.offline .pulse-dot {
+      background: #e11d48 !important;
+      box-shadow: 0 0 10px rgba(225, 29, 72, 0.7) !important;
+    }
+
+    .signal-lost-banner {
+      background: linear-gradient(90deg, #fee2e2 0%, #fff1f2 100%);
+      border: 1.5px solid #f87171;
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12);
+      animation: pulseAlert 2.5s infinite ease-in-out;
+    }
+
+    @keyframes pulseAlert {
+      0%, 100% { border-color: #f87171; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12); }
+      50% { border-color: #ef4444; box-shadow: 0 4px 20px rgba(239, 68, 68, 0.25); }
+    }
+
+    .signal-lost-content {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .signal-lost-pulse {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
+      animation: pulseAnim 1.2s infinite;
+      flex-shrink: 0;
     }
 
     .pill-text-short {
@@ -1557,10 +1600,10 @@
     </a>
 
     <div class="navbar-actions">
-      <div class="live-status-pill" title="Hệ thống kết nối Realtime 24/7">
+      <div class="live-status-pill" id="liveStatusPill" title="Hệ thống kết nối Realtime 24/7">
         <div class="pulse-dot"></div>
-        <span class="pill-text-full">KẾT NỐI REALTIME 24/7</span>
-        <span class="pill-text-short">24/7</span>
+        <span class="pill-text-full" id="pillTextFull">KẾT NỐI REALTIME 24/7</span>
+        <span class="pill-text-short" id="pillTextShort">24/7</span>
       </div>
 
       <button type="button" class="btn-action" id="btnShareLink" title="Sao chép link chia sẻ nghe loa">
@@ -1591,12 +1634,12 @@
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
       </div>
-      <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Xác Thực Quyền Nghe Loa</h2>
-      <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">
-        Nhập <strong>mã PIN 6 số</strong> được chia sẻ từ chủ shop để bắt đầu nghe loa phát tiền về trực tiếp.
+      <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Nhập Mã Bảo Mật 6 Số</h2>
+      <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;" id="pinModalDesc">
+        Nhập <strong>mã bảo mật 6 số</strong> từ điện thoại chia sẻ để mở quyền xem biến động số dư và nghe loa phát tiền về trực tiếp.
       </p>
 
-      <div class="pin-inputs">
+      <div class="pin-inputs" id="pinInputsContainer">
         <input type="password" maxlength="1" class="pin-box" id="pin1" inputmode="numeric" autofocus />
         <input type="password" maxlength="1" class="pin-box" id="pin2" inputmode="numeric" />
         <input type="password" maxlength="1" class="pin-box" id="pin3" inputmode="numeric" />
@@ -1605,8 +1648,18 @@
         <input type="password" maxlength="1" class="pin-box" id="pin6" inputmode="numeric" />
       </div>
 
+      <div style="display: flex; align-items: center; justify-content: center; margin: -6px 0 16px;">
+        <button type="button" id="btnTogglePinVisibility" style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); color: #0284c7; cursor: pointer; font-size: 0.8rem; font-weight: 700; padding: 6px 14px; border-radius: 99px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+          <span id="pinVisibilityIcon">👁️</span> <span id="pinVisibilityText">Hiện mã số</span>
+        </button>
+      </div>
+
       <button type="button" id="btnVerifyPin" class="pin-btn">Mở Loa & Xem Lịch Sử</button>
-      <div id="pinError" class="pin-error">Mã PIN 6 số không đúng. Vui lòng kiểm tra lại!</div>
+      <div id="pinError" class="pin-error">Mã bảo mật 6 số không đúng. Vui lòng kiểm tra lại!</div>
+      <div style="margin-top: 14px; font-size: 0.76rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Phiên bảo mật có hiệu lực <strong>24 giờ</strong> trên thiết bị này</span>
+      </div>
     </div>
   </div>
 
@@ -1683,6 +1736,24 @@
 
   <!-- MAIN DASHBOARD CONTENT -->
   <main class="main-wrap">
+
+    <!-- BANNER CẢNH BÁO MẤT TÍN HIỆU ĐIỆN THOẠI -->
+    <div id="liveSignalLostBanner" class="signal-lost-banner" style="display: none;">
+      <div class="signal-lost-content">
+        <span class="signal-lost-pulse"></span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" style="flex-shrink:0;">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <div>
+          <strong style="color: #b91c1c; font-size: 0.95rem; display: block;">ĐANG KHÔNG NHẬN ĐƯỢC TÍN HIỆU TỪ ĐIỆN THOẠI</strong>
+          <span style="font-size: 0.82rem; color: #7f1d1d; line-height: 1.4; display: block; margin-top: 2px;">
+            Vui lòng mở lại ứng dụng AutoBank trên điện thoại để tiếp tục nhận biến động số dư và phát loa trực tiếp.
+          </span>
+        </div>
+      </div>
+    </div>
 
     <!-- 1. AUDIO CONTROLLER & WEB SPEECH -->
     <div class="audio-control-card">
@@ -1899,6 +1970,8 @@
     let isAudioActive = true;
     let transactions = [];
     let knownTxIds = new Set();
+    const sessionStartTime = Date.now();
+    let isInitialSnapshotLoaded = false;
     let currentFilterType = 'all'; // 'all' | 'credit' | 'debit'
     let currentKeyword = '';
     let currentPage = 1;
@@ -1927,6 +2000,15 @@
     const pageButtons = document.getElementById('pageButtons');
     const btnShareLink = document.getElementById('btnShareLink');
 
+    // Chuẩn hóa thanh địa chỉ trình duyệt: Tự động bỏ đuôi .html thành link sạch /live
+    if (window.location.pathname.endsWith('.html')) {
+      const cleanPath = window.location.pathname.replace(/\.html$/, '');
+      const cleanUrl = cleanPath + window.location.search + window.location.hash;
+      try {
+        window.history.replaceState(null, '', cleanUrl);
+      } catch (_) {}
+    }
+
     // Phone Heartbeat & Online Signal State
     let phoneStatus = { isOnline: false, lastHeartbeat: null };
 
@@ -1940,71 +2022,331 @@
       document.getElementById('pin6')
     ];
 
-    // If valid 6-digit code passed in URL, auto-verify!
-    if (codeParam && codeParam.length === 6) {
-      codeParam.split('').forEach((digit, i) => {
-        if (pinInputs[i]) pinInputs[i].value = digit;
-      });
-      // Accept code=606060 or valid 6-digits automatically
-      unlockLivePortal(codeParam);
-    } else {
-      setupPinInputEvents();
+    const STORAGE_KEY_UNLOCKED_AT = 'autobank_live_pin_unlocked_at';
+    const STORAGE_KEY_PIN = 'autobank_live_pin_code';
+    const EXPIRE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 giờ
+    let expiryTimer = null;
+
+    // Thiết lập sự kiện gõ phím cho 6 ô PIN
+    setupPinInputEvents();
+
+    // Kiểm tra phiên đăng nhập 24h trong localStorage
+    checkAndRestoreSession();
+
+    function checkAndRestoreSession() {
+      const storedUnlockedAt = localStorage.getItem(STORAGE_KEY_UNLOCKED_AT);
+      const storedPin = localStorage.getItem(STORAGE_KEY_PIN);
+      const now = Date.now();
+
+      if (storedUnlockedAt) {
+        const elapsed = now - Number(storedUnlockedAt);
+        if (elapsed < EXPIRE_DURATION_MS) {
+          // Phiên vẫn hợp lệ trong vòng 24 giờ!
+          const remainingMs = EXPIRE_DURATION_MS - elapsed;
+          const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+          unlockLivePortal(storedPin || '889922', false);
+          showToast(`Đã khôi phục phiên bảo mật (Còn ${remainingHours}h hiệu lực)`);
+
+          if (expiryTimer) clearTimeout(expiryTimer);
+          expiryTimer = setTimeout(lockPortalDueToExpiration, remainingMs);
+          return;
+        } else {
+          // Đã quá 24h -> hết hạn!
+          localStorage.removeItem(STORAGE_KEY_UNLOCKED_AT);
+          showExpiredNotice();
+        }
+      }
+
+      // Chưa mở khóa hoặc đã hết hạn -> Bắt buộc hiển thị modal nhập mã bảo mật
+      pinModal.style.display = 'flex';
+      setTimeout(() => {
+        const firstEmpty = pinInputs.find(i => !i.value) || pinInputs[0];
+        if (firstEmpty) firstEmpty.focus();
+      }, 300);
     }
+
+    function showExpiredNotice() {
+      pinModal.style.display = 'flex';
+      const desc = document.getElementById('pinModalDesc');
+      if (desc) {
+        desc.innerHTML = `<span style="color: #e11d48; font-weight: 700;">⚠️ Phiên bảo mật đã hết hạn sau 24 giờ!</span><br/>Vui lòng nhập lại mã bảo mật 6 số từ điện thoại chia sẻ để tiếp tục theo dõi biến động & nghe loa.`;
+      }
+      showPinError('Phiên 24 giờ đã hết hạn. Vui lòng nhập lại mã bảo mật 6 số!');
+    }
+
+    function lockPortalDueToExpiration() {
+      localStorage.removeItem(STORAGE_KEY_UNLOCKED_AT);
+      stopLiveAudio();
+      isAudioActive = false;
+      pinInputs.forEach(i => i.value = '');
+      showExpiredNotice();
+      showToast('Phiên truy cập đã hết hạn sau 24 giờ. Vui lòng nhập lại mã bảo mật!');
+    }
+
+    let isPinVisible = false;
 
     function setupPinInputEvents() {
       pinInputs.forEach((input, index) => {
-        input.addEventListener('input', (e) => {
-          const val = input.value;
-          if (val && index < 5) {
-            pinInputs[index + 1].focus();
-          }
+        // Tự động bôi đen khi click hoặc focus
+        input.addEventListener('focus', () => {
+          input.select();
         });
 
+        input.addEventListener('click', () => {
+          input.select();
+        });
+
+        // Xử lý gõ phím trực tiếp (chuyển ô ngay lập tức khi bấm 1 số)
         input.addEventListener('keydown', (e) => {
-          if (e.key === 'Backspace' && !input.value && index > 0) {
+          const err = document.getElementById('pinError');
+          if (err) err.style.display = 'none';
+
+          if (e.key >= '0' && e.key <= '9') {
+            e.preventDefault();
+            input.value = e.key;
+            if (index < 5) {
+              pinInputs[index + 1].focus();
+            } else {
+              verifyEnteredPin();
+            }
+            return;
+          }
+
+          if (e.key === 'Backspace') {
+            e.preventDefault();
+            if (input.value) {
+              input.value = '';
+            } else if (index > 0) {
+              pinInputs[index - 1].value = '';
+              pinInputs[index - 1].focus();
+            }
+            return;
+          }
+
+          if (e.key === 'ArrowLeft' && index > 0) {
+            e.preventDefault();
             pinInputs[index - 1].focus();
+            return;
+          }
+
+          if (e.key === 'ArrowRight' && index < 5) {
+            e.preventDefault();
+            pinInputs[index + 1].focus();
+            return;
+          }
+
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            verifyEnteredPin();
+            return;
           }
         });
 
+        // Xử lý sự kiện input (cho bàn phím ảo di động và IME)
+        input.addEventListener('input', () => {
+          const raw = input.value || '';
+          const cleaned = raw.replace(/\D/g, '');
+          const err = document.getElementById('pinError');
+          if (err) err.style.display = 'none';
+
+          if (!cleaned) {
+            input.value = '';
+            return;
+          }
+
+          if (cleaned.length > 1) {
+            const digits = cleaned.split('');
+            let cur = index;
+            for (let i = 0; i < digits.length && cur < 6; i++, cur++) {
+              pinInputs[cur].value = digits[i];
+            }
+            if (cur < 6) {
+              pinInputs[cur].focus();
+            } else {
+              pinInputs[5].focus();
+              verifyEnteredPin();
+            }
+            return;
+          }
+
+          input.value = cleaned;
+          if (index < 5) {
+            pinInputs[index + 1].focus();
+          } else if (index === 5) {
+            verifyEnteredPin();
+          }
+        });
+
+        // Xử lý dán mã (Paste)
         input.addEventListener('paste', (e) => {
           e.preventDefault();
-          const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
-          if (/^\d{6}$/.test(pasteData)) {
-            pasteData.split('').forEach((d, i) => {
-              if (pinInputs[i]) pinInputs[i].value = d;
-            });
-            verifyEnteredPin();
+          const pasteData = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').trim();
+          if (pasteData) {
+            const digits = pasteData.split('');
+            let cur = index;
+            for (let i = 0; i < digits.length && cur < 6; i++, cur++) {
+              pinInputs[cur].value = digits[i];
+            }
+            if (cur < 6) {
+              pinInputs[cur].focus();
+            } else {
+              pinInputs[5].focus();
+              verifyEnteredPin();
+            }
           }
         });
       });
 
-      document.getElementById('btnVerifyPin').addEventListener('click', verifyEnteredPin);
+      // Nút Hiện / Ẩn mã số PIN
+      const btnToggle = document.getElementById('btnTogglePinVisibility');
+      if (btnToggle) {
+        btnToggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          isPinVisible = !isPinVisible;
+          pinInputs.forEach(i => {
+            i.type = isPinVisible ? 'text' : 'password';
+          });
+          const icon = document.getElementById('pinVisibilityIcon');
+          const txt = document.getElementById('pinVisibilityText');
+          if (icon) icon.textContent = isPinVisible ? '🔒' : '👁️';
+          if (txt) txt.textContent = isPinVisible ? 'Ẩn mã số' : 'Hiện mã số';
+        });
+      }
+
+      const btn = document.getElementById('btnVerifyPin');
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          verifyEnteredPin();
+        });
+      }
     }
 
-    function verifyEnteredPin() {
-      const code = pinInputs.map(i => i.value).join('');
+    async function verifyEnteredPin() {
+      const code = pinInputs.map(i => (i.value || '').trim()).join('');
       if (code.length !== 6) {
-        showPinError('Vui lòng nhập đủ 6 chữ số mã PIN bảo mật!');
+        showPinError('Vui lòng nhập đủ 6 chữ số mã bảo mật!');
+        const empty = pinInputs.find(i => !i.value) || pinInputs[0];
+        if (empty) empty.focus();
         return;
       }
-      // Any 6-digit match or 606060
-      if (code === '606060' || (codeParam && code === codeParam) || /^\d{6}$/.test(code)) {
-        unlockLivePortal(code);
+
+      const btn = document.getElementById('btnVerifyPin');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang kiểm tra mã...';
+      }
+
+      const errEl = document.getElementById('pinError');
+      if (errEl) errEl.style.display = 'none';
+
+      // 1. Kiểm tra nhanh mã chuẩn (889922 từ App điện thoại hoặc 606060)
+      if (code === '889922' || code === '606060') {
+        localStorage.setItem(STORAGE_KEY_UNLOCKED_AT, Date.now().toString());
+        localStorage.setItem(STORAGE_KEY_PIN, code);
+        unlockLivePortal(code, true);
+
+        if (expiryTimer) clearTimeout(expiryTimer);
+        expiryTimer = setTimeout(lockPortalDueToExpiration, EXPIRE_DURATION_MS);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Mở Loa & Xem Lịch Sử';
+        }
+        return;
+      }
+
+      // 2. Xác thực với Backend (hỗ trợ cả link /live độc lập không cần kèm gmail)
+      let isValid = false;
+      let matchedEmail = '';
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryEmail = (urlParams.get('u') || urlParams.get('email') || '').trim();
+
+      // Kiểm tra local storage nếu chạy trên cùng trình duyệt
+      try {
+        const localFlutterPin = (localStorage.getItem('flutter.share_pin_code') || localStorage.getItem('share_pin_code') || '').replace(/['"]/g, '').trim();
+        if (localFlutterPin && localFlutterPin === code) {
+          isValid = true;
+        }
+      } catch (_) {}
+
+      if (!isValid) {
+        const endpoints = [
+          '/admin/verify-live-pin',
+          '/api/admin/verify-live-pin',
+          'http://localhost:3000/admin/verify-live-pin',
+          'http://localhost:3000/api/admin/verify-live-pin',
+          'http://192.168.1.217:3000/admin/verify-live-pin',
+          'https://docthongbaobank.com/admin/verify-live-pin',
+          'https://docthongbaobank.com/api/admin/verify-live-pin'
+        ];
+
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(ep, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pin: code, email: queryEmail })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.isValid) {
+                isValid = true;
+                matchedEmail = data.email || queryEmail;
+                break;
+              }
+            }
+          } catch (err) {
+            // bỏ qua endpoint lỗi tiếp tục endpoint dự phòng
+          }
+        }
+      }
+
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Mở Loa & Xem Lịch Sử';
+      }
+
+      if (isValid) {
+        localStorage.setItem(STORAGE_KEY_UNLOCKED_AT, Date.now().toString());
+        localStorage.setItem(STORAGE_KEY_PIN, code);
+        if (matchedEmail) {
+          localStorage.setItem('live_matched_email', matchedEmail);
+        }
+        unlockLivePortal(code, true);
+
+        if (expiryTimer) clearTimeout(expiryTimer);
+        expiryTimer = setTimeout(lockPortalDueToExpiration, EXPIRE_DURATION_MS);
       } else {
-        showPinError('Mã PIN không đúng. Vui lòng kiểm tra lại!');
+        showPinError('Mã bảo mật 6 số không đúng! Vui lòng nhập đúng mã hiển thị trên ứng dụng AutoBank (Mặc định: 889922).');
       }
     }
 
     function showPinError(msg) {
       const err = document.getElementById('pinError');
-      err.textContent = msg;
-      err.style.display = 'block';
+      if (err) {
+        err.textContent = msg;
+        err.style.display = 'block';
+      }
     }
 
-    function unlockLivePortal(code) {
+    function unlockLivePortal(code, isNewUnlock = true) {
       verifiedCode = code;
       pinModal.style.display = 'none';
-      showToast('Đã mở quyền nghe loa thành công!');
+      isAudioActive = true;
+
+      // Kích hoạt ngay audio context và speech synthesis tại sự kiện click
+      try {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.resume();
+          const silentUtter = new SpeechSynthesisUtterance('');
+          silentUtter.volume = 0.01;
+          window.speechSynthesis.speak(silentUtter);
+        }
+      } catch (_) {}
+
+      if (isNewUnlock) {
+        showToast('Xác thực thành công! Loa và lịch sử đã sẵn sàng (Hiệu lực 24 giờ)');
+      }
       initLiveStream();
     }
 
@@ -2023,8 +2365,17 @@
     function renderPhoneSignalUI() {
       const dot = document.getElementById('phoneStatusDot');
       const text = document.getElementById('phoneStatusText');
+      const banner = document.getElementById('liveSignalLostBanner');
+      const livePill = document.getElementById('liveStatusPill');
+      const pillFull = document.getElementById('pillTextFull');
+      const pillShort = document.getElementById('pillTextShort');
 
       if (phoneStatus.isOnline) {
+        if (banner) banner.style.display = 'none';
+        if (livePill) livePill.classList.remove('offline');
+        if (pillFull) pillFull.textContent = 'KẾT NỐI REALTIME 24/7';
+        if (pillShort) pillShort.textContent = '24/7';
+
         if (dot) dot.className = 'phone-status-dot online';
         if (text) {
           text.textContent = 'Điện thoại đang kết nối trực tuyến & truyền tín hiệu 24/24';
@@ -2046,9 +2397,14 @@
 
         updateSpeakerStateUI();
       } else {
+        if (banner) banner.style.display = 'block';
+        if (livePill) livePill.classList.add('offline');
+        if (pillFull) pillFull.textContent = 'ĐANG MẤT TÍN HIỆU ĐIỆN THOẠI';
+        if (pillShort) pillShort.textContent = 'MẤT TÍN HIỆU';
+
         if (dot) dot.className = 'phone-status-dot offline';
         if (text) {
-          text.textContent = 'Mất tín hiệu hoạt động từ điện thoại (Chưa mở app hoặc tắt máy)';
+          text.textContent = 'Đang không nhận được tín hiệu từ điện thoại (Vui lòng mở lại app)';
           text.style.color = '#e11d48';
         }
         updateSpeakerStateUI();
@@ -2142,6 +2498,270 @@
       }
     }
 
+    // =========================================================================
+    // ĐỒNG BỘ 100% CẤU HÌNH GIỌNG ĐỌC & QUYỀN CHIA SẺ TỪ ĐIỆN THOẠI CHÍNH
+    // =========================================================================
+    const targetUserEmail = (urlParams.get('u') || urlParams.get('user') || '').trim().toLowerCase();
+
+    let userTtsConfig = {
+      speechRate: 0.90,
+      pitch: 1.0,
+      volume: 1.0,
+      isCreditEnabled: true,
+      isDebitEnabled: true,
+      credit: {
+        templateId: 'BANK_STANDARD',
+        prefixWord: 'Đã nhận',
+        suffixWord: 'Cảm ơn quý khách!',
+        amountStyle: 'dong',
+        bankStyle: 'tu',
+        shopStyle: 'don',
+        blocksOrder: ['bell', 'prefix', 'amount', 'bank'],
+        enabledBlocks: ['bell', 'prefix', 'amount', 'bank'],
+      },
+      debit: {
+        templateId: 'DEBIT_STANDARD',
+        prefixWord: 'Đã chuyển',
+        suffixWord: 'Giao dịch hoàn tất',
+        amountStyle: 'dong',
+        bankStyle: 'qua',
+        shopStyle: 'don',
+        blocksOrder: ['bell', 'prefix', 'amount', 'bank'],
+        enabledBlocks: ['bell', 'prefix', 'amount', 'bank'],
+      },
+      shareConfig: {
+        shareCredit: true,
+        shareDebit: true,
+        shareSpeech: true,
+        shareShowAmount: true,
+        shareShowContent: true,
+        shareRepeatTwice: false,
+      }
+    };
+
+    // Tải cấu hình giọng đọc & quyền chia sẻ của tài khoản từ MySQL
+    async function loadUserShareAndVoiceConfig() {
+      const email = targetUserEmail || phoneStatus?.lastHeartbeat?.email || phoneStatus?.lastHeartbeat?.userEmail || '';
+      try {
+        const url = email ? `/api/tts/user-config/${encodeURIComponent(email)}` : `/api/tts/user-config`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && json.data) {
+            const d = json.data;
+            if (d.voiceId) userTtsConfig.voiceId = d.voiceId;
+            if (d.speechRate != null) userTtsConfig.speechRate = Number(d.speechRate) || 0.90;
+            if (d.pitch != null) userTtsConfig.pitch = Number(d.pitch) || 1.0;
+            if (d.volume != null) userTtsConfig.volume = Number(d.volume) || 1.0;
+            if (d.isCreditEnabled != null) userTtsConfig.isCreditEnabled = Boolean(d.isCreditEnabled);
+            if (d.isDebitEnabled != null) userTtsConfig.isDebitEnabled = Boolean(d.isDebitEnabled);
+            if (d.isRepeatTwice != null) userTtsConfig.isRepeatTwice = Boolean(d.isRepeatTwice);
+            if (d.schedule && typeof d.schedule === 'object') userTtsConfig.schedule = d.schedule;
+            if (d.shopName) userTtsConfig.shopName = d.shopName;
+            if (d.credit && typeof d.credit === 'object') userTtsConfig.credit = { ...userTtsConfig.credit, ...d.credit };
+            if (d.debit && typeof d.debit === 'object') userTtsConfig.debit = { ...userTtsConfig.debit, ...d.debit };
+            if (d.shareConfig && typeof d.shareConfig === 'object') {
+              userTtsConfig.shareConfig = { ...userTtsConfig.shareConfig, ...d.shareConfig };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Không thể tải cấu hình giọng đọc người dùng:', err);
+      }
+    }
+
+    // Kiểm tra khung giờ hoạt động đọc thông báo (Schedule) thiết lập trong app
+    function isWithinActiveHours(schedule) {
+      if (!schedule || !schedule.enabled) return true;
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const startH = typeof schedule.startHour === 'number' ? schedule.startHour : 6;
+      const startM = typeof schedule.startMinute === 'number' ? schedule.startMinute : 0;
+      const endH = typeof schedule.endHour === 'number' ? schedule.endHour : 22;
+      const endM = typeof schedule.endMinute === 'number' ? schedule.endMinute : 0;
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+
+      if (startMinutes <= endMinutes) {
+        return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+      } else {
+        // Vắt qua nửa đêm (ví dụ: 20h tối đến 06h sáng hôm sau)
+        return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+      }
+    }
+
+    // Chuyển đổi số tiền thành chữ tiếng Việt chuẩn xác tự nhiên
+    function readThreeDigits(n, readZeroHundreds = false) {
+      const digits = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+      const h = Math.floor(n / 100);
+      const t = Math.floor((n % 100) / 10);
+      const u = n % 10;
+      let res = '';
+      if (h > 0 || readZeroHundreds) {
+        res += digits[h] + ' trăm ';
+      }
+      if (t > 1) {
+        res += digits[t] + ' mươi ';
+        if (u === 1) res += 'mốt';
+        else if (u === 4) res += 'tư';
+        else if (u === 5) res += 'lăm';
+        else if (u > 0) res += digits[u];
+      } else if (t === 1) {
+        res += 'mười ';
+        if (u === 5) res += 'lăm';
+        else if (u > 0) res += digits[u];
+      } else if (t === 0 && (h > 0 || readZeroHundreds)) {
+        if (u > 0) res += 'linh ' + digits[u];
+      } else if (u > 0) {
+        res += digits[u];
+      }
+      return res.trim();
+    }
+
+    function numberToVietnameseWords(num) {
+      num = Math.round(Math.abs(Number(num) || 0));
+      if (num === 0) return 'không';
+      const units = ['', 'nghìn', 'triệu', 'tỷ', 'nghìn tỷ', 'triệu tỷ'];
+      const groups = [];
+      let temp = num;
+      while (temp > 0) {
+        groups.push(temp % 1000);
+        temp = Math.floor(temp / 1000);
+      }
+      let words = [];
+      for (let i = groups.length - 1; i >= 0; i--) {
+        const val = groups[i];
+        if (val === 0) continue;
+        const needZeroHundreds = (i < groups.length - 1) && (val < 100);
+        const gText = readThreeDigits(val, needZeroHundreds);
+        if (units[i]) {
+          words.push(gText + ' ' + units[i]);
+        } else {
+          words.push(gText);
+        }
+      }
+      return words.join(' ').replace(/\s+/g, ' ').trim();
+    }
+
+    // Ghép câu đọc theo đúng 100% Form và cài đặt trên điện thoại chính
+    function buildLiveSentence(tx) {
+      const isDebit = (tx.type || '').toLowerCase() === 'debit';
+      const config = isDebit ? userTtsConfig.debit : userTtsConfig.credit;
+      const amtNum = Math.abs(Number(tx.amount) || 0);
+      const amtWords = numberToVietnameseWords(amtNum);
+      const bankName = tx.bankCode || 'Ngân hàng';
+      const orderCode = tx.orderCode || '';
+
+      if (!config) {
+        return {
+          hasBell: true,
+          sentence: isDebit ? `Đã chuyển ${amtWords} đồng qua ${bankName}` : `Đã nhận ${amtWords} đồng từ ${bankName}`
+        };
+      }
+
+      const order = Array.isArray(config.blocksOrder) ? config.blocksOrder : ['bell', 'prefix', 'amount', 'bank'];
+      const enabled = Array.isArray(config.enabledBlocks) ? config.enabledBlocks : ['bell', 'prefix', 'amount', 'bank'];
+
+      const parts = [];
+      let hasBell = false;
+
+      for (const blockId of order) {
+        if (!enabled.includes(blockId) && blockId !== 'amount') continue;
+
+        if (blockId === 'bell') {
+          hasBell = true;
+        } else if (blockId === 'prefix') {
+          const p = (config.prefixWord || (isDebit ? 'Đã chuyển' : 'Đã nhận')).trim();
+          if (p) parts.push({ type: 'prefix', text: p });
+        } else if (blockId === 'amount') {
+          let amtLabel;
+          const style = config.amountStyle || 'dong';
+          if (style === 'dong') {
+            amtLabel = `${amtWords} đồng`;
+          } else if (style === 'vnd') {
+            amtLabel = `${amtWords} V N Đ`;
+          } else {
+            amtLabel = amtWords;
+          }
+          parts.push({ type: 'amount', text: amtLabel });
+        } else if (blockId === 'bank') {
+          if (bankName && bankName !== 'OTHER_BANK') {
+            let bText;
+            const bStyle = config.bankStyle || (isDebit ? 'qua' : 'tu');
+            if (bStyle === 'tu') bText = `từ ${bankName}`;
+            else if (bStyle === 'qua') bText = `qua ${bankName}`;
+            else if (bStyle === 'vao') bText = `vào tài khoản ${bankName}`;
+            else if (bStyle === 'none') bText = '';
+            else bText = bankName;
+            if (bText) parts.push({ type: 'bank', text: bText });
+          }
+        } else if (blockId === 'shopOrOrder') {
+          const sStyle = config.shopStyle || 'don';
+          let sText = '';
+          const sName = userTtsConfig.shopName || phoneStatus?.lastHeartbeat?.shopName || 'quán';
+          if (orderCode) {
+            sText = `đơn hàng ${orderCode.split('').join(' ')}`;
+          } else if (sStyle === 'quan') {
+            sText = `tại ${sName}`;
+          } else if (sStyle === 'khach') {
+            sText = 'khách thanh toán';
+          }
+          if (sText) parts.push({ type: 'shopOrOrder', text: sText });
+        } else if (blockId === 'suffix') {
+          const suf = (config.suffixWord || '').trim();
+          if (suf && suf !== 'Không đọc lời cảm ơn' && suf !== 'Không đọc lời kết') {
+            parts.push({ type: 'suffix', text: suf });
+          }
+        }
+      }
+
+      if (parts.length === 0) {
+        return {
+          hasBell,
+          sentence: isDebit ? `Đã chuyển ${amtWords} đồng` : `Đã nhận ${amtWords} đồng`
+        };
+      }
+
+      let resSentence = '';
+      for (let i = 0; i < parts.length; i++) {
+        const item = parts[i];
+        if (!resSentence) {
+          resSentence = item.text;
+        } else {
+          if (item.type === 'bank' || item.type === 'shopOrOrder' || item.type === 'suffix') {
+            resSentence += ', ' + item.text;
+          } else {
+            resSentence += ' ' + item.text;
+          }
+        }
+      }
+
+      return {
+        hasBell,
+        sentence: resSentence.replace(/\s+,/g, ',').trim()
+      };
+    }
+
+    // Âm thanh chuông Ting! chuẩn
+    function playChimeBell() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } catch (_) {}
+    }
+
     // Tự động mồi Web Audio khi người dùng tương tác lần đầu
     let liveAudioElement = null;
     let livePlayToken = 0;
@@ -2153,6 +2773,9 @@
         clearTimeout(liveRepeatTimer);
         liveRepeatTimer = null;
       }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       if (liveAudioElement) {
         try {
           liveAudioElement.pause();
@@ -2163,28 +2786,90 @@
       if (audioWave) audioWave.classList.remove('playing');
     }
 
-    function speak(text) {
+    // Phát âm thanh tức thì 24/7 với tốc độ và cao độ 100% giống máy chính
+    function speak(text, hasBell = false) {
       if (!isAudioActive) return;
-      if (!phoneStatus.isOnline) return;
+      if (userTtsConfig.shareConfig?.shareSpeech === false) return; // Chủ máy đã tắt phát loa cho link
+
+      if (hasBell) {
+        playChimeBell();
+      }
 
       stopLiveAudio();
       const currentToken = ++livePlayToken;
+      if (audioWave) audioWave.classList.add('playing');
 
-      const host = window.location.hostname || 'localhost';
-      const apiUrl = `http://${host}:3000/tts?text=${encodeURIComponent(text)}`;
-      const fallbackGoogleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(text)}`;
+      const shouldRepeat = Boolean(userTtsConfig.isRepeatTwice || userTtsConfig.shareConfig?.shareRepeatTwice);
 
-      if (!liveAudioElement) {
-        liveAudioElement = new Audio();
+      // 1. ƯU TIÊN WEB SPEECH API (ĐỘ TRỄ 0MS, TỐC ĐỘ NHANH Y HỆT ĐIỆN THOẠI)
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'vi-VN';
+        utter.rate = userTtsConfig.speechRate || 0.90;
+        utter.pitch = userTtsConfig.pitch || 1.0;
+        utter.volume = userTtsConfig.volume || 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        let matchedVoice = null;
+        if (userTtsConfig.voiceId) {
+          if (userTtsConfig.voiceId.includes('nam') || userTtsConfig.voiceId.toLowerCase().includes('male')) {
+            matchedVoice = voices.find(v => (v.lang && v.lang.startsWith('vi')) && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('nam')));
+          }
+        }
+        if (!matchedVoice) {
+          matchedVoice = voices.find(v => (v.lang && (v.lang === 'vi-VN' || v.lang === 'vi_VN' || v.lang.startsWith('vi'))));
+        }
+        if (matchedVoice) utter.voice = matchedVoice;
+
+        utter.onend = () => {
+          if (currentToken !== livePlayToken) return;
+          if (audioWave) audioWave.classList.remove('playing');
+
+          if (shouldRepeat) {
+            liveRepeatTimer = setTimeout(() => {
+              if (currentToken !== livePlayToken) return;
+              if (audioWave) audioWave.classList.add('playing');
+              const repeatUtter = new SpeechSynthesisUtterance(text);
+              repeatUtter.lang = 'vi-VN';
+              repeatUtter.rate = userTtsConfig.speechRate || 0.90;
+              repeatUtter.pitch = userTtsConfig.pitch || 1.0;
+              repeatUtter.volume = userTtsConfig.volume || 1.0;
+              if (matchedVoice) repeatUtter.voice = matchedVoice;
+              repeatUtter.onend = () => {
+                if (audioWave) audioWave.classList.remove('playing');
+              };
+              window.speechSynthesis.speak(repeatUtter);
+            }, 600);
+          }
+        };
+
+        utter.onerror = () => {
+          fallbackAudioSpeak(text, currentToken);
+        };
+
+        window.speechSynthesis.speak(utter);
+        return;
       }
 
+      // 2. FALLBACK AUDIO QUA SERVER TTS
+      fallbackAudioSpeak(text, currentToken);
+    }
+
+    function fallbackAudioSpeak(text, currentToken) {
+      const host = window.location.hostname || 'localhost';
+      const voiceParam = userTtsConfig.voiceId ? `&voiceId=${encodeURIComponent(userTtsConfig.voiceId)}` : '';
+      const rateParam = userTtsConfig.speechRate ? `&speechRate=${userTtsConfig.speechRate}` : '';
+      const pitchParam = userTtsConfig.pitch ? `&pitch=${userTtsConfig.pitch}` : '';
+      const apiUrl = `http://${host}:3000/tts?text=${encodeURIComponent(text)}${voiceParam}${rateParam}${pitchParam}`;
+      const fallbackGoogleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(text)}`;
+
+      if (!liveAudioElement) liveAudioElement = new Audio();
       const audio = liveAudioElement;
       let hasEnded = false;
 
       audio.onplay = () => {
-        if (currentToken === livePlayToken && audioWave) {
-          audioWave.classList.add('playing');
-        }
+        if (currentToken === livePlayToken && audioWave) audioWave.classList.add('playing');
       };
 
       audio.onended = () => {
@@ -2192,8 +2877,8 @@
         hasEnded = true;
         if (audioWave) audioWave.classList.remove('playing');
 
-        const repeatCount = phoneStatus.lastHeartbeat?.repeatCount || 2;
-        if (repeatCount >= 2 && !audio._isRepeat) {
+        const shouldRepeat = Boolean(userTtsConfig.isRepeatTwice || userTtsConfig.shareConfig?.shareRepeatTwice);
+        if (shouldRepeat && !audio._isRepeat) {
           liveRepeatTimer = setTimeout(() => {
             if (currentToken !== livePlayToken) return;
             audio._isRepeat = true;
@@ -2203,31 +2888,24 @@
         }
       };
 
-      const handleFail = () => {
+      audio.onerror = () => {
         if (currentToken !== livePlayToken) return;
-        // Fallback trực tiếp tới Google Translate TTS trên cùng Audio element
         audio.src = fallbackGoogleUrl;
-        audio._isRepeat = false;
         audio.play().catch(() => {
           if (audioWave) audioWave.classList.remove('playing');
         });
       };
 
       audio._isRepeat = false;
-      audio.onerror = handleFail;
       audio.src = apiUrl;
-
-      audio.play().catch(() => {
-        handleFail();
-      });
+      audio.play().catch(() => {});
     }
 
     // 5. SHARE LINK BUTTON
     btnShareLink.addEventListener('click', () => {
-      const code = verifiedCode || codeParam || '606060';
-      const shareUrl = `${window.location.origin}${window.location.pathname}?code=${code}`;
+      const shareUrl = window.location.href;
       navigator.clipboard.writeText(shareUrl).then(() => {
-        showToast('Đã sao chép link nghe loa trực tiếp kèm mã PIN!');
+        showToast('Đã sao chép đường link chia sẻ phát loa!');
       }).catch(() => {
         prompt('Sao chép đường link bên dưới:', shareUrl);
       });
@@ -2258,10 +2936,15 @@
 
     // 7. LIVE DATA POLLING & STREAM
     function initLiveStream() {
-      // Dò tín hiệu điện thoại ngay lập tức và kiểm tra định kỳ mỗi 3 giây
-      fetchPhoneStatus();
-      setInterval(fetchPhoneStatus, 3000);
+      // 1. Tải cấu hình giọng đọc & quyền chia sẻ của tài khoản ngay lập tức
+      loadUserShareAndVoiceConfig();
+      setInterval(loadUserShareAndVoiceConfig, 8000);
 
+      // 2. Dò tín hiệu điện thoại
+      fetchPhoneStatus();
+      setInterval(fetchPhoneStatus, 4000);
+
+      // 3. Tải danh sách giao dịch 24/7 theo tài khoản
       fetchLiveTransactions();
       setInterval(fetchLiveTransactions, 2500);
 
@@ -2278,7 +2961,12 @@
 
     async function fetchLiveTransactions() {
       try {
-        const res = await fetch('/api/transactions?limit=200');
+        const email = targetUserEmail || phoneStatus.lastHeartbeat?.userEmail || phoneStatus.lastHeartbeat?.email || '';
+        const queryParam = email ? `?limit=200&userEmail=${encodeURIComponent(email)}` : `?limit=200`;
+        let res = await fetch(`/api/transactions${queryParam}`);
+        if (!res.ok) {
+          res = await fetch(`/transactions${queryParam}`);
+        }
         if (!res.ok) return;
         const data = await res.json();
         if (!Array.isArray(data)) return;
@@ -2293,9 +2981,24 @@
       let outgoingTotal = 0;
       let outgoingCount = 0;
 
+      // Lọc theo quyền chia sẻ được chủ máy thiết lập
+      const filteredList = [];
+
       newList.forEach(tx => {
         const amt = Math.abs(Number(tx.amount) || 0);
         const type = (tx.type || 'credit').toLowerCase();
+
+        // 1. Kiểm tra quyền chia sẻ Tiền Vào (Credit)
+        if (type !== 'debit' && userTtsConfig.shareConfig.shareCredit === false) {
+          return; // Chủ máy đã tắt chia sẻ tiền vào
+        }
+
+        // 2. Kiểm tra quyền chia sẻ Tiền Ra (Debit)
+        if (type === 'debit' && userTtsConfig.shareConfig.shareDebit === false) {
+          return; // Chủ máy đã tắt chia sẻ tiền ra
+        }
+
+        filteredList.push(tx);
 
         if (type === 'debit') {
           outgoingTotal += amt;
@@ -2305,35 +3008,59 @@
           incomingCount++;
         }
 
-        // Phát loa khi nhận biến động số dư mới (theo quy tắc được đồng bộ từ App)
-        const isNew = !knownTxIds.has(tx.id) && knownTxIds.size > 0;
-        if (isNew) {
-          tx._isNewFlash = true;
-          const bank = tx.bankCode || 'Ngân hàng';
+        // Quản lý trạng thái giao dịch
+        const txKey = String(tx.id || tx.fingerprint || `${tx.bankCode}_${tx.amount}_${tx.transactionTime}`);
+        const isKnown = knownTxIds.has(txKey);
+        knownTxIds.add(txKey);
 
-          const allowCredit = phoneStatus.lastHeartbeat ? phoneStatus.lastHeartbeat.autoSpeechCredit !== false : true;
-          const allowDebit = phoneStatus.lastHeartbeat ? phoneStatus.lastHeartbeat.autoSpeechDebit === true : false;
+        // CHỈ PHÁT ÂM THANH CHO CÁC GIAO DỊCH MỚI PHÁT SINH THỰC SỰ TRONG PHIÊN HIỆN TẠI (REALTIME)
+        // TUYỆT ĐỐI KHÔNG ĐỌC CÁC GIAO DỊCH ĐÃ CŨ
+        if (!isKnown && isInitialSnapshotLoaded) {
+          const txTimeStr = tx.transactionTime || tx.createdAt || tx.date;
+          const txTime = txTimeStr ? new Date(txTimeStr).getTime() : 0;
+          const now = Date.now();
 
-          if (type === 'debit' && allowDebit) {
-            speak(`Đã chuyển ${amt.toLocaleString('vi-VN')} đồng qua ${bank}`);
-          } else if (type !== 'debit' && allowCredit) {
-            speak(`Đã nhận ${amt.toLocaleString('vi-VN')} đồng từ ${bank}`);
+          // Điều kiện giao dịch mới chuẩn xác:
+          // 1. Thời gian phát sinh phải sau hoặc xấp xỉ lúc mở trang live (cho phép lệch tối đa 15 giây cho độ trễ mạng)
+          // 2. Không được quá 90 giây so với hiện tại
+          const isFresh = txTime > 0 && (txTime >= sessionStartTime - 15000) && ((now - txTime) <= 90000);
+
+          if (!isFresh) {
+            console.log(`[LIVE Mute] Bỏ qua thông báo giao dịch cũ: ${txKey} (${txTimeStr || 'không rõ thời gian'})`);
+          } else {
+            tx._isNewFlash = true;
+
+            // Kiểm tra khung giờ hoạt động (schedule) cài đặt trong app
+            if (!isWithinActiveHours(userTtsConfig.schedule)) {
+              console.log('[LIVE] Ngoài khung giờ hoạt động đọc thông báo cài đặt trên App. Giữ im lặng.');
+            } else if (userTtsConfig.shareConfig?.shareSpeech !== false) {
+              if (type === 'debit' && userTtsConfig.isDebitEnabled !== false) {
+                const built = buildLiveSentence(tx);
+                speak(built.sentence, built.hasBell);
+              } else if (type !== 'debit' && userTtsConfig.isCreditEnabled !== false) {
+                const built = buildLiveSentence(tx);
+                speak(built.sentence, built.hasBell);
+              }
+            }
           }
         }
-        knownTxIds.add(tx.id);
       });
 
-      transactions = newList;
+      if (!isInitialSnapshotLoaded) {
+        isInitialSnapshotLoaded = true;
+      }
+
+      transactions = filteredList;
 
       // Update KPI Cards
-      document.getElementById('statCreditTotal').textContent = formatVND(incomingTotal);
+      document.getElementById('statCreditTotal').textContent = userTtsConfig.shareConfig.shareShowAmount === false ? '***.***đ' : formatVND(incomingTotal);
       document.getElementById('statCreditCount').textContent = `${incomingCount} giao dịch nhận thành công`;
 
-      document.getElementById('statDebitTotal').textContent = formatVND(outgoingTotal);
+      document.getElementById('statDebitTotal').textContent = userTtsConfig.shareConfig.shareShowAmount === false ? '***.***đ' : formatVND(outgoingTotal);
       document.getElementById('statDebitCount').textContent = `${outgoingCount} giao dịch chuyển đi / thanh toán`;
 
       const net = incomingTotal - outgoingTotal;
-      document.getElementById('statNetTotal').textContent = (net >= 0 ? '+' : '') + formatVND(net);
+      document.getElementById('statNetTotal').textContent = userTtsConfig.shareConfig.shareShowAmount === false ? '***.***đ' : ((net >= 0 ? '+' : '') + formatVND(net));
 
       // Update Tab Badges
       document.getElementById('badgeCountAll').textContent = transactions.length;
@@ -2377,17 +3104,22 @@
           <div style="text-align: center; padding: 50px 20px; color: #64748b;">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 10px; display: block; opacity: 0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <strong style="color: #0f172a; display: block;">Chưa Có Giao Dịch Phù Hợp</strong>
-            <small>Đang kết nối hệ thống. Mọi biến động số dư sẽ hiển thị và phát loa ngay tại đây.</small>
+            <small>Đang kết nối hệ thống 24/7. Mọi biến động số dư sẽ hiển thị và phát loa theo cấu hình điện thoại.</small>
           </div>
         `;
       } else {
+        const hideAmt = userTtsConfig.shareConfig.shareShowAmount === false;
+        const hideCnt = userTtsConfig.shareConfig.shareShowContent === false;
+
         txFeedList.innerHTML = pagedList.map(tx => {
           const isDebit = (tx.type || '').toLowerCase() === 'debit';
           const amt = Math.abs(Number(tx.amount) || 0);
           const bank = tx.bankCode || 'NGÂN HÀNG';
-          const content = tx.content || tx.rawContent || 'Biến động số dư tự động';
+          const rawContent = tx.content || tx.rawContent || 'Biến động số dư tự động';
+          const content = hideCnt ? 'Chi tiết giao dịch được bảo mật bởi chủ máy' : rawContent;
           const time = formatTime(tx.transactionTime || tx.createdAt);
           const flashClass = tx._isNewFlash ? 'new-flash' : '';
+          const displayAmtText = hideAmt ? '***.***đ' : ((isDebit ? '-' : '+') + formatVND(amt));
 
           return `
             <div class="tx-item ${flashClass}">
@@ -2410,7 +3142,7 @@
               </div>
               <div class="tx-amount-box">
                 <div class="tx-amount-num ${isDebit ? 'debit' : 'credit'}">
-                  ${isDebit ? '-' : '+'}${formatVND(amt)}
+                  ${displayAmtText}
                 </div>
                 <div class="tx-status-text">✓ Thành công 24/7</div>
               </div>

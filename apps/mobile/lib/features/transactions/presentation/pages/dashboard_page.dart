@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -144,37 +145,8 @@ class DashboardPage extends StatelessWidget {
   }
 
   Widget _buildPermissionBanner(BuildContext context, TransactionProvider provider) {
-    if (provider.isPermissionGranted) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.shade200),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Lắng nghe thông báo nền: Đang hoạt động',
-                style: TextStyle(
-                  color: Colors.green.shade900,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.refresh, size: 18),
-              onPressed: () => provider.checkPermission(),
-              tooltip: 'Kiểm tra lại',
-            ),
-          ],
-        ),
-      );
+    if (kIsWeb || provider.isPermissionGranted) {
+      return const SizedBox.shrink();
     }
 
     return Container(

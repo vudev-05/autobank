@@ -266,16 +266,40 @@ export class TtsController implements OnModuleInit {
    */
   @Post('user-config')
   async saveUserConfig(@Body() body: any) {
-    const email = body.email || 'anonymous';
-    userVoiceConfigs.set(email, {
+    const email = (body.email || '').trim().toLowerCase();
+    const configData = {
       ...body,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    const jsonStr = JSON.stringify(configData);
+
+    if (email && email !== 'anonymous') {
+      try {
+        // Lưu vào MySQL bảng app_device_users
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE app_device_users SET voiceSettingsJson = ?, updatedAt = NOW() WHERE LOWER(email) = ?`,
+          jsonStr,
+          email,
+        );
+
+        // Lưu vào MySQL bảng users
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE users SET voiceSettingsJson = ?, updatedAt = NOW() WHERE LOWER(email) = ?`,
+          jsonStr,
+          email,
+        );
+      } catch (err: any) {
+        this.logger.error(`Error saving voiceSettingsJson to MySQL for ${email}: ${err.message}`);
+      }
+      userVoiceConfigs.set(email, configData);
+    } else {
+      userVoiceConfigs.set('anonymous', configData);
+    }
 
     return {
       success: true,
-      message: 'Đã lưu cấu hình giọng đọc và form câu đọc vào hệ thống SQL',
-      data: userVoiceConfigs.get(email),
+      message: 'Đã lưu cấu hình giọng đọc và form câu đọc vào hệ thống SQL của tài khoản',
+      data: configData,
     };
   }
 
@@ -283,11 +307,80 @@ export class TtsController implements OnModuleInit {
    * 5. Lấy cấu hình giọng đọc của người dùng từ SQL
    */
   @Get('user-config/:email')
-  getUserConfig(@Param('email') email: string) {
+  async getUserConfig(@Param('email') emailParam: string) {
+    return this.findUserConfig(emailParam);
+  }
+
+  @Get('user-config')
+  async getUserConfigQuery(@Query('email') emailQuery: string) {
+    return this.findUserConfig(emailQuery);
+  }
+
+  private async findUserConfig(emailInput: string) {
+    const email = (emailInput || '').trim().toLowerCase();
+    if (email && email !== 'anonymous') {
+      try {
+        // Query từ MySQL bảng app_device_users
+        const rows: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT voiceSettingsJson FROM app_device_users WHERE LOWER(email) = ? AND voiceSettingsJson IS NOT NULL LIMIT 1`,
+          email,
+        );
+
+        if (rows && rows.length > 0 && rows[0].voiceSettingsJson) {
+          const parsed = JSON.parse(rows[0].voiceSettingsJson);
+          userVoiceConfigs.set(email, parsed);
+          return {
+            success: true,
+            data: parsed,
+          };
+        }
+
+        // Query từ MySQL bảng users
+        const userRows: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT voiceSettingsJson FROM users WHERE LOWER(email) = ? AND voiceSettingsJson IS NOT NULL LIMIT 1`,
+          email,
+        );
+        if (userRows && userRows.length > 0 && userRows[0].voiceSettingsJson) {
+          const parsed = JSON.parse(userRows[0].voiceSettingsJson);
+          userVoiceConfigs.set(email, parsed);
+          return {
+            success: true,
+            data: parsed,
+          };
+        }
+      } catch (err: any) {
+        this.logger.error(`Error loading voiceSettingsJson from MySQL for ${email}: ${err.message}`);
+      }
+    } else {
+      // Khi không có email trong tham số, tự động lấy cấu hình đã lưu gần nhất của thiết bị trong MySQL
+      try {
+        const latestRows: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT voiceSettingsJson FROM app_device_users WHERE voiceSettingsJson IS NOT NULL ORDER BY updatedAt DESC LIMIT 1`,
+        );
+        if (latestRows && latestRows.length > 0 && latestRows[0].voiceSettingsJson) {
+          const parsed = JSON.parse(latestRows[0].voiceSettingsJson);
+          return {
+            success: true,
+            data: parsed,
+          };
+        }
+        const latestUserRows: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT voiceSettingsJson FROM users WHERE voiceSettingsJson IS NOT NULL ORDER BY updatedAt DESC LIMIT 1`,
+        );
+        if (latestUserRows && latestUserRows.length > 0 && latestUserRows[0].voiceSettingsJson) {
+          const parsed = JSON.parse(latestUserRows[0].voiceSettingsJson);
+          return {
+            success: true,
+            data: parsed,
+          };
+        }
+      } catch (_) {}
+    }
+
     return {
       success: true,
-      data: userVoiceConfigs.get(email) || {
-        voiceId: 'nam-bac',
+      data: userVoiceConfigs.get(email) || userVoiceConfigs.get('anonymous') || {
+        voiceId: 'chi-google',
         speechRate: 0.90,
         pitch: 1.0,
         volume: 1.0,
@@ -309,38 +402,80 @@ export class TtsController implements OnModuleInit {
     if (!cleanText) return null;
 
     const cfg = VOICES_CATALOG.find((v) => v.id === voiceId) || VOICES_CATALOG[0];
-    const rate = customRate || cfg.defaultRate;
-    const pitch = customPitch || cfg.defaultPitch;
-    const volume = customVolume || cfg.defaultVolume;
+
+    // Chuẩn hóa định dạng rate, pitch, volume cho SSML
+    const formatProsody = (val: string | undefined, defaultVal: string, unit: string) => {
+      if (!val) return defaultVal;
+      let v = val.trim();
+      if (!v.endsWith(unit)) v = `${v}${unit}`;
+      if (!v.startsWith('+') && !v.startsWith('-')) {
+        const num = parseFloat(v);
+        if (num >= 0) v = `+${v}`;
+      }
+      return v;
+    };
+
+    const rate = formatProsody(customRate, cfg.defaultRate, '%');
+    const pitch = formatProsody(customPitch, cfg.defaultPitch, 'Hz');
+    const volume = formatProsody(customVolume, cfg.defaultVolume, '%');
 
     const cacheKey = `${voiceId}::${rate}::${pitch}::${volume}::${cleanText}`;
     if (audioCache.has(cacheKey)) {
       return audioCache.get(cacheKey)!;
     }
 
-    // 1. ƯU TIÊN 100% GIỌNG CHỊ GOOGLE CHUẨN GỐC (Google Translate vi-VN)
-    try {
-      const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
-      const googleRes = await fetch(googleTtsUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://translate.google.com/',
-        },
-      });
+    // 1. NẾU LÀ GIỌNG CHỊ GOOGLE: LUÔN LUÔN ƯU TIÊN 100% GOOGLE TRANSLATE CHÍNH GỐC
+    if (voiceId === 'chi-google') {
+      try {
+        const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
+        const googleRes = await fetch(googleTtsUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://translate.google.com/',
+          },
+        });
 
-      if (googleRes.ok) {
-        const arrayBuf = await googleRes.arrayBuffer();
-        const googleAudioBuffer = Buffer.from(arrayBuf);
-        if (googleAudioBuffer && googleAudioBuffer.length > 500) {
-          audioCache.set(cacheKey, googleAudioBuffer);
-          return googleAudioBuffer;
+        if (googleRes.ok) {
+          const arrayBuf = await googleRes.arrayBuffer();
+          const googleAudioBuffer = Buffer.from(arrayBuf);
+          if (googleAudioBuffer && googleAudioBuffer.length > 500) {
+            audioCache.set(cacheKey, googleAudioBuffer);
+            return googleAudioBuffer;
+          }
         }
+      } catch (googleErr: any) {
+        this.logger.warn(`Google Translate TTS fetch warning: ${googleErr?.message || googleErr}`);
       }
-    } catch (googleErr: any) {
-      this.logger.warn(`Google Translate TTS fetch warning: ${googleErr?.message || googleErr}`);
     }
 
-    // 2. Dự phòng qua MsEdgeTTS nếu mất mạng kết nối tới Google
+    // 2. CÁC GIỌNG VÙNG MIỀN HOẶC KHI CÓ PROSODY TÙY CHỈNH (MsEdgeTTS)
+    const hasCustomProsody =
+      (customRate && customRate !== '+0%') ||
+      (customPitch && customPitch !== '+0Hz' && customPitch !== '+0%');
+
+    if (hasCustomProsody || voiceId !== 'chi-google') {
+      try {
+        const tts = new MsEdgeTTS();
+        await tts.setMetadata(cfg.voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+
+        const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='vi-VN'>
+          <voice name='${cfg.voice}'>
+            <prosody rate='${rate}' pitch='${pitch}' volume='${volume}'>${cleanText}</prosody>
+          </voice>
+        </speak>`;
+
+        const result = await (tts as any)._rawSSMLRequestToFile(tempDir, ssml);
+        if (result && result.audioFilePath && fs.existsSync(result.audioFilePath)) {
+          const audioBuffer = fs.readFileSync(result.audioFilePath);
+          audioCache.set(cacheKey, audioBuffer);
+          return audioBuffer;
+        }
+      } catch (err: any) {
+        this.logger.warn(`EdgeTTS prosody fetch warning: ${err?.message || err}`);
+      }
+    }
+
+    // Dự phòng qua MsEdgeTTS
     try {
       const tts = new MsEdgeTTS();
       await tts.setMetadata(cfg.voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);

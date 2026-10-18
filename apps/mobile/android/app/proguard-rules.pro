@@ -1,0 +1,5 @@
+-keep class vn.autobank.autobank_mobile.** { *; }
+-keep class io.flutter.** { *; }
+-keep class com.google.** { *; }
+-dontwarn androidx.**
+-dontwarn com.google.**

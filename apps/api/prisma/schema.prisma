@@ -71,6 +71,7 @@ model Transaction {
   id              String       @id @default(uuid())
   merchantId      String?
   bankAccountId   String?
+  userEmail       String?
   bankCode        String
   accountNumber   String
   amount          Decimal      @db.Decimal(15, 2)
@@ -82,6 +83,8 @@ model Transaction {
   fingerprint     String       @unique
   status          String       @default("UNMATCHED") // UNMATCHED, MATCHED
   matchedOrderId  String?
+  category        String?
+  note            String?      @db.Text
   createdAt       DateTime     @default(now())
 
   merchant        Merchant?    @relation(fields: [merchantId], references: [id], onDelete: SetNull)
@@ -91,6 +94,7 @@ model Transaction {
   @@index([transactionTime])
   @@index([status])
   @@index([orderCode])
+  @@index([userEmail])
   @@map("transactions")
 }
 
@@ -158,12 +162,33 @@ model SystemConfig {
   marketingBanner String? @db.Text
   maintenance    Boolean  @default(false)
   maintenanceMsg String?  @db.Text
+  googlePayMaintenance Boolean @default(false)
+  googlePayMaintenanceMsg String? @db.Text
   latestVersion  String   @default("1.2.0")
   minVersion     String   @default("1.0.0")
+  serverDomain   String?  @db.Text
+  webDomain      String?  @db.Text
+  apiPort        Int?     @default(3000)
+  packagesJson   String?  @db.Text
+  masterApiKey    String?  @db.Text
+  fcmServerKey    String?  @db.Text
+  webhookEndpoint String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@map("system_configs")
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  name      String
+  key       String   @unique
+  role      String   @default("FULL")
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("api_keys")
 }
 
 model DiscountCoupon {
@@ -173,6 +198,8 @@ model DiscountCoupon {
   discountPercent Int      @default(0)
   discountAmount  Int      @default(0)
   minPrice        Int      @default(0)
+  targetAudience  String   @default("ALL") // ALL, NEW_3DAYS, MANUAL
+  autoApply       Boolean  @default(true)
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -208,9 +235,10 @@ model AppDeviceUser {
   status       String   @default("ACTIVE")
   deviceId     String?
   phone        String?
-  shopName     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  shopName          String?
+  voiceSettingsJson String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@map("app_device_users")
 }

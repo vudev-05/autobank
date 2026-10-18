@@ -280,20 +280,23 @@ function renderRevenueTable(orders = []) {
   const tbody = document.getElementById('overview-orders-body');
   if (!tbody) return;
 
-  if (!orders || orders.length === 0) {
+  const filtered = (orders || []).filter(o => {
+    const s = String(o.status || '').toUpperCase();
+    return s === 'PAID' || s === 'SUCCESS' || s === 'COMPLETED';
+  });
+
+  if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="7" style="text-align: center; color: #94a3b8; padding: 36px;">
-          Chưa có đơn hàng nào phát sinh trong cơ sở dữ liệu MySQL.<br>
-          <small style="color: #64748b; margin-top: 4px; display: block;">Khi khách hàng quét mã VietQR mua gói trên trang web hoặc nạp gói trên app, lịch sử thanh toán sẽ xuất hiện ngay tại đây.</small>
+          Chưa ghi nhận giao dịch thành công nào.
         </td>
       </tr>
     `;
     return;
   }
 
-  tbody.innerHTML = orders.map(o => {
-    const isPaid = String(o.status || '').toUpperCase() === 'PAID';
+  tbody.innerHTML = filtered.map(o => {
     const amount = Number(o.totalAmount || o.amount || 0);
     const dateStr = formatDate(o.createdAt || o.date);
 
@@ -305,12 +308,12 @@ function renderRevenueTable(orders = []) {
           <small style="color: #94a3b8;">${o.customerPhone || o.phone || ''}</small>
         </td>
         <td><span class="admin-badge admin-badge-info">${o.description || o.pkg || 'Gói cước'}</span></td>
-        <td><strong style="color: #fff; font-size: 0.95rem;">${amount.toLocaleString('vi-VN')}đ</strong></td>
+        <td><strong style="color: #4ade80; font-size: 0.95rem;">${amount.toLocaleString('vi-VN')}đ</strong></td>
         <td><span style="color: #38bdf8; font-weight: 600;">VietQR 24/7</span></td>
         <td style="color: #94a3b8; font-size: 0.82rem;">${dateStr}</td>
         <td>
-          <span class="admin-badge ${isPaid ? 'admin-badge-success' : 'admin-badge-warning'}">
-            ${isPaid ? '✓ Đã kích hoạt' : 'Chờ chuyển khoản'}
+          <span class="admin-badge admin-badge-success" style="padding: 4px 10px; font-weight: 700;">
+            ✓ Thành công
           </span>
         </td>
       </tr>

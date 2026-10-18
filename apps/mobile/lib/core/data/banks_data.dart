@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 class BankInfo {
   final String id;
   final String name;
@@ -34,7 +37,37 @@ class BankInfo {
 }
 
 class BankDataRepository {
-  static const List<BankInfo> banks = [
+  static List<BankInfo> _liveBanks = [];
+  static List<BankInfo> get banks => _liveBanks.isNotEmpty ? _liveBanks : defaultBanks;
+
+  static Future<void> fetchFromBackend(String apiBaseUrl) async {
+    try {
+      final uri = Uri.parse('$apiBaseUrl/admin/banks');
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final List<dynamic> list = jsonDecode(res.body);
+        final loaded = <BankInfo>[];
+        for (final item in list) {
+          if (item['isActive'] == false) continue;
+          loaded.add(BankInfo(
+            id: (item['code'] ?? item['id'] ?? '').toString().toLowerCase(),
+            name: item['name'] ?? '',
+            app: item['app'] ?? item['name'] ?? '',
+            code: item['code'] ?? '',
+            pkg: item['pkg'] ?? '',
+            category: item['category'] ?? 'commercial',
+            logo: item['logo'] ?? '',
+            guide: item['guide'] ?? '',
+          ));
+        }
+        if (loaded.isNotEmpty) {
+          _liveBanks = loaded;
+        }
+      }
+    } catch (_) {}
+  }
+
+  static const List<BankInfo> defaultBanks = [
     BankInfo(
       id: 'vcb',
       name: 'Vietcombank',

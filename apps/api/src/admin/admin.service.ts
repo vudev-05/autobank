@@ -6,9 +6,20 @@ export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getConfig() {
-    return this.prisma.systemConfig.findUnique({
+    const config = await this.prisma.systemConfig.findUnique({
       where: { id: 'default' },
     });
+    if (!config) return null;
+    let parsedPackages = [];
+    if (config.packagesJson) {
+      try {
+        parsedPackages = JSON.parse(config.packagesJson);
+      } catch (_) {}
+    }
+    return {
+      ...config,
+      packages: parsedPackages,
+    };
   }
 
   async updateConfig(dto: any) {
@@ -17,28 +28,32 @@ export class AdminService {
       'email', 'facebook', 'tiktok', 'bankCode', 'bankAcc', 'bankName',
       'priceTrial', 'price1m', 'price3m', 'price6m', 'price9m', 'price1y',
       'priceLifetime', 'bonusMonths1y', 'marketingBanner',
-      'maintenance', 'maintenanceMsg', 'latestVersion', 'minVersion',
+      'maintenance', 'maintenanceMsg', 'googlePayMaintenance', 'googlePayMaintenanceMsg', 'latestVersion', 'minVersion',
+      'serverDomain', 'webDomain', 'apiPort', 'packagesJson',
     ];
     const data: any = {};
     for (const key of allowed) {
       if (dto[key] !== undefined) {
         if (key.startsWith('price') && key !== 'priceTrial') {
           data[key] = parseInt(String(dto[key]).replace(/\D/g, ''), 10) || 0;
-        } else if (key === 'bonusMonths1y') {
+        } else if (key === 'bonusMonths1y' || key === 'apiPort') {
           data[key] = parseInt(String(dto[key]).replace(/\D/g, ''), 10) || 0;
-        } else if (key === 'maintenance') {
+        } else if (key === 'maintenance' || key === 'googlePayMaintenance') {
           data[key] = Boolean(dto[key]);
         } else {
           data[key] = dto[key];
         }
       }
     }
+    if (dto.packages !== undefined) {
+      data.packagesJson = typeof dto.packages === 'string' ? dto.packages : JSON.stringify(dto.packages);
+    }
     const defaultCreate = {
       id: 'default',
       brandName: 'Đọc thông báo nhận tiền',
       brandSlogan: 'Tiền vừa sang ~ máy báo vang',
       chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
-      youtubeLink: 'https://www.youtube.com/@vudev05',
+      youtubeLink: '',
       hotline: '0869226687',
       email: 'tranquocvu3011@gmail.com',
       facebook: 'https://www.facebook.com/Baochuyentienbanggiongnoi',
@@ -52,6 +67,10 @@ export class AdminService {
       price6m: 179000,
       price9m: 249000,
       price1y: 299000,
+      priceLifetime: 499000,
+      serverDomain: 'http://192.168.1.217:3000',
+      webDomain: 'http://192.168.1.217:5173',
+      apiPort: 3000,
       maintenance: false,
       maintenanceMsg: 'Hệ thống đang bảo trì nâng cấp máy chủ định kỳ. Vui lòng quay lại sau 15 phút.',
       latestVersion: '1.2.0',
@@ -73,52 +92,133 @@ export class AdminService {
   }
 
   async saveBank(dto: any) {
+    const id = String(dto.id || dto.code || dto.pkg || `bank_${Date.now()}`);
+    const data = {
+      name: dto.name || '',
+      app: dto.app || dto.name || '',
+      code: String(dto.code || id).toUpperCase(),
+      pkg: dto.pkg || '',
+      category: dto.category || 'commercial',
+      logo: dto.logo || '',
+      guide: dto.guide || '',
+      isActive: dto.active !== undefined ? Boolean(dto.active) : (dto.isActive !== undefined ? Boolean(dto.isActive) : true),
+    };
     return this.prisma.bankApp.upsert({
-      where: { id: dto.id || dto.pkg },
-      update: dto,
-      create: dto,
+      where: { id },
+      update: data,
+      create: { id, ...data },
     });
   }
 
-  async deleteBank(id: string) {
-    return this.prisma.bankApp.delete({
-      where: { id },
+  async toggleBank(idOrCode: string) {
+    const b = await this.prisma.bankApp.findFirst({
+      where: {
+        OR: [{ id: idOrCode }, { code: idOrCode }, { pkg: idOrCode }],
+      },
     });
+    if (!b) return null;
+    return this.prisma.bankApp.update({
+      where: { id: b.id },
+      data: { isActive: !b.isActive },
+    });
+  }
+
+  async deleteBank(idOrCode: string) {
+    const b = await this.prisma.bankApp.findFirst({
+      where: {
+        OR: [{ id: idOrCode }, { code: idOrCode }, { pkg: idOrCode }],
+      },
+    });
+    if (!b) return null;
+    return this.prisma.bankApp.delete({
+      where: { id: b.id },
+    });
+  }
+
+  private async syncToUsersTable(user: any) {
+    if (!user || !user.email) return;
+    try {
+      await this.prisma.$executeRawUnsafe(`
+        INSERT INTO \`users\` (\`id\`, \`name\`, \`email\`, \`phone\`, \`shopName\`, \`packagePlan\`, \`status\`, \`device\`, \`version\`, \`deviceId\`, \`expiresAt\`, \`createdAt\`, \`updatedAt\`)
+        VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          \`name\` = VALUES(\`name\`),
+          \`phone\` = VALUES(\`phone\`),
+          \`shopName\` = VALUES(\`shopName\`),
+          \`packagePlan\` = VALUES(\`packagePlan\`),
+          \`status\` = VALUES(\`status\`),
+          \`device\` = VALUES(\`device\`),
+          \`version\` = VALUES(\`version\`),
+          \`deviceId\` = VALUES(\`deviceId\`),
+          \`expiresAt\` = VALUES(\`expiresAt\`),
+          \`updatedAt\` = NOW()
+      `, user.name, user.email, user.phone || null, user.shopName || null, user.packagePlan || '1 Năm', user.status || 'ACTIVE', user.device || 'Thiết bị di động', user.version || '1.2.0', user.deviceId || null, user.expiresAt ? new Date(user.expiresAt) : null);
+    } catch (_) {}
   }
 
   async upsertUser(dto: any) {
     const isTrial = (dto.packagePlan || '').toLowerCase().includes('dùng thử') || (dto.packagePlan || '').toLowerCase().includes('trial');
     const existing = await this.prisma.appDeviceUser.findUnique({ where: { email: dto.email } });
 
-    if (isTrial && existing?.hasUsedTrial) {
-      throw new BadRequestException('Mỗi tài khoản Google chỉ được dùng thử 1 lần duy nhất! Vui lòng chọn mua gói cước.');
+    let result;
+    if (existing) {
+      // Nếu tài khoản đã tồn tại và đang có gói trả phí, giữ nguyên gói cước và hạn dùng từ MySQL
+      const hasPaidPlan = existing.packagePlan && !existing.packagePlan.toLowerCase().includes('dùng thử');
+      const isNewTrialRequest = isTrial && !dto.forceUpdate;
+
+      const targetPackagePlan = (hasPaidPlan && isNewTrialRequest) 
+        ? existing.packagePlan 
+        : (dto.packagePlan || existing.packagePlan);
+
+      let targetExpiresAt = (hasPaidPlan && isNewTrialRequest && new Date(existing.expiresAt) > new Date())
+        ? existing.expiresAt
+        : (dto.expiresAt ? new Date(dto.expiresAt) : existing.expiresAt);
+
+      if ((dto.status === 'EXPIRED' || dto.status === 'BLOCKED') && targetExpiresAt >= new Date()) {
+        targetExpiresAt = new Date(Date.now() - 86400000);
+      }
+
+      result = await this.prisma.appDeviceUser.update({
+        where: { email: dto.email },
+        data: {
+          name: dto.name || existing.name,
+          device: dto.device || existing.device,
+          version: dto.version || existing.version,
+          packagePlan: targetPackagePlan,
+          hasUsedTrial: existing.hasUsedTrial || isTrial || Boolean(dto.hasUsedTrial),
+          expiresAt: targetExpiresAt,
+          status: dto.status || existing.status,
+          phone: (dto.phone !== undefined && dto.phone !== null && String(dto.phone).trim().length > 0) ? String(dto.phone).trim() : existing.phone,
+          shopName: (dto.shopName !== undefined && dto.shopName !== null && String(dto.shopName).trim().length > 0) ? String(dto.shopName).trim() : existing.shopName,
+          deviceId: dto.deviceId || existing.deviceId,
+        },
+      });
+    } else {
+      let expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : new Date(Date.now() + 3 * 86400000);
+      if ((dto.status === 'EXPIRED' || dto.status === 'BLOCKED') && expiresAt >= new Date()) {
+        expiresAt = new Date(Date.now() - 86400000);
+      }
+      const hasUsedTrial = Boolean(isTrial || dto.hasUsedTrial);
+
+      result = await this.prisma.appDeviceUser.create({
+        data: {
+          name: dto.name || dto.email.split('@')[0],
+          email: dto.email,
+          device: dto.device || 'Android',
+          version: dto.version || '1.2.0',
+          packagePlan: dto.packagePlan || 'Dùng thử 3 ngày',
+          hasUsedTrial: hasUsedTrial,
+          expiresAt: expiresAt,
+          status: dto.status || 'ACTIVE',
+          phone: dto.phone || null,
+          shopName: dto.shopName || null,
+          deviceId: dto.deviceId || null,
+        },
+      });
     }
 
-    const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : new Date(Date.now() + 3 * 86400000);
-    const hasUsedTrial = Boolean(existing?.hasUsedTrial || isTrial || dto.hasUsedTrial);
-
-    return this.prisma.appDeviceUser.upsert({
-      where: { email: dto.email },
-      update: {
-        name: dto.name,
-        device: dto.device || 'Android',
-        version: dto.version || '1.2.0',
-        packagePlan: dto.packagePlan || 'Dùng thử 3 ngày',
-        hasUsedTrial: hasUsedTrial,
-        expiresAt: expiresAt,
-        status: dto.status || 'ACTIVE',
-      },
-      create: {
-        name: dto.name,
-        email: dto.email,
-        device: dto.device || 'Android',
-        version: dto.version || '1.2.0',
-        packagePlan: dto.packagePlan || 'Dùng thử 3 ngày',
-        hasUsedTrial: hasUsedTrial,
-        expiresAt: expiresAt,
-        status: dto.status || 'ACTIVE',
-      },
-    });
+    await this.syncToUsersTable(result);
+    return result;
   }
 
   async getUsers() {
@@ -133,30 +233,51 @@ export class AdminService {
     });
   }
 
-  async extendUser(email: string, days: number) {
-    const user = await this.prisma.appDeviceUser.findUnique({ where: { email } });
+  async extendUser(idOrEmail: string, days: number) {
+    const user = await this.prisma.appDeviceUser.findFirst({
+      where: {
+        OR: [{ email: idOrEmail }, { id: idOrEmail }],
+      },
+    });
     if (!user) return null;
     const current = new Date(user.expiresAt) > new Date() ? new Date(user.expiresAt) : new Date();
     current.setDate(current.getDate() + days);
-    return this.prisma.appDeviceUser.update({
-      where: { email },
+    const updated = await this.prisma.appDeviceUser.update({
+      where: { id: user.id },
       data: { expiresAt: current, status: 'ACTIVE' },
     });
+    await this.syncToUsersTable(updated);
+    return updated;
   }
 
-  async toggleBlockUser(email: string) {
-    const user = await this.prisma.appDeviceUser.findUnique({ where: { email } });
+  async toggleBlockUser(idOrEmail: string) {
+    const user = await this.prisma.appDeviceUser.findFirst({
+      where: {
+        OR: [{ email: idOrEmail }, { id: idOrEmail }],
+      },
+    });
     if (!user) return null;
     const nextStatus = user.status === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED';
-    return this.prisma.appDeviceUser.update({
-      where: { email },
+    const updated = await this.prisma.appDeviceUser.update({
+      where: { id: user.id },
       data: { status: nextStatus },
     });
+    await this.syncToUsersTable(updated);
+    return updated;
   }
 
-  async deleteUser(email: string) {
+  async deleteUser(idOrEmail: string) {
+    const user = await this.prisma.appDeviceUser.findFirst({
+      where: {
+        OR: [{ email: idOrEmail }, { id: idOrEmail }],
+      },
+    });
+    if (!user) return null;
+    try {
+      await this.prisma.$executeRawUnsafe('DELETE FROM `users` WHERE `email` = ?', user.email);
+    } catch (_) {}
     return this.prisma.appDeviceUser.delete({
-      where: { email },
+      where: { id: user.id },
     });
   }
 
@@ -196,7 +317,7 @@ export class AdminService {
         totalCount: allTxCount,
       },
       orders: {
-        totalCount: orders.length,
+        totalCount: paidOrders.length,
         paidCount: paidOrders.length,
         revenue: totalRevenue,
       },
@@ -272,6 +393,7 @@ export class AdminService {
 
   async getOrders() {
     return this.prisma.order.findMany({
+      where: { status: 'PAID' },
       orderBy: { createdAt: 'desc' },
       include: { transactions: true },
     });
@@ -314,11 +436,15 @@ export class AdminService {
     });
   }
 
-  async approveOrder(orderCode: string) {
-    const order = await this.prisma.order.findUnique({ where: { orderCode } });
+  async approveOrder(orderCodeOrId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        OR: [{ orderCode: orderCodeOrId }, { id: orderCodeOrId }],
+      },
+    });
     if (!order) return null;
     const updated = await this.prisma.order.update({
-      where: { orderCode },
+      where: { id: order.id },
       data: {
         status: 'PAID',
         paidAmount: order.totalAmount,
@@ -331,9 +457,15 @@ export class AdminService {
     return updated;
   }
 
-  async deleteOrder(orderCode: string) {
+  async deleteOrder(orderCodeOrId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        OR: [{ orderCode: orderCodeOrId }, { id: orderCodeOrId }],
+      },
+    });
+    if (!order) return null;
     return this.prisma.order.delete({
-      where: { orderCode },
+      where: { id: order.id },
     });
   }
 
@@ -349,6 +481,9 @@ export class AdminService {
     repeatCount: number;
     autoSpeechCredit: boolean;
     autoSpeechDebit: boolean;
+    email?: string;
+    userEmail?: string;
+    shopName?: string;
   } | null = null; // Production: Starts with null until real device pings
 
   recordPhoneHeartbeat(dto: any) {
@@ -366,14 +501,17 @@ export class AdminService {
       repeatCount: dto.repeatCount || 1,
       autoSpeechCredit: dto.autoSpeechCredit !== false,
       autoSpeechDebit: dto.autoSpeechDebit === true,
+      email: dto.email || dto.userEmail || undefined,
+      userEmail: dto.userEmail || dto.email || undefined,
+      shopName: dto.shopName || undefined,
     };
     return { success: true, serverTime: Date.now() };
   }
 
   getPhoneStatus() {
     const now = Date.now();
-    // Phone considered online if heartbeat ping received within the last 120 seconds
-    const isOnline = this.lastPhoneHeartbeat != null && (now - this.lastPhoneHeartbeat.timestamp) < 120000;
+    // Phone considered online if heartbeat ping received within the last 35 seconds (app pings every 10s)
+    const isOnline = this.lastPhoneHeartbeat != null && (now - this.lastPhoneHeartbeat.timestamp) < 35000;
     const diffSec = this.lastPhoneHeartbeat ? Math.round((now - this.lastPhoneHeartbeat.timestamp) / 1000) : null;
 
     return {
@@ -382,25 +520,139 @@ export class AdminService {
       offlineSeconds: diffSec,
       instruction: isOnline
         ? 'Thiết bị điện thoại đang hoạt động nền 24/24 và kết nối tín hiệu ổn định.'
-        : 'Không nhận được tín hiệu hoạt động của điện thoại. Vui lòng mở ứng dụng trên điện thoại, thiết lập màn hình chờ không tắt và duy trì chế độ chạy nền 24/24!',
+        : 'Đang không nhận được tín hiệu từ điện thoại. Vui lòng mở lại ứng dụng trên điện thoại để tránh bị gián đoạn nhận thông báo!',
     };
   }
 
-  getLivePin() {
+  async getLivePin() {
+    try {
+      const config = await this.prisma.systemConfig.findUnique({
+        where: { id: 'default' },
+      });
+      if (config && config.packagesJson) {
+        try {
+          const parsed = JSON.parse(config.packagesJson);
+          if (parsed && parsed.livePin) {
+            this.currentLivePin = parsed.livePin;
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
     return { pin: this.currentLivePin };
   }
 
-  setLivePin(pin: string) {
+  async setLivePin(pin: string) {
     if (!pin || pin.trim().length < 4) {
       throw new BadRequestException('Mã PIN bảo vệ phải có ít nhất 4 ký tự!');
     }
     this.currentLivePin = pin.trim();
+    try {
+      const config = await this.prisma.systemConfig.findUnique({
+        where: { id: 'default' },
+      });
+      let parsed: any = {};
+      if (config && config.packagesJson) {
+        try {
+          parsed = JSON.parse(config.packagesJson);
+        } catch (_) {}
+      }
+      parsed.livePin = this.currentLivePin;
+      if (config) {
+        await this.prisma.systemConfig.update({
+          where: { id: 'default' },
+          data: { packagesJson: JSON.stringify(parsed) },
+        });
+      } else {
+        await this.prisma.systemConfig.create({
+          data: {
+            id: 'default',
+            brandName: 'Đọc thông báo nhận tiền',
+            brandSlogan: 'Tiền vừa sang ~ máy báo vang',
+            chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
+            packagesJson: JSON.stringify(parsed),
+          } as any,
+        });
+      }
+    } catch (e) {
+      console.error('Failed to persist livePin to MySQL systemConfig:', e);
+    }
     return { success: true, pin: this.currentLivePin };
   }
 
-  verifyLivePin(pin: string) {
-    const isValid = Boolean(pin && pin === this.currentLivePin);
-    return { isValid };
+  async verifyLivePin(pin: string, email?: string) {
+    await this.getLivePin();
+    const cleanPin = (pin || '').trim();
+    if (!cleanPin) return { isValid: false, message: 'Mã PIN không được để trống' };
+
+    // 1. Khớp mã PIN hiện tại trong hệ thống (đã đồng bộ từ điện thoại hoặc cấu hình)
+    if (this.currentLivePin && cleanPin === this.currentLivePin) {
+      return { isValid: true, message: 'Mã PIN chính xác' };
+    }
+
+    // 2. Chấp nhận các mã mặc định phổ biến (889922 từ App Mobile, 606060 từ Web Admin)
+    if (cleanPin === '889922' || cleanPin === '606060') {
+      return { isValid: true, message: 'Mã PIN chính xác' };
+    }
+
+    // 3. Nếu có email tài khoản, kiểm tra mã PIN trong cấu hình của tài khoản đó trong SQL
+    if (email) {
+      const cleanEmail = email.trim().toLowerCase();
+      try {
+        const rows: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT voiceSettingsJson FROM app_device_users WHERE LOWER(email) = ? LIMIT 1`,
+          cleanEmail,
+        );
+        if (rows && rows[0]?.voiceSettingsJson) {
+          const cfg = JSON.parse(rows[0].voiceSettingsJson);
+          if (cfg && cfg.sharePin && cleanPin === String(cfg.sharePin).trim()) {
+            return { isValid: true, email: cleanEmail, message: 'Mã PIN chính xác' };
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const userRows: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT voiceSettingsJson FROM users WHERE LOWER(email) = ? LIMIT 1`,
+          cleanEmail,
+        );
+        if (userRows && userRows[0]?.voiceSettingsJson) {
+          const cfg = JSON.parse(userRows[0].voiceSettingsJson);
+          if (cfg && cfg.sharePin && cleanPin === String(cfg.sharePin).trim()) {
+            return { isValid: true, email: cleanEmail, message: 'Mã PIN chính xác' };
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 4. Nếu không có email (dùng link chia sẻ sạch /live không đính kèm gmail)
+    // Kiểm tra xem mã PIN này có khớp với bất kỳ tài khoản thiết bị nào đã lưu trong cơ sở dữ liệu không
+    try {
+      const matchApp: any[] = await this.prisma.$queryRawUnsafe(
+        `SELECT email FROM app_device_users WHERE voiceSettingsJson LIKE ? LIMIT 1`,
+        `%"sharePin":"${cleanPin}"%`,
+      );
+      if (matchApp && matchApp.length > 0) {
+        return { isValid: true, email: matchApp[0].email, message: 'Mã PIN chính xác' };
+      }
+    } catch (_) {}
+
+    try {
+      const matchUser: any[] = await this.prisma.$queryRawUnsafe(
+        `SELECT email FROM users WHERE voiceSettingsJson LIKE ? LIMIT 1`,
+        `%"sharePin":"${cleanPin}"%`,
+      );
+      if (matchUser && matchUser.length > 0) {
+        return { isValid: true, email: matchUser[0].email, message: 'Mã PIN chính xác' };
+      }
+    } catch (_) {}
+
+    return { isValid: false, message: 'Mã bảo mật 6 số không đúng' };
+  }
+
+  async getPushes() {
+    return this.prisma.pushBroadcast.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async sendPush(dto: any) {
@@ -414,15 +666,86 @@ export class AdminService {
     });
   }
 
+  async updatePush(id: string, dto: any) {
+    return this.prisma.pushBroadcast.update({
+      where: { id },
+      data: {
+        type: dto.type,
+        title: dto.title,
+        body: dto.body,
+        action: dto.action,
+      },
+    });
+  }
+
+  async deletePush(id: string) {
+    return this.prisma.pushBroadcast.delete({
+      where: { id },
+    });
+  }
+
   // --- COUPONS MARKETING ---
   async getCoupons() {
     return this.prisma.discountCoupon.findMany({
-      where: { isActive: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async validateCoupon(code: string, amount: number) {
+  async saveCoupon(dto: any) {
+    const code = (dto.code || '').trim().toUpperCase();
+    if (!code) throw new BadRequestException('Mã giảm giá không được để trống.');
+    const targetAudience = dto.targetAudience || 'ALL';
+    const autoApply = dto.autoApply !== undefined ? Boolean(dto.autoApply) : true;
+    return this.prisma.discountCoupon.upsert({
+      where: { code },
+      update: {
+        description: dto.description || 'Ưu đãi giảm giá đặc biệt',
+        discountPercent: Number(dto.discountPercent || 0),
+        discountAmount: Number(dto.discountAmount || 0),
+        minPrice: Number(dto.minPrice || 0),
+        targetAudience,
+        autoApply,
+        isActive: dto.isActive !== undefined ? Boolean(dto.isActive) : true,
+      },
+      create: {
+        code,
+        description: dto.description || 'Ưu đãi giảm giá đặc biệt',
+        discountPercent: Number(dto.discountPercent || 0),
+        discountAmount: Number(dto.discountAmount || 0),
+        minPrice: Number(dto.minPrice || 0),
+        targetAudience,
+        autoApply,
+        isActive: dto.isActive !== undefined ? Boolean(dto.isActive) : true,
+      },
+    });
+  }
+
+  async toggleCoupon(idOrCode: string) {
+    const coupon = await this.prisma.discountCoupon.findFirst({
+      where: {
+        OR: [{ id: idOrCode }, { code: idOrCode }],
+      },
+    });
+    if (!coupon) throw new BadRequestException('Không tìm thấy mã giảm giá.');
+    return this.prisma.discountCoupon.update({
+      where: { id: coupon.id },
+      data: { isActive: !coupon.isActive },
+    });
+  }
+
+  async deleteCoupon(idOrCode: string) {
+    const coupon = await this.prisma.discountCoupon.findFirst({
+      where: {
+        OR: [{ id: idOrCode }, { code: idOrCode }],
+      },
+    });
+    if (!coupon) throw new BadRequestException('Không tìm thấy mã giảm giá.');
+    return this.prisma.discountCoupon.delete({
+      where: { id: coupon.id },
+    });
+  }
+
+  async validateCoupon(code: string, amount: number, userEmail?: string) {
     const cleanCode = (code || '').trim().toUpperCase();
     if (!cleanCode) {
       throw new BadRequestException('Vui lòng nhập mã giảm giá.');
@@ -433,6 +756,26 @@ export class AdminService {
     if (!coupon || !coupon.isActive) {
       throw new BadRequestException('Mã giảm giá không hợp lệ hoặc đã hết hạn.');
     }
+
+    // Kiểm tra điều kiện dành cho người mới theo số ngày (1 ngày, 2 ngày, 3 ngày)
+    if (userEmail && (coupon.targetAudience === 'NEW_1DAY' || coupon.targetAudience === 'NEW_2DAYS' || coupon.targetAudience === 'NEW_3DAYS')) {
+      const user = await this.prisma.appDeviceUser.findUnique({ where: { email: userEmail } });
+      if (user) {
+        const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 3600 * 24);
+        let maxDays = 3.0;
+        if (coupon.targetAudience === 'NEW_1DAY') maxDays = 1.0;
+        if (coupon.targetAudience === 'NEW_2DAYS') maxDays = 2.0;
+        if (coupon.targetAudience === 'NEW_3DAYS') maxDays = 3.0;
+        if (daysSinceJoin > maxDays) {
+          throw new BadRequestException(`Mã giảm giá này chỉ áp dụng cho tài khoản mới tạo trong vòng ${maxDays * 24} giờ (${maxDays} ngày) đầu!`);
+        }
+      }
+    }
+
+    if (coupon.minPrice > 0 && amount < coupon.minPrice) {
+      throw new BadRequestException(`Đơn hàng phải từ ${Number(coupon.minPrice).toLocaleString('vi-VN')}đ mới được áp dụng mã này.`);
+    }
+
     let discount = 0;
     if (coupon.discountPercent > 0) {
       discount = Math.round((amount * coupon.discountPercent) / 100);
@@ -445,8 +788,34 @@ export class AdminService {
       code: coupon.code,
       description: coupon.description,
       discount,
+      targetAudience: coupon.targetAudience,
+      autoApply: coupon.autoApply,
       finalAmount: Math.max(0, amount - discount),
     };
+  }
+
+  async getActiveDiscounts(userEmail?: string) {
+    const activeCoupons = await this.prisma.discountCoupon.findMany({
+      where: { isActive: true },
+      orderBy: { discountPercent: 'desc' },
+    });
+
+    let daysSinceJoin: number | null = null;
+    if (userEmail) {
+      const user = await this.prisma.appDeviceUser.findUnique({ where: { email: userEmail } });
+      if (user) {
+        daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 3600 * 24);
+      }
+    }
+
+    return activeCoupons.filter(c => {
+      if (daysSinceJoin !== null) {
+        if (c.targetAudience === 'NEW_1DAY' && daysSinceJoin > 1.0) return false;
+        if (c.targetAudience === 'NEW_2DAYS' && daysSinceJoin > 2.0) return false;
+        if (c.targetAudience === 'NEW_3DAYS' && daysSinceJoin > 3.0) return false;
+      }
+      return true;
+    });
   }
 
   // --- 1 TÀI KHOẢN LIÊN KẾT 1 ĐIỆN THOẠI DUY NHẤT ---
@@ -496,4 +865,81 @@ export class AdminService {
       data: { deviceId: null },
     });
   }
+
+  // --- API KEYS & SERVER KEYS (MYSQL PERSISTENCE) ---
+  async getApiKeys() {
+    return (this.prisma as any).apiKey.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async saveApiKey(dto: any) {
+    const { name, key, role, status } = dto;
+    const existing = await (this.prisma as any).apiKey.findUnique({
+      where: { key },
+    });
+    if (existing) {
+      return (this.prisma as any).apiKey.update({
+        where: { key },
+        data: {
+          name: name || existing.name,
+          role: role || existing.role,
+          status: status || existing.status,
+        },
+      });
+    }
+    return (this.prisma as any).apiKey.create({
+      data: {
+        name,
+        key,
+        role: role || 'FULL',
+        status: status || 'ACTIVE',
+      },
+    });
+  }
+
+  async deleteApiKey(idOrKey: string) {
+    try {
+      return await (this.prisma as any).apiKey.delete({
+        where: { key: idOrKey },
+      });
+    } catch (_) {
+      return await (this.prisma as any).apiKey.delete({
+        where: { id: idOrKey },
+      });
+    }
+  }
+
+  async getServerKeys() {
+    const cfg = await this.prisma.systemConfig.findUnique({
+      where: { id: 'default' },
+    });
+    return {
+      masterKey: cfg?.masterApiKey || 'ak_live_master_autobank_secret_key_2026',
+      fcmKey: cfg?.fcmServerKey || '',
+      webhookUrl: cfg?.webhookEndpoint || 'http://localhost:3000/transactions/webhook',
+    };
+  }
+
+  async updateServerKeys(dto: { masterKey?: string; fcmKey?: string; webhookUrl?: string }) {
+    return this.prisma.systemConfig.upsert({
+      where: { id: 'default' },
+      update: {
+        masterApiKey: dto.masterKey,
+        fcmServerKey: dto.fcmKey,
+        webhookEndpoint: dto.webhookUrl,
+      },
+      create: {
+        id: 'default',
+        brandName: 'Đọc thông báo nhận tiền',
+        brandSlogan: 'Tiền vừa sang ~ máy báo vang',
+        chplayLink: '',
+        youtubeLink: '',
+        masterApiKey: dto.masterKey,
+        fcmServerKey: dto.fcmKey,
+        webhookEndpoint: dto.webhookUrl,
+      },
+    });
+  }
 }
+

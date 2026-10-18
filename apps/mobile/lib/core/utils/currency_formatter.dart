@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import '../tts/tts_service.dart';
 
 class CurrencyFormatter {
   static final _currencyFormat = NumberFormat.currency(
@@ -26,5 +27,9 @@ class CurrencyFormatter {
       return '${(amount / 1000).toStringAsFixed(0)}K ₫';
     }
     return format(amount);
+  }
+
+  static String formatWords(double amount) {
+    return TtsService.formatAmountToWords(amount.toInt());
   }
 }

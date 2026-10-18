@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Body, Param, Delete, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service.js';
+import { AdminGuard, Public } from './admin.guard.js';
 
-@Controller('admin')
+@Controller(['admin', 'api/admin'])
+@UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @Public()
   @Get('configs')
   async getConfig() {
     return this.adminService.getConfig();
@@ -15,6 +18,7 @@ export class AdminController {
     return this.adminService.updateConfig(body);
   }
 
+  @Public()
   @Get('banks')
   async getBanks() {
     return this.adminService.getBanks();
@@ -30,6 +34,12 @@ export class AdminController {
     return this.adminService.deleteBank(id);
   }
 
+  @Put('banks/:id/toggle')
+  async toggleBank(@Param('id') id: string) {
+    return this.adminService.toggleBank(id);
+  }
+
+  @Public()
   @Post('users')
   async upsertUser(@Body() body: any) {
     return this.adminService.upsertUser(body);
@@ -90,29 +100,39 @@ export class AdminController {
     return this.adminService.deleteOrder(orderCode);
   }
 
+  @Public()
   @Get('live-pin')
-  getLivePin() {
-    return this.adminService.getLivePin();
+  async getLivePin() {
+    return await this.adminService.getLivePin();
   }
 
+  @Public()
   @Post('live-pin')
-  setLivePin(@Body('pin') pin: string) {
-    return this.adminService.setLivePin(pin);
+  async setLivePin(@Body('pin') pin: string) {
+    return await this.adminService.setLivePin(pin);
   }
 
+  @Public()
   @Post('verify-live-pin')
-  verifyLivePin(@Body('pin') pin: string) {
-    return this.adminService.verifyLivePin(pin);
+  async verifyLivePin(@Body('pin') pin: string, @Body('email') email?: string) {
+    return await this.adminService.verifyLivePin(pin, email);
   }
 
+  @Public()
   @Post('phone-heartbeat')
   recordPhoneHeartbeat(@Body() body: any) {
     return this.adminService.recordPhoneHeartbeat(body);
   }
 
+  @Public()
   @Get('phone-status')
   getPhoneStatus() {
     return this.adminService.getPhoneStatus();
+  }
+
+  @Get('push')
+  async getPushes() {
+    return this.adminService.getPushes();
   }
 
   @Post('push')
@@ -120,23 +140,82 @@ export class AdminController {
     return this.adminService.sendPush(body);
   }
 
+  @Put('push/:id')
+  async updatePush(@Param('id') id: string, @Body() body: any) {
+    return this.adminService.updatePush(id, body);
+  }
+
+  @Delete('push/:id')
+  async deletePush(@Param('id') id: string) {
+    return this.adminService.deletePush(id);
+  }
+
   @Get('coupons')
   async getCoupons() {
     return this.adminService.getCoupons();
   }
 
-  @Post('coupons/validate')
-  async validateCoupon(@Body() body: { code: string; amount: number }) {
-    return this.adminService.validateCoupon(body.code, body.amount || 0);
+  @Post('coupons')
+  async saveCoupon(@Body() body: any) {
+    return this.adminService.saveCoupon(body);
   }
 
+  @Put('coupons/:id/toggle')
+  async toggleCoupon(@Param('id') id: string) {
+    return this.adminService.toggleCoupon(id);
+  }
+
+  @Delete('coupons/:id')
+  async deleteCoupon(@Param('id') id: string) {
+    return this.adminService.deleteCoupon(id);
+  }
+
+  @Public()
+  @Get('coupons/active')
+  async getActiveCoupons(@Param('email') email?: string) {
+    return this.adminService.getActiveDiscounts(email);
+  }
+
+  @Public()
+  @Post('coupons/validate')
+  async validateCoupon(@Body() body: { code: string; amount: number; email?: string }) {
+    return this.adminService.validateCoupon(body.code, body.amount || 0, body.email);
+  }
+
+  @Public()
   @Post('device/bind')
   async bindDevice(@Body() body: any) {
     return this.adminService.bindDevice(body);
   }
 
+  @Public()
   @Post('device/unbind')
   async unbindDevice(@Body('email') email: string) {
     return this.adminService.unbindDevice(email);
+  }
+
+  @Get('api-keys')
+  async getApiKeys() {
+    return this.adminService.getApiKeys();
+  }
+
+  @Post('api-keys')
+  async saveApiKey(@Body() body: any) {
+    return this.adminService.saveApiKey(body);
+  }
+
+  @Delete('api-keys/:id')
+  async deleteApiKey(@Param('id') id: string) {
+    return this.adminService.deleteApiKey(id);
+  }
+
+  @Get('server-keys')
+  async getServerKeys() {
+    return this.adminService.getServerKeys();
+  }
+
+  @Post('server-keys')
+  async updateServerKeys(@Body() body: any) {
+    return this.adminService.updateServerKeys(body);
   }
 }

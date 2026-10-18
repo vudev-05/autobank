@@ -56,6 +56,54 @@ class NotificationService {
     } catch (_) {}
   }
 
+  /// Đảm bảo âm lượng loa điện thoại đủ lớn khi đọc thông báo
+  static Future<void> ensureMaxVolume() async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('ensureMaxVolume');
+    } catch (_) {}
+  }
+
+  /// Điều chỉnh độ sáng màn hình ứng dụng (0.01: tối nhất tiết kiệm pin OLED, -1.0: trả về mặc định hệ thống)
+  static Future<void> setScreenBrightness(double brightness) async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('setScreenBrightness', {'brightness': brightness});
+    } catch (_) {}
+  }
+
+  /// Hiển thị thông báo trên thanh trạng thái Android (hệ thống, nền, ưu đãi, xác thực...)
+  static Future<bool> showSystemNotification({
+    required String title,
+    required String content,
+    String type = 'system', // 'background', 'system', 'promo', 'auth', 'transaction'
+    int? id,
+    bool isOngoing = false,
+  }) async {
+    if (kIsWeb) return true;
+    try {
+      final res = await _methodChannel.invokeMethod('showSystemNotification', {
+        'title': title,
+        'content': content,
+        'type': type,
+        'id': id ?? (DateTime.now().millisecondsSinceEpoch % 100000),
+        'isOngoing': isOngoing,
+      });
+      return res == true;
+    } catch (e) {
+      debugPrint("Error showing system notification: $e");
+      return false;
+    }
+  }
+
+  /// Hủy thông báo trên thanh trạng thái theo ID
+  static Future<void> cancelNotification(int id) async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('cancelNotification', {'id': id});
+    } catch (_) {}
+  }
+
   /// Listen to incoming notifications from the Android Service
   static Stream<Map<String, dynamic>> get notificationStream {
     if (kIsWeb) {

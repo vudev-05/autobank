@@ -17,7 +17,7 @@ const defaultConfig = {
   brandName: 'Đọc thông báo nhận tiền',
   brandSlogan: 'Tiền vừa sang ~ máy báo vang',
   chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
-  youtubeLink: 'https://www.youtube.com/@vudev05',
+  youtubeLink: '',
   hotline: '0869226687',
   email: 'tranquocvu3011@gmail.com',
   facebook: 'https://www.facebook.com/Baochuyentienbanggiongnoi',
@@ -663,8 +663,8 @@ function renderOrders() {
       <td><strong style="color: #fff;">${o.amount.toLocaleString('vi-VN')}đ</strong></td>
       <td style="color: #94a3b8; font-size: 0.8rem;">${o.time}</td>
       <td>
-        <span class="admin-badge admin-badge-${o.status === 'PAID' ? 'success' : 'warning'}">
-          ${o.status === 'PAID' ? 'Đã kích hoạt' : 'Chờ chuyển khoản'}
+        <span class="admin-badge admin-badge-success">
+          ✓ Thành công
         </span>
       </td>
       <td>

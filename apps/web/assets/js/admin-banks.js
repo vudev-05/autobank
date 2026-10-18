@@ -1,14 +1,20 @@
-import { checkAuth, initSidebar, showToast, loadBanks, saveBanks, API_BASE } from './admin-core.js';
+import { checkAuth, initSidebar, showToast, fetchBanks, saveBankApi, toggleBankApi, deleteBankApi } from './admin-core.js';
 
 let banksList = [];
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if (!checkAuth()) return;
   initSidebar('banks');
 
-  banksList = loadBanks();
-  renderBanks();
+  await reloadBanksList();
+  initBankModal();
+  initTableEventDelegation();
 });
+
+async function reloadBanksList() {
+  banksList = await fetchBanks();
+  renderBanks();
+}
 
 function renderBanks(filterKeyword = '') {
   const tbody = document.getElementById('admin-banks-table-body');
@@ -18,44 +24,44 @@ function renderBanks(filterKeyword = '') {
   const kw = filterKeyword.toLowerCase().trim();
   const filtered = banksList.filter(b => {
     if (!kw) return true;
-    return b.name.toLowerCase().includes(kw) || b.app.toLowerCase().includes(kw) || b.pkg.toLowerCase().includes(kw);
+    return (b.name || '').toLowerCase().includes(kw) || 
+           (b.pkg || '').toLowerCase().includes(kw) || 
+           (b.code || '').toLowerCase().includes(kw) ||
+           (b.app || '').toLowerCase().includes(kw);
   });
 
   if (countBadge) countBadge.textContent = banksList.length;
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px;">Không tìm thấy ngân hàng nào phù hợp.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 30px;">Không tìm thấy ngân hàng nào phù hợp với từ khóa "${kw}".</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = filtered.map((b, idx) => `
-    <tr>
+  tbody.innerHTML = filtered.map(b => `
+    <tr data-bank-row="${b.id}">
       <td>
-        <img src="${b.logo}" alt="${b.name}" style="width: 36px; height: 36px; border-radius: 8px; object-fit: contain; background: #fff; padding: 2px; border: 1px solid #e2e8f0;" onerror="this.src='../assets/images/favicon.png'" />
+        <img src="${b.logo || 'https://cdn.vietqr.io/img/MB.png'}" alt="${b.name}" style="width: 38px; height: 38px; border-radius: 8px; object-fit: contain; background: #fff; padding: 3px;" onerror="this.src='https://cdn.vietqr.io/img/MB.png'" />
       </td>
       <td>
-        <strong style="color: #fff; font-size: 0.92rem;">${b.name}</strong>
+        <strong style="color: #fff; font-size: 0.95rem;">${b.name}</strong>
+        <span style="font-size: 0.8rem; color: #94a3b8; display: block;">${b.app || b.name}</span>
       </td>
       <td>
-        <div style="font-weight: 600; color: #38bdf8;">${b.app}</div>
-        <code style="font-size: 0.75rem; color: #94a3b8;">${b.pkg}</code>
+        <code style="background: rgba(15,23,42,0.8); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; color: #38bdf8;">${b.pkg || b.id}</code>
       </td>
       <td>
         <span class="admin-badge admin-badge-info">${getCategoryLabel(b.category)}</span>
       </td>
-      <td style="max-width: 300px; font-size: 0.8rem; color: #94a3b8;">
-        ${b.guide}
-      </td>
       <td>
-        <label class="admin-toggle">
-          <input type="checkbox" ${b.active !== false ? 'checked' : ''} data-toggle-bank="${idx}" />
-          <span class="admin-toggle-slider"></span>
+        <label class="admin-switch">
+          <input type="checkbox" data-action="toggle" data-id="${b.id}" ${b.active ? 'checked' : ''} />
+          <span class="admin-slider"></span>
         </label>
       </td>
       <td>
         <div style="display: flex; gap: 6px;">
-          <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-edit-bank="${idx}">Sửa</button>
-          <button type="button" class="admin-btn admin-btn-danger admin-btn-sm" data-delete-bank="${idx}">Xóa</button>
+          <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-action="edit" data-id="${b.id}">Sửa</button>
+          <button type="button" class="admin-btn admin-btn-danger admin-btn-sm" data-action="delete" data-id="${b.id}" data-name="${b.name}">Xóa</button>
         </div>
       </td>
     </tr>
@@ -67,8 +73,6 @@ function renderBanks(filterKeyword = '') {
     searchInput.dataset.bound = 'true';
     searchInput.addEventListener('input', (e) => renderBanks(e.target.value));
   }
-
-  attachBankActions();
 }
 
 function getCategoryLabel(cat) {
@@ -83,94 +87,151 @@ function getCategoryLabel(cat) {
   }
 }
 
-function attachBankActions() {
+function initTableEventDelegation() {
+  const tbody = document.getElementById('admin-banks-table-body');
+  if (!tbody || tbody.dataset.delegated) return;
+  tbody.dataset.delegated = 'true';
+
+  tbody.addEventListener('click', async (e) => {
+    const editBtn = e.target.closest('[data-action="edit"]');
+    if (editBtn) {
+      const id = editBtn.getAttribute('data-id');
+      openBankModal(id);
+      return;
+    }
+
+    const delBtn = e.target.closest('[data-action="delete"]');
+    if (delBtn) {
+      const id = delBtn.getAttribute('data-id');
+      const name = delBtn.getAttribute('data-name') || id;
+      if (confirm(`Bạn có chắc chắn muốn xóa ngân hàng "${name}" khỏi toàn bộ hệ thống MySQL?`)) {
+        delBtn.disabled = true;
+        const ok = await deleteBankApi(id);
+        if (ok) {
+          showToast(`Đã xóa ngân hàng ${name} khỏi MySQL thành công!`);
+          await reloadBanksList();
+        } else {
+          showToast(`Lỗi khi xóa ngân hàng ${name}`, 'error');
+          delBtn.disabled = false;
+        }
+      }
+      return;
+    }
+  });
+
+  tbody.addEventListener('change', async (e) => {
+    const toggleInput = e.target.closest('[data-action="toggle"]');
+    if (toggleInput) {
+      const id = toggleInput.getAttribute('data-id');
+      const bank = banksList.find(b => b.id === id);
+      toggleInput.disabled = true;
+      const ok = await toggleBankApi(id);
+      if (ok) {
+        showToast(`${toggleInput.checked ? 'Đã bật' : 'Đã tắt'} nhận thông báo ${bank?.name || id} trên MySQL & App!`);
+        await reloadBanksList();
+      } else {
+        showToast('Không thể thay đổi trạng thái ngân hàng', 'error');
+        toggleInput.disabled = false;
+      }
+    }
+  });
+}
+
+function openBankModal(bankId = null) {
+  const modal = document.getElementById('admin-bank-modal');
+  const form = document.getElementById('form-save-bank');
+  if (!modal || !form) return;
+
+  let hiddenId = document.getElementById('edit-bank-id');
+  if (!hiddenId) {
+    hiddenId = document.getElementById('edit-bank-index');
+  }
+
+  if (bankId) {
+    const b = banksList.find(x => x.id === bankId);
+    if (!b) return;
+    document.getElementById('modal-bank-title').textContent = `Chỉnh sửa: ${b.name}`;
+    if (hiddenId) hiddenId.value = b.id;
+    document.getElementById('m-bank-name').value = b.name || '';
+    document.getElementById('m-bank-app').value = b.app || b.name || '';
+    document.getElementById('m-bank-pkg').value = b.pkg || b.id || '';
+    document.getElementById('m-bank-category').value = b.category || 'commercial';
+    document.getElementById('m-bank-logo').value = b.logo || '';
+    document.getElementById('m-bank-guide').value = b.guide || '';
+  } else {
+    document.getElementById('modal-bank-title').textContent = 'Thêm Ngân Hàng Mới (Lưu MySQL)';
+    if (hiddenId) hiddenId.value = '';
+    form.reset();
+  }
+
+  modal.classList.add('is-open');
+}
+
+function closeBankModal() {
+  const modal = document.getElementById('admin-bank-modal');
+  if (modal) modal.classList.remove('is-open');
+}
+
+function initBankModal() {
   const modal = document.getElementById('admin-bank-modal');
   const addBtn = document.getElementById('btn-add-bank');
   const closeBtn = document.getElementById('modal-bank-close');
   const cancelBtn = document.getElementById('modal-bank-cancel');
   const form = document.getElementById('form-save-bank');
 
-  if (addBtn) {
-    addBtn.onclick = () => {
-      document.getElementById('modal-bank-title').textContent = 'Thêm Ngân Hàng Mới';
-      document.getElementById('edit-bank-index').value = '-1';
-      form.reset();
-      modal.classList.add('is-open');
-    };
-  }
+  if (!modal || !form) return;
 
-  const closeModal = () => modal.classList.remove('is-open');
-  if (closeBtn) closeBtn.onclick = closeModal;
-  if (cancelBtn) cancelBtn.onclick = closeModal;
+  if (addBtn) addBtn.onclick = () => openBankModal(null);
+  if (closeBtn) closeBtn.onclick = closeBankModal;
+  if (cancelBtn) cancelBtn.onclick = closeBankModal;
 
-  document.querySelectorAll('[data-edit-bank]').forEach(btn => {
-    btn.onclick = () => {
-      const idx = parseInt(btn.getAttribute('data-edit-bank'), 10);
-      const b = banksList[idx];
-      if (!b) return;
-
-      document.getElementById('modal-bank-title').textContent = `Chỉnh sửa: ${b.name}`;
-      document.getElementById('edit-bank-index').value = idx;
-      document.getElementById('m-bank-name').value = b.name;
-      document.getElementById('m-bank-app').value = b.app;
-      document.getElementById('m-bank-pkg').value = b.pkg;
-      document.getElementById('m-bank-category').value = b.category || 'commercial';
-      document.getElementById('m-bank-logo').value = b.logo;
-      document.getElementById('m-bank-guide').value = b.guide;
-      modal.classList.add('is-open');
-    };
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeBankModal();
   });
 
-  document.querySelectorAll('[data-toggle-bank]').forEach(chk => {
-    chk.onchange = () => {
-      const idx = parseInt(chk.getAttribute('data-toggle-bank'), 10);
-      if (banksList[idx]) {
-        banksList[idx].active = chk.checked;
-        saveBanks(banksList);
-        showToast(`${chk.checked ? 'Đã bật' : 'Đã tắt'} hiển thị ${banksList[idx].name}`);
-      }
-    };
-  });
-
-  document.querySelectorAll('[data-delete-bank]').forEach(btn => {
-    btn.onclick = () => {
-      const idx = parseInt(btn.getAttribute('data-delete-bank'), 10);
-      const b = banksList[idx];
-      if (b && confirm(`Bạn có chắc chắn muốn xóa ngân hàng "${b.name}"?`)) {
-        banksList.splice(idx, 1);
-        saveBanks(banksList);
-        renderBanks();
-        showToast(`Đã xóa ngân hàng ${b.name}`);
-      }
-    };
-  });
-
-  if (form && !form.dataset.bound) {
+  if (!form.dataset.bound) {
     form.dataset.bound = 'true';
-    form.onsubmit = (e) => {
+    form.onsubmit = async (e) => {
       e.preventDefault();
-      const editIdx = parseInt(document.getElementById('edit-bank-index').value, 10);
-      const newBank = {
-        name: document.getElementById('m-bank-name').value.trim(),
-        app: document.getElementById('m-bank-app').value.trim(),
-        pkg: document.getElementById('m-bank-pkg').value.trim(),
-        category: document.getElementById('m-bank-category').value,
-        logo: document.getElementById('m-bank-logo').value.trim(),
-        guide: document.getElementById('m-bank-guide').value.trim(),
-        active: true,
+      let hiddenId = document.getElementById('edit-bank-id') || document.getElementById('edit-bank-index');
+      const existingId = hiddenId ? hiddenId.value.trim() : '';
+
+      const name = document.getElementById('m-bank-name').value.trim();
+      const app = document.getElementById('m-bank-app').value.trim();
+      const pkg = document.getElementById('m-bank-pkg').value.trim();
+      const category = document.getElementById('m-bank-category').value;
+      const logo = document.getElementById('m-bank-logo').value.trim();
+      const guide = document.getElementById('m-bank-guide').value.trim();
+
+      const bankId = (existingId && existingId !== '-1') 
+        ? existingId 
+        : name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      const payload = {
+        id: bankId,
+        code: name.toUpperCase().replace(/\s+/g, ''),
+        name,
+        app,
+        pkg,
+        category,
+        logo,
+        guide,
+        isActive: true,
       };
 
-      if (editIdx >= 0 && banksList[editIdx]) {
-        banksList[editIdx] = { ...banksList[editIdx], ...newBank };
-        showToast(`Cập nhật ngân hàng ${newBank.name} thành công!`);
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      const ok = await saveBankApi(payload);
+      if (ok) {
+        showToast(`Đã lưu ngân hàng "${name}" vào MySQL thành công!`, 'success');
+        closeBankModal();
+        await reloadBanksList();
       } else {
-        banksList.unshift(newBank);
-        showToast(`Thêm mới ngân hàng ${newBank.name} thành công!`);
+        showToast('Lỗi khi lưu ngân hàng vào MySQL', 'error');
       }
 
-      saveBanks(banksList);
-      closeModal();
-      renderBanks();
+      if (submitBtn) submitBtn.disabled = false;
     };
   }
 }

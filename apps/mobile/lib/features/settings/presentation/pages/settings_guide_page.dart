@@ -34,7 +34,7 @@ class SettingsGuidePage extends StatelessWidget {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
         children: [
           // ==========================================
           // 1. TÀI KHOẢN GOOGLE ĐĂNG NHẬP & ĐỔI NICK
@@ -180,28 +180,37 @@ class SettingsGuidePage extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF0284C7),
-                            side: const BorderSide(color: Color(0xFFBAE6FD)),
+                            foregroundColor: const Color(0xFFDC2626),
+                            side: const BorderSide(color: Color(0xFFFECDD3)),
+                            backgroundColor: const Color(0xFFFFF1F2),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
-                          icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                          label: const Text('Đổi nick', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          onPressed: () => _showSwitchAccountSheet(context, googleAuth),
+                          icon: const Icon(Icons.logout_rounded, size: 16, color: Color(0xFFDC2626)),
+                          label: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFDC2626))),
+                          onPressed: () => _confirmSignOut(context, googleAuth),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFEF4444),
-                            side: const BorderSide(color: Color(0xFFFECACA)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFBBF7D0)),
                           ),
-                          icon: const Icon(Icons.logout_rounded, size: 16),
-                          label: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          onPressed: () => _confirmSignOut(context, googleAuth),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.shield_rounded, size: 16, color: Color(0xFF16A34A)),
+                              SizedBox(width: 6),
+                              Text(
+                                'Bảo vệ phiên 24/7',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF16A34A)),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -340,7 +349,7 @@ class SettingsGuidePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Chính sách bảo mật AutoBank: 1 tài khoản Google chỉ được phát loa trên 1 điện thoại duy nhất. Nếu đổi sang máy khác, bạn phải Hủy liên kết ở máy cũ hoặc xác thực chuyển máy bằng mã OTP.',
+                    'Chính sách bảo mật: 1 tài khoản Google chỉ được phát loa trên 1 điện thoại duy nhất. Nếu đổi sang máy khác, bạn phải Hủy liên kết ở máy cũ hoặc xác thực chuyển máy bằng mã OTP.',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.35),
                   ),
                   const SizedBox(height: 14),
@@ -524,6 +533,49 @@ class SettingsGuidePage extends StatelessWidget {
                     ),
                   ),
                   const Divider(height: 16),
+                  FutureBuilder<bool>(
+                    future: NotificationService.isBatteryOptimizationIgnored(),
+                    builder: (context, snapshot) {
+                      final isIgnored = snapshot.data ?? true;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isIgnored ? Colors.green.shade50 : Colors.amber.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isIgnored ? Icons.battery_charging_full_rounded : Icons.battery_alert_rounded,
+                            color: isIgnored ? Colors.green.shade700 : Colors.amber.shade900,
+                            size: 22,
+                          ),
+                        ),
+                        title: const Text(
+                          'Chế độ Pin không giới hạn (Chống tắt ngầm 24/7)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        subtitle: Text(
+                          isIgnored
+                              ? 'Đang hoạt động 24/24 (Đã tắt tiết kiệm pin)'
+                              : 'Chưa cấp quyền: Cần bật Không giới hạn pin để không bị ngắt ngầm khi tắt màn hình.',
+                          style: TextStyle(
+                            color: isIgnored ? Colors.green.shade800 : Colors.amber.shade900,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        trailing: OutlinedButton(
+                          style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                          onPressed: () async {
+                            await NotificationService.requestIgnoreBatteryOptimizations();
+                          },
+                          child: Text(isIgnored ? 'Đã bật' : 'Tắt tối ưu pin'),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 16),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     secondary: Container(
@@ -590,10 +642,8 @@ class SettingsGuidePage extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Khung Giờ Đọc Thông Báo (Lịch Phát Loa)',
+                  'Khung Giờ Đọc Thông Báo',
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1019,109 +1069,49 @@ class SettingsGuidePage extends StatelessWidget {
     );
   }
 
-  // Modal chọn đổi nick Google
-  void _showSwitchAccountSheet(BuildContext context, GoogleAuthProvider googleAuth) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const GoogleLogo(size: 22),
-                const SizedBox(width: 10),
-                const Text(
-                  'Chọn tài khoản Google',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...googleAuth.accounts.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final user = entry.value;
-              final isCurrent = user.email == googleAuth.email;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: isCurrent ? const Color(0xFFEFF6FF) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isCurrent ? const Color(0xFF93C5FD) : Colors.grey.shade200,
-                  ),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF2563EB),
-                    child: Text(
-                      user.initial,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text(
-                    '${user.email} • ${user.activePackageName}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  trailing: isCurrent
-                      ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2563EB))
-                      : null,
-                  onTap: () {
-                    googleAuth.selectAccountByIndex(idx);
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Đã chuyển sang tài khoản ${user.name}!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Xác nhận đăng xuất
+  // Hộp thoại xác nhận đăng xuất tài khoản
   void _confirmSignOut(BuildContext context, GoogleAuthProvider googleAuth) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Đăng xuất tài khoản?'),
-        content: const Text('Bạn có chắc chắn muốn đăng xuất tài khoản Google này khỏi thiết bị?'),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 22),
+            SizedBox(width: 8),
+            Text('Đăng xuất tài khoản', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản "${googleAuth.email}" không?\n\nToàn bộ cấu hình câu đọc và dữ liệu của bạn đã được lưu an toàn trên hệ thống MySQL.',
+          style: const TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF475569)),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () {
-              googleAuth.signOut();
+            onPressed: () async {
               Navigator.pop(ctx);
+              await googleAuth.signOut();
             },
-            child: const Text('Đăng xuất'),
+            child: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
+
+
+
+
 
   // Xác nhận hủy liên kết thiết bị
   void _confirmUnbindDevice(BuildContext context, GoogleAuthProvider googleAuth) {

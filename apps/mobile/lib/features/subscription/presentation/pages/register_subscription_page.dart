@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/web_theme.dart';
+import '../../../../core/tts/tts_service.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/google_logo.dart';
 import '../../../auth/presentation/providers/google_auth_provider.dart';
@@ -21,6 +23,7 @@ class RegisterSubscriptionPage extends StatefulWidget {
 
 class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
   late final TextEditingController _shopController;
+  late final TextEditingController _phoneController;
   Timer? _liveCountdownTimer;
 
   // Gói được chọn (Mặc định gói 1 năm hoặc gói truyền vào từ deep link)
@@ -32,11 +35,19 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
     _selectedPackageKey = widget.initialPackageKey ?? '1year';
     final auth = context.read<GoogleAuthProvider>();
     _shopController = TextEditingController(text: auth.shopName);
+    _phoneController = TextEditingController(text: auth.phone);
 
     // Bắt đầu đếm ngược thời gian thực từng giây cho gói dùng thử 3 ngày
     _liveCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {});
+      }
+    });
+
+    // Đồng bộ cấu hình bảng giá và gói cước mới nhất từ máy chủ Admin 24/24
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<SystemConfigProvider>().fetchConfig();
       }
     });
   }
@@ -45,86 +56,198 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
   void dispose() {
     _liveCountdownTimer?.cancel();
     _shopController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  List<Map<String, dynamic>> _getPackages(SystemConfigProvider sysConfig) {
+  List<Map<String, dynamic>> _getPackages(SystemConfigProvider sysConfig, [GoogleAuthProvider? googleAuth]) {
+    final coupon = sysConfig.getBestCouponForUser(
+      userCreatedAt: googleAuth?.createdAt,
+      userEmail: googleAuth?.email,
+    );
+
+    int calcDiscount(int original) {
+      if (coupon == null || original <= 0) return original;
+      final minPrice = (coupon['minPrice'] as num?)?.toInt() ?? 0;
+      if (minPrice > 0 && original < minPrice) return original;
+
+      int discount = 0;
+      final pct = (coupon['discountPercent'] as num?)?.toInt() ?? 0;
+      final amt = (coupon['discountAmount'] as num?)?.toInt() ?? 0;
+      if (pct > 0) {
+        discount = ((original * pct / 100) / 1000).round() * 1000;
+      } else if (amt > 0) {
+        discount = amt;
+      }
+      return (original - discount).clamp(0, original);
+    }
+
+    final hasCoupon = coupon != null;
+    final int couponPct = hasCoupon ? ((coupon['discountPercent'] as num?)?.toInt() ?? 0) : 0;
+    final int couponAmt = hasCoupon ? ((coupon['discountAmount'] as num?)?.toInt() ?? 0) : 0;
+    final String? couponBadge = hasCoupon
+        ? (couponPct > 0
+            ? 'Voucher -$couponPct% ⚡'
+            : '-${CurrencyFormatter.formatVND(couponAmt.toDouble())} ⚡')
+        : null;
+
+    final p1m = calcDiscount(sysConfig.price1m);
+    final p3m = calcDiscount(sysConfig.price3m);
+    final p6m = calcDiscount(sysConfig.price6m);
+    final p9m = calcDiscount(sysConfig.price9m);
+    final p1y = calcDiscount(sysConfig.price1y);
+    final pLife = calcDiscount(sysConfig.priceLifetime);
+
+    if (sysConfig.packages.isNotEmpty) {
+      final dynamicList = <Map<String, dynamic>>[];
+      for (final p in sysConfig.packages) {
+        if (p['isActive'] == false) continue;
+        final rawPrice = (p['price'] as num?)?.toInt() ?? 0;
+        final discountedPrice = calcDiscount(rawPrice);
+        final key = (p['key'] ?? 'pkg_${p['durationDays']}').toString();
+        final days = (p['durationDays'] as num?)?.toInt() ?? 30;
+        final name = (p['name'] ?? 'Gói dịch vụ').toString();
+        final badge = (p['badge'] ?? '').toString();
+        final desc = (p['description'] ?? '').toString();
+
+        IconData icon = Icons.card_membership_rounded;
+        if (days <= 3) {
+          icon = Icons.timer_outlined;
+        } else if (days <= 30) {
+          icon = Icons.calendar_today_rounded;
+        } else if (days <= 90) {
+          icon = Icons.calendar_month_rounded;
+        } else if (days <= 365) {
+          icon = Icons.stars_rounded;
+        } else {
+          icon = Icons.workspace_premium_rounded;
+        }
+
+        final isDiscounted = hasCoupon && discountedPrice < rawPrice && rawPrice > 0;
+
+        dynamicList.add({
+          'key': key,
+          'name': name,
+          'duration': days >= 9999 ? 'Trọn đời không giới hạn' : 'Thời hạn $days ngày',
+          'days': days,
+          'originalPrice': isDiscounted ? rawPrice : null,
+          'originalPriceText': isDiscounted ? CurrencyFormatter.formatVND(rawPrice.toDouble()) : null,
+          'price': discountedPrice,
+          'priceText': discountedPrice == 0 ? '0đ' : CurrencyFormatter.formatVND(discountedPrice.toDouble()),
+          'badge': badge.isNotEmpty ? badge : couponBadge,
+          'desc': desc.isNotEmpty ? desc : 'Đọc thông báo nhận tiền VietQR 24/7 ổn định',
+          'isFeatured': badge.contains('Khuyên dùng') || key == '1year' || key == '1y',
+          'icon': icon,
+        });
+      }
+      if (dynamicList.isNotEmpty) return dynamicList;
+    }
+
+    final is1mDiscounted = hasCoupon && p1m < sysConfig.price1m && sysConfig.price1m > 0;
+    final is3mDiscounted = hasCoupon && p3m < sysConfig.price3m && sysConfig.price3m > 0;
+    final is6mDiscounted = hasCoupon && p6m < sysConfig.price6m && sysConfig.price6m > 0;
+    final is9mDiscounted = hasCoupon && p9m < sysConfig.price9m && sysConfig.price9m > 0;
+    final is1yDiscounted = hasCoupon && p1y < sysConfig.price1y && sysConfig.price1y > 0;
+    final isLifeDiscounted = hasCoupon && pLife < sysConfig.priceLifetime && sysConfig.priceLifetime > 0;
+    final String? voucherTag = hasCoupon
+        ? (couponPct > 0 ? '-$couponPct% VOUCHER' : '-${CurrencyFormatter.formatVND(couponAmt.toDouble())}')
+        : null;
+
     return [
       {
         'key': 'trial',
-        'name': 'Dùng thử',
-        'duration': '3 ngày miễn phí',
+        'name': 'Dùng thử miễn phí',
+        'duration': 'Thời hạn 3 ngày',
         'days': 3,
-        'price': sysConfig.priceTrial,
+        'price': 0,
         'priceText': '0đ',
         'badge': 'Tài khoản mới',
-        'desc': 'Trải nghiệm 100% tính năng cao cấp không giới hạn',
+        'desc': 'Trải nghiệm 100% tính năng trong 3 ngày',
         'isFeatured': false,
         'icon': Icons.timer_outlined,
       },
       {
         'key': '1month',
-        'name': 'Gói 1 tháng',
+        'name': 'Gói 1 Tháng',
         'duration': 'Thời hạn 30 ngày',
         'days': 30,
-        'price': sysConfig.price1m,
-        'priceText': CurrencyFormatter.formatVND(sysConfig.price1m.toDouble()),
-        'badge': null,
-        'desc': 'Phù hợp dùng ngắn hạn & linh hoạt cho quán mới mở',
+        'originalPrice': is1mDiscounted ? sysConfig.price1m : null,
+        'originalPriceText': is1mDiscounted ? CurrencyFormatter.formatVND(sysConfig.price1m.toDouble()) : null,
+        'voucherTag': is1mDiscounted ? voucherTag : null,
+        'price': p1m,
+        'priceText': CurrencyFormatter.formatVND(p1m.toDouble()),
+        'badge': couponBadge,
+        'desc': 'Bản quyền 30 ngày trải nghiệm',
         'isFeatured': false,
         'icon': Icons.calendar_today_rounded,
       },
       {
         'key': '3month',
-        'name': 'Gói 3 tháng',
+        'name': 'Gói 3 Tháng',
         'duration': 'Thời hạn 90 ngày',
         'days': 90,
-        'price': sysConfig.price3m,
-        'priceText': CurrencyFormatter.formatVND(sysConfig.price3m.toDouble()),
-        'badge': 'Tiết kiệm 15%',
-        'desc': 'Chỉ ~33.000đ/tháng • Đọc thông báo 24/7 ổn định cao',
+        'originalPrice': is3mDiscounted ? sysConfig.price3m : null,
+        'originalPriceText': is3mDiscounted ? CurrencyFormatter.formatVND(sysConfig.price3m.toDouble()) : null,
+        'voucherTag': is3mDiscounted ? voucherTag : null,
+        'price': p3m,
+        'priceText': CurrencyFormatter.formatVND(p3m.toDouble()),
+        'badge': couponBadge ?? 'Tiết kiệm 15%',
+        'desc': 'Bản quyền 90 ngày tiết kiệm',
         'isFeatured': false,
         'icon': Icons.calendar_month_rounded,
       },
       {
         'key': '6month',
-        'name': 'Gói 6 tháng',
+        'name': 'Gói 6 Tháng',
         'duration': 'Thời hạn 180 ngày',
         'days': 180,
-        'price': sysConfig.price6m,
-        'priceText': CurrencyFormatter.formatVND(sysConfig.price6m.toDouble()),
-        'badge': 'Tiết kiệm 25%',
-        'desc': 'Chỉ ~29.000đ/tháng • Nửa năm an tâm kinh doanh',
+        'originalPrice': is6mDiscounted ? sysConfig.price6m : null,
+        'originalPriceText': is6mDiscounted ? CurrencyFormatter.formatVND(sysConfig.price6m.toDouble()) : null,
+        'voucherTag': is6mDiscounted ? voucherTag : null,
+        'price': p6m,
+        'priceText': CurrencyFormatter.formatVND(p6m.toDouble()),
+        'badge': couponBadge ?? 'Phổ biến',
+        'desc': 'Bản quyền 180 ngày nửa năm',
         'isFeatured': false,
         'icon': Icons.date_range_rounded,
       },
       {
         'key': '9month',
-        'name': 'Gói 9 tháng',
+        'name': 'Gói 9 Tháng',
         'duration': 'Thời hạn 270 ngày',
         'days': 270,
-        'price': sysConfig.price9m,
-        'priceText': CurrencyFormatter.formatVND(sysConfig.price9m.toDouble()),
-        'badge': 'Tiết kiệm 30%',
-        'desc': 'Chỉ ~27.000đ/tháng • Hỗ trợ kỹ thuật ưu tiên 24/7',
+        'originalPrice': is9mDiscounted ? sysConfig.price9m : null,
+        'originalPriceText': is9mDiscounted ? CurrencyFormatter.formatVND(sysConfig.price9m.toDouble()) : null,
+        'voucherTag': is9mDiscounted ? voucherTag : null,
+        'price': p9m,
+        'priceText': CurrencyFormatter.formatVND(p9m.toDouble()),
+        'badge': couponBadge ?? 'Tiết kiệm 30%',
+        'desc': 'Bản quyền 270 ngày ưu đãi',
         'isFeatured': false,
         'icon': Icons.verified_rounded,
       },
       {
         'key': '1year',
-        'name': 'Gói 1 năm',
+        'name': 'Gói 1 Năm',
         'duration': sysConfig.bonusMonths1y > 0
-            ? '365 ngày (+ Tặng ${sysConfig.bonusMonths1y} tháng)'
+            ? 'Thời hạn 365 ngày (+ Tặng ${sysConfig.bonusMonths1y} tháng)'
             : 'Thời hạn 365 ngày',
         'days': 365 + (sysConfig.bonusMonths1y * 30),
-        'price': sysConfig.price1y,
-        'priceText': CurrencyFormatter.formatVND(sysConfig.price1y.toDouble()),
-        'badge': sysConfig.bonusMonths1y > 0
-            ? 'Tặng ${sysConfig.bonusMonths1y} tháng ⭐'
-            : 'Khuyên dùng nhất ⭐',
+        'originalPrice': is1yDiscounted ? sysConfig.price1y : null,
+        'originalPriceText': is1yDiscounted ? CurrencyFormatter.formatVND(sysConfig.price1y.toDouble()) : null,
+        'voucherTag': is1yDiscounted ? voucherTag : null,
+        'price': p1y,
+        'priceText': CurrencyFormatter.formatVND(p1y.toDouble()),
+        'badge': couponBadge != null
+            ? (sysConfig.bonusMonths1y > 0
+                ? '$couponBadge + Tặng ${sysConfig.bonusMonths1y}T ⭐'
+                : '$couponBadge • Bán chạy nhất ⭐')
+            : (sysConfig.bonusMonths1y > 0
+                ? 'Tặng ${sysConfig.bonusMonths1y} tháng ⭐'
+                : 'Khuyên dùng nhất ⭐'),
         'desc': sysConfig.bonusMonths1y > 0
-            ? 'Chỉ ~24.000đ/tháng • Admin tặng kèm ${sysConfig.bonusMonths1y} tháng dùng miễn phí'
-            : 'Chỉ ~24.000đ/tháng (~800đ/ngày) • Tiết kiệm tối đa',
+            ? 'Bản quyền 1 năm tặng thêm ${sysConfig.bonusMonths1y} tháng'
+            : 'Bản quyền 365 ngày trọn vẹn 1 năm',
         'isFeatured': true,
         'icon': Icons.workspace_premium_rounded,
       },
@@ -133,10 +256,13 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
         'name': 'Gói Vĩnh Viễn',
         'duration': 'Trọn đời không giới hạn',
         'days': 36500,
-        'price': sysConfig.priceLifetime,
-        'priceText': CurrencyFormatter.formatVND(sysConfig.priceLifetime.toDouble()),
-        'badge': 'Vĩnh viễn trọn đời 🔥',
-        'desc': 'Thanh toán 1 lần dùng mãi mãi • Không lo gia hạn • Bảo hành trọn đời',
+        'originalPrice': isLifeDiscounted ? sysConfig.priceLifetime : null,
+        'originalPriceText': isLifeDiscounted ? CurrencyFormatter.formatVND(sysConfig.priceLifetime.toDouble()) : null,
+        'voucherTag': isLifeDiscounted ? voucherTag : null,
+        'price': pLife,
+        'priceText': CurrencyFormatter.formatVND(pLife.toDouble()),
+        'badge': couponBadge != null ? '$couponBadge • Vĩnh viễn trọn đời 🔥' : 'Vĩnh viễn trọn đời 🔥',
+        'desc': 'Thanh toán 1 lần dùng mãi mãi trọn đời',
         'isFeatured': false,
         'icon': Icons.all_inclusive_rounded,
       },
@@ -247,7 +373,7 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
   void _showAllSubscriptionPackagesModal(BuildContext context, {bool isNewAccount = false}) {
     final sysConfig = context.read<SystemConfigProvider>();
     final googleAuth = context.read<GoogleAuthProvider>();
-    final packages = _getPackages(sysConfig);
+    final packages = _getPackages(sysConfig, googleAuth);
 
     showModalBottomSheet(
       context: context,
@@ -360,15 +486,45 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                         final pkg = packages[index];
                         final isTrial = pkg['key'] == 'trial';
                         final isFeatured = pkg['isFeatured'] as bool;
+                        final activePkg = googleAuth.activePackageName.toLowerCase();
+                        final pkgName = (pkg['name'] as String).toLowerCase();
+                        final pkgKey = (pkg['key'] as String).toLowerCase();
+
+                        final isCurrentActivePackage = googleAuth.isActivated && !googleAuth.isExpired && (
+                          (googleAuth.isLifetime && (pkgKey == 'lifetime' || pkgName.contains('vĩnh viễn'))) ||
+                          (activePkg.contains('1 năm') && (pkgKey == '1year' || pkgKey == '1y' || pkgName.contains('1 năm'))) ||
+                          (activePkg.contains('9 tháng') && (pkgKey == '9month' || pkgName.contains('9 tháng'))) ||
+                          (activePkg.contains('6 tháng') && (pkgKey == '6month' || pkgName.contains('6 tháng'))) ||
+                          (activePkg.contains('3 tháng') && (pkgKey == '3month' || pkgName.contains('3 tháng'))) ||
+                          (activePkg.contains('1 tháng') && (pkgKey == '1month' || pkgName.contains('1 tháng'))) ||
+                          (activePkg.contains('dùng thử') && isTrial)
+                        );
+
+                        String? displayBadge = pkg['badge'];
+                        if (isCurrentActivePackage) {
+                          displayBadge = 'Đang sử dụng ✓';
+                        } else if (isTrial) {
+                          if (googleAuth.isActivated && !googleAuth.activePackageName.contains('Dùng thử')) {
+                            displayBadge = 'Đã hoàn thành dùng thử';
+                          } else if (googleAuth.isExpired && googleAuth.activePackageName.contains('Dùng thử')) {
+                            displayBadge = 'Đã hết hạn dùng thử';
+                          } else if (googleAuth.isTrialStarted) {
+                            displayBadge = 'Đang đếm ngược ⏳';
+                          }
+                        }
 
                         return Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isFeatured ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                            color: isCurrentActivePackage
+                                ? const Color(0xFFF0FDF4)
+                                : (isFeatured ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC)),
                             borderRadius: BorderRadius.circular(WebTheme.radiusMd),
                             border: Border.all(
-                              color: isFeatured ? const Color(0xFF86EFAC) : WebTheme.cardBorder,
-                              width: isFeatured ? 1.5 : 1,
+                              color: isCurrentActivePackage
+                                  ? WebTheme.emerald
+                                  : (isFeatured ? const Color(0xFF86EFAC) : WebTheme.cardBorder),
+                              width: (isCurrentActivePackage || isFeatured) ? 1.5 : 1,
                             ),
                           ),
                           child: Row(
@@ -405,24 +561,30 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        if (pkg['badge'] != null) ...[
+                                        if (displayBadge != null) ...[
                                           const SizedBox(width: 6),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                             decoration: BoxDecoration(
-                                              color: isFeatured ? const Color(0xFFFEF3C7) : WebTheme.emeraldLight,
+                                              color: isCurrentActivePackage
+                                                  ? const Color(0xFFDCFCE7)
+                                                  : (isFeatured ? const Color(0xFFFEF3C7) : WebTheme.emeraldLight),
                                               borderRadius: BorderRadius.circular(4),
                                               border: Border.all(
-                                                color: isFeatured ? const Color(0xFFF59E0B) : WebTheme.emerald,
+                                                color: isCurrentActivePackage
+                                                    ? const Color(0xFF16A34A)
+                                                    : (isFeatured ? const Color(0xFFF59E0B) : WebTheme.emerald),
                                                 width: 0.8,
                                               ),
                                             ),
                                             child: Text(
-                                              pkg['badge'],
+                                              displayBadge,
                                               style: TextStyle(
                                                 fontSize: 8.5,
                                                 fontWeight: FontWeight.bold,
-                                                color: isFeatured ? const Color(0xFFB45309) : WebTheme.emerald,
+                                                color: isCurrentActivePackage
+                                                    ? const Color(0xFF15803D)
+                                                    : (isFeatured ? const Color(0xFFB45309) : WebTheme.emerald),
                                               ),
                                             ),
                                           ),
@@ -443,6 +605,41 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
+                                  if (pkg['originalPriceText'] != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 2),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            pkg['originalPriceText'],
+                                            style: const TextStyle(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w500,
+                                              color: Color(0xFF94A3B8),
+                                              decoration: TextDecoration.lineThrough,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFEE2E2),
+                                              borderRadius: BorderRadius.circular(3),
+                                              border: Border.all(color: const Color(0xFFFECACA), width: 0.5),
+                                            ),
+                                            child: Text(
+                                              (pkg['voucherTag'] ?? '-10% VOUCHER').toString(),
+                                              style: const TextStyle(
+                                                fontSize: 7.5,
+                                                fontWeight: FontWeight.w900,
+                                                color: Color(0xFFDC2626),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   Text(
                                     pkg['priceText'],
                                     style: TextStyle(
@@ -822,11 +1019,18 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
   Widget build(BuildContext context) {
     final sysConfig = context.watch<SystemConfigProvider>();
     final googleAuth = context.watch<GoogleAuthProvider>();
-    final packages = _getPackages(sysConfig);
+    final packages = _getPackages(sysConfig, googleAuth);
 
     final currentSelectedPkg = packages.firstWhere(
       (p) => p['key'] == _selectedPackageKey,
-      orElse: () => packages.last,
+      orElse: () {
+        final fallback = packages.firstWhere(
+          (p) => p['key'] == '1y' || p['key'] == '1year',
+          orElse: () => packages.firstWhere((p) => (p['price'] as int? ?? 0) > 0, orElse: () => packages.first),
+        );
+        _selectedPackageKey = fallback['key'];
+        return fallback;
+      },
     );
 
     return Scaffold(
@@ -839,11 +1043,6 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
             children: [
               // 1. HEADER BRANDING & TRẠNG THÁI BẢN QUYỀN + ĐẾM NGƯỢC
               _buildHeaderCard(sysConfig, googleAuth),
-
-              if (sysConfig.marketingBanner.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _buildMarketingBanner(sysConfig.marketingBanner),
-              ],
 
               const SizedBox(height: 14),
 
@@ -858,6 +1057,11 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                 _buildLifetimeLockedCard(googleAuth),
                 const SizedBox(height: 16),
               ] else ...[
+                const SizedBox(height: 16),
+                // BANNER THÔNG BÁO MÃ GIẢM GIÁ ĐẾM NGƯỢC TỪ ADMIN CHO TÀI KHOẢN MỚI
+                _buildWelcomeDiscountBanner(sysConfig, googleAuth),
+                const SizedBox(height: 14),
+
                 // 3. TIÊU ĐỀ CHỌN GÓI THỜI HẠN & NÚT BẢNG CÁC GÓI
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -938,71 +1142,269 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
     );
   }
 
-  // BANNER KHUYẾN MÃI MARKETING TỪ ADMIN
-  Widget _buildMarketingBanner(String bannerText) {
+  // VOUCHER TÂN THỦ ĐẾM NGƯỢC THỜI GIAN THỰC TỪ ADMIN (1 NGÀY, 2 NGÀY, 3 NGÀY...)
+  Widget _buildWelcomeDiscountBanner(SystemConfigProvider sysConfig, GoogleAuthProvider googleAuth) {
+    final coupon = sysConfig.getBestCouponForUser(
+      userCreatedAt: googleAuth.createdAt,
+      userEmail: googleAuth.email,
+    );
+
+    if (coupon == null) {
+      return const SizedBox.shrink();
+    }
+
+    final now = DateTime.now();
+    final target = (coupon['targetAudience'] ?? 'ALL').toString().toUpperCase();
+    int targetHours = 72;
+    String targetDurationBadge = '3 NGÀY';
+
+    if (target == 'NEW_1DAY') {
+      targetHours = 24;
+      targetDurationBadge = '24 GIỜ';
+    } else if (target == 'NEW_2DAYS') {
+      targetHours = 48;
+      targetDurationBadge = '48 GIỜ';
+    } else if (target == 'NEW_3DAYS') {
+      targetHours = 72;
+      targetDurationBadge = '3 NGÀY';
+    } else {
+      targetHours = 48;
+      targetDurationBadge = 'ƯU ĐÃI';
+    }
+
+    // Đếm ngược chính xác theo giờ cài đặt từ thời điểm tạo tài khoản (không phải lúc đăng nhập)
+    final expireAt = googleAuth.createdAt.add(Duration(hours: targetHours));
+    final remaining = expireAt.difference(now);
+    final isExpired = remaining.isNegative;
+
+    if (isExpired) {
+      return const SizedBox.shrink();
+    }
+
+    final days = remaining.inDays;
+    final hours = remaining.inHours % 24;
+    final minutes = remaining.inMinutes % 60;
+    final seconds = remaining.inSeconds % 60;
+
+    final createdDateStr =
+        '${googleAuth.createdAt.hour.toString().padLeft(2, '0')}:${googleAuth.createdAt.minute.toString().padLeft(2, '0')} ngày ${googleAuth.createdAt.day.toString().padLeft(2, '0')}/${googleAuth.createdAt.month.toString().padLeft(2, '0')}';
+
+    final int couponPct = (coupon['discountPercent'] as num?)?.toInt() ?? 0;
+    final int couponAmt = (coupon['discountAmount'] as num?)?.toInt() ?? 0;
+    final String discountTitle = couponPct > 0
+        ? 'VOUCHER TÂN THỦ GIẢM $couponPct%'
+        : 'VOUCHER GIẢM ${CurrencyFormatter.formatVND(couponAmt.toDouble())}';
+    final String discountDesc = couponPct > 0
+        ? 'Đã trừ thẳng $couponPct% vào giá tất cả các gói. Bấm kích hoạt nhận ngay giá ưu đãi!'
+        : 'Đã trừ thẳng ${CurrencyFormatter.formatVND(couponAmt.toDouble())} vào giá tất cả các gói. Bấm kích hoạt nhận ngay!';
+    final String couponCode = (coupon['code'] ?? 'UUDAI').toString().toUpperCase();
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+          colors: [Color(0xFFFFF7ED), Color(0xFFFEF2F2)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(WebTheme.radiusMd),
-        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(WebTheme.radiusLg),
+        border: Border.all(color: const Color(0xFFF97316), width: 1.4),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: const Color(0xFFEA580C).withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B),
-              borderRadius: BorderRadius.circular(8),
+          // Header Voucher
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEA580C), Color(0xFFE11D48)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE11D48).withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.confirmation_number_rounded, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              discountTitle,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF9A3412),
+                                letterSpacing: 0.4,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEA580C),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              targetDurationBadge,
+                              style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tính từ lúc tạo tài khoản ($createdDateStr) • Áp dụng tất cả các gói',
+                        style: const TextStyle(fontSize: 9.5, color: Color(0xFFB45309), fontWeight: FontWeight.w500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 18),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+          // Khung đếm ngược thời gian thực với 4 ô số
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFED7AA), width: 1),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Row(
                   children: [
+                    Icon(Icons.timer_outlined, size: 16, color: Color(0xFFDC2626)),
+                    SizedBox(width: 6),
                     Text(
-                      'ƯU ĐÃI KHUYẾN MÃI TỪ ADMIN',
+                      'Thời hạn ưu đãi còn lại:',
                       style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFFB45309),
-                        letterSpacing: 0.3,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF7C2D12),
                       ),
                     ),
-                    SizedBox(width: 6),
-                    Icon(Icons.bolt_rounded, size: 13, color: Color(0xFFD97706)),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  bannerText,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF92400E),
-                    height: 1.35,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildVoucherDigitBox(days.toString().padLeft(2, '0'), 'ngày'),
+                    _buildVoucherDigitSeparator(),
+                    _buildVoucherDigitBox(hours.toString().padLeft(2, '0'), 'giờ'),
+                    _buildVoucherDigitSeparator(),
+                    _buildVoucherDigitBox(minutes.toString().padLeft(2, '0'), 'phút'),
+                    _buildVoucherDigitSeparator(),
+                    _buildVoucherDigitBox(seconds.toString().padLeft(2, '0'), 'giây', isSeconds: true),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Footer thông báo áp dụng
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF16A34A)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    discountDesc,
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFFFECACA), width: 0.8),
+                  ),
+                  child: Text(
+                    'MÃ: $couponCode',
+                    style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFFDC2626)),
                   ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVoucherDigitBox(String val, String lbl, {bool isSeconds = false}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+          decoration: BoxDecoration(
+            color: isSeconds ? const Color(0xFFFEF2F2) : const Color(0xFFFFF7ED),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: isSeconds ? const Color(0xFFFCA5A5) : const Color(0xFFFDBA74),
+              width: 0.9,
+            ),
+          ),
+          child: Text(
+            val,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: isSeconds ? const Color(0xFFDC2626) : const Color(0xFF9A3412),
+            ),
+          ),
+        ),
+        const SizedBox(height: 1),
+        Text(
+          lbl,
+          style: const TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVoucherDigitSeparator() {
+    return const Padding(
+      padding: EdgeInsets.only(left: 3, right: 3, bottom: 8),
+      child: Text(
+        ':',
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFFC2410C)),
       ),
     );
   }
@@ -1849,7 +2251,7 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '👑 Bạn đã sở hữu gói Vĩnh Viễn của AutoBank! Hệ thống tự động khóa tính năng mua gói vì tài khoản của bạn đã có đặc quyền trọn đời cao nhất.',
+                  '👑 Bạn đã sở hữu gói Vĩnh Viễn! Hệ thống tự động khóa tính năng mua gói vì tài khoản của bạn đã có đặc quyền trọn đời cao nhất.',
                   style: TextStyle(fontSize: 12, color: Color(0xFFF1F5F9), height: 1.4, fontWeight: FontWeight.w600),
                 ),
                 SizedBox(height: 8),
@@ -1871,31 +2273,57 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
     final isSelected = _selectedPackageKey == pkg['key'];
     final isFeatured = pkg['isFeatured'] as bool;
     final isTrial = pkg['key'] == 'trial';
+    final activePkg = googleAuth.activePackageName.toLowerCase();
+    final pkgName = (pkg['name'] as String).toLowerCase();
+    final pkgKey = (pkg['key'] as String).toLowerCase();
+
+    // Nhận diện chính xác gói người dùng đang kích hoạt sử dụng
+    final isCurrentActivePackage = googleAuth.isActivated && !googleAuth.isExpired && (
+      (googleAuth.isLifetime && (pkgKey == 'lifetime' || pkgName.contains('vĩnh viễn'))) ||
+      (activePkg.contains('1 năm') && (pkgKey == '1year' || pkgKey == '1y' || pkgName.contains('1 năm'))) ||
+      (activePkg.contains('9 tháng') && (pkgKey == '9month' || pkgName.contains('9 tháng'))) ||
+      (activePkg.contains('6 tháng') && (pkgKey == '6month' || pkgName.contains('6 tháng'))) ||
+      (activePkg.contains('3 tháng') && (pkgKey == '3month' || pkgName.contains('3 tháng'))) ||
+      (activePkg.contains('1 tháng') && (pkgKey == '1month' || pkgName.contains('1 tháng'))) ||
+      (activePkg.contains('dùng thử') && isTrial)
+    );
 
     String? customBadge = pkg['badge'];
-    if (isTrial) {
-      if (googleAuth.isTrialStarted) {
+    if (isCurrentActivePackage) {
+      customBadge = 'Đang sử dụng ✓';
+    } else if (isTrial) {
+      if (googleAuth.isActivated && !googleAuth.activePackageName.contains('Dùng thử')) {
+        customBadge = 'Đã hoàn thành dùng thử';
+      } else if (googleAuth.isExpired && googleAuth.activePackageName.contains('Dùng thử')) {
+        customBadge = 'Đã hết hạn dùng thử';
+      } else if (googleAuth.isTrialStarted) {
         customBadge = 'Đang đếm ngược ⏳';
       } else {
         customBadge = 'Chưa kích hoạt • Chọn để đếm ngược';
       }
     }
 
+    final String voucherTag = (pkg['voucherTag'] ?? '-10% VOUCHER').toString();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isSelected ? WebTheme.primaryBg : Colors.white,
+        color: isCurrentActivePackage
+            ? const Color(0xFFF0FDF4)
+            : (isSelected ? WebTheme.primaryBg : Colors.white),
         borderRadius: BorderRadius.circular(WebTheme.radiusMd),
         border: Border.all(
-          color: isSelected
-              ? WebTheme.primary
-              : (isFeatured ? const Color(0xFFBAE6FD) : WebTheme.cardBorder),
-          width: isSelected ? 1.8 : 1,
+          color: isCurrentActivePackage
+              ? WebTheme.emerald
+              : (isSelected
+                  ? WebTheme.primary
+                  : (isFeatured ? const Color(0xFFBAE6FD) : WebTheme.cardBorder)),
+          width: (isCurrentActivePackage || isSelected) ? 1.8 : 1,
         ),
         boxShadow: [
-          if (isSelected || isFeatured)
+          if (isSelected || isFeatured || isCurrentActivePackage)
             BoxShadow(
-              color: WebTheme.primary.withValues(alpha: 0.08),
+              color: (isCurrentActivePackage ? WebTheme.emerald : WebTheme.primary).withValues(alpha: 0.08),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1918,13 +2346,17 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isSelected ? WebTheme.primaryLight : const Color(0xFFF1F5F9),
+                    color: isCurrentActivePackage
+                        ? const Color(0xFFDCFCE7)
+                        : (isSelected ? WebTheme.primaryLight : const Color(0xFFF1F5F9)),
                     borderRadius: BorderRadius.circular(WebTheme.radiusSm),
                   ),
                   child: Icon(
                     pkg['icon'] as IconData,
                     size: 22,
-                    color: isSelected ? WebTheme.primary : WebTheme.textMuted,
+                    color: isCurrentActivePackage
+                        ? WebTheme.emerald
+                        : (isSelected ? WebTheme.primary : WebTheme.textMuted),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1943,21 +2375,27 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: isSelected ? WebTheme.primaryDark : WebTheme.textHeading,
+                              color: isCurrentActivePackage
+                                  ? const Color(0xFF166534)
+                                  : (isSelected ? WebTheme.primaryDark : WebTheme.textHeading),
                             ),
                           ),
                           if (customBadge != null)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: isFeatured
-                                    ? const Color(0xFFFEF3C7)
-                                    : (isTrial ? const Color(0xFFFEF3C7) : WebTheme.emeraldLight),
+                                color: isCurrentActivePackage
+                                    ? const Color(0xFFDCFCE7)
+                                    : (isFeatured
+                                        ? const Color(0xFFFEF3C7)
+                                        : (isTrial ? const Color(0xFFF1F5F9) : WebTheme.emeraldLight)),
                                 borderRadius: BorderRadius.circular(WebTheme.radiusSm),
                                 border: Border.all(
-                                  color: isFeatured
-                                      ? const Color(0xFFF59E0B)
-                                      : (isTrial ? const Color(0xFFF59E0B) : WebTheme.emerald),
+                                  color: isCurrentActivePackage
+                                      ? const Color(0xFF16A34A)
+                                      : (isFeatured
+                                          ? const Color(0xFFF59E0B)
+                                          : (isTrial ? const Color(0xFFCBD5E1) : WebTheme.emerald)),
                                   width: 0.8,
                                 ),
                               ),
@@ -1966,7 +2404,11 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w800,
-                                  color: (isFeatured || isTrial) ? const Color(0xFFB45309) : WebTheme.emerald,
+                                  color: isCurrentActivePackage
+                                      ? const Color(0xFF15803D)
+                                      : ((isFeatured || (isTrial && customBadge.contains('đếm ngược')))
+                                          ? const Color(0xFFB45309)
+                                          : (isTrial ? const Color(0xFF64748B) : WebTheme.emerald)),
                                 ),
                               ),
                             ),
@@ -1986,12 +2428,49 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    if (pkg['originalPriceText'] != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              pkg['originalPriceText'],
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF94A3B8),
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEE2E2),
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(color: const Color(0xFFFECACA), width: 0.6),
+                              ),
+                              child: Text(
+                                voucherTag,
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFFDC2626),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     Text(
                       pkg['priceText'],
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: isSelected ? WebTheme.primaryDark : WebTheme.emerald,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w900,
+                        color: isCurrentActivePackage
+                            ? const Color(0xFF15803D)
+                            : (isSelected ? WebTheme.primaryDark : WebTheme.emerald),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -2101,7 +2580,7 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Quyền lợi khi kích hoạt bản quyền AutoBank',
+            'Quyền lợi khi kích hoạt bản quyền ứng dụng',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: WebTheme.textHeading),
           ),
           const SizedBox(height: 10),
@@ -2170,6 +2649,7 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
   int _selectedPaymentMethod = 0;
 
   Timer? _countdownTimer;
+  Timer? _statusPollingTimer;
   int _secondsLeft = 15 * 60;
   bool _isProcessing = false;
 
@@ -2183,20 +2663,39 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<SystemConfigProvider>().fetchConfig();
+    });
+
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _secondsLeft > 0) {
         setState(() {
           _secondsLeft--;
         });
+        // Đồng bộ song song tức thì cấu hình bảo trì từ Admin mỗi 2 giây
+        if (_secondsLeft % 2 == 0 && mounted) {
+          context.read<SystemConfigProvider>().fetchConfig();
+        }
       }
     });
 
     _registerOrderToBackend();
+    _startStatusPolling();
+  }
+
+  void _startStatusPolling() {
+    _statusPollingTimer?.cancel();
+    // Tự động kiểm tra tín hiệu thanh toán từ Backend/Ngân hàng mỗi 4 giây
+    _statusPollingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted && _selectedPaymentMethod == 0 && !_isProcessing) {
+        _checkPaymentStatus(isManual: false);
+      }
+    });
   }
 
   Future<void> _registerOrderToBackend() async {
     try {
-      final uri = Uri.parse('http://localhost:3000/admin/orders');
+      final uri = Uri.parse('${AppConfig.apiBaseUrl}/admin/orders');
       await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
@@ -2216,6 +2715,7 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
 
   @override
   void dispose() {
+    _statusPollingTimer?.cancel();
     _countdownTimer?.cancel();
     _couponCtrl.dispose();
     super.dispose();
@@ -2238,7 +2738,14 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
     );
   }
 
-  int get _finalPayableAmount => (widget.amount - _discount).clamp(0, 99999999);
+  int get _googlePayFee => (widget.amount * 0.10).round();
+
+  int get _finalPayableAmount {
+    if (_selectedPaymentMethod == 1) {
+      return (widget.amount + _googlePayFee - _discount).clamp(0, 99999999);
+    }
+    return (widget.amount - _discount).clamp(0, 99999999);
+  }
 
   String get _dynamicQrUrl {
     return 'https://img.vietqr.io/image/${widget.bankCode}-${widget.bankAcc}-compact2.png?amount=$_finalPayableAmount&addInfo=${widget.orderCode}&accountName=${Uri.encodeComponent(widget.bankName)}';
@@ -2251,7 +2758,7 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
 
     try {
       final res = await http.post(
-        Uri.parse('http://localhost:3000/admin/coupons/validate'),
+        Uri.parse('${AppConfig.apiBaseUrl}/admin/coupons/validate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'code': code, 'amount': widget.amount}),
       ).timeout(const Duration(seconds: 3));
@@ -2301,45 +2808,178 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
     }
   }
 
-  Future<void> _confirmAndActivatePayment() async {
-    setState(() {
-      _isProcessing = true;
-    });
+  /// Kiểm tra trạng thái đơn hàng thật từ server (chỉ kích hoạt khi có tín hiệu tiền về thành công)
+  Future<void> _checkPaymentStatus({bool isManual = false}) async {
+    if (_isProcessing) return;
+    if (isManual) {
+      setState(() {
+        _isProcessing = true;
+      });
+    }
 
     try {
-      final approveUri = Uri.parse('http://localhost:3000/admin/orders/${widget.orderCode}/approve');
-      await http.put(approveUri).timeout(const Duration(seconds: 4));
+      final statusUri = Uri.parse('${AppConfig.apiBaseUrl}/orders/${widget.orderCode}/status');
+      final res = await http.get(statusUri).timeout(const Duration(seconds: 4));
 
-      final txUri = Uri.parse('http://localhost:3000/transactions');
-      await http.post(
-        txUri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'bankName': widget.bankCode,
-          'accountNumber': widget.bankAcc,
-          'amount': _finalPayableAmount,
-          'content': 'CT TU ${widget.customerName.toUpperCase()} ND ${widget.orderCode}',
-          'receivedAt': DateTime.now().toIso8601String(),
-          'rawMessage': 'GD +${_finalPayableAmount}VND ND ${widget.orderCode} tai ${widget.bankCode}',
-        }),
-      ).timeout(const Duration(seconds: 4));
-    } catch (_) {}
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final bool isPaid = data['isPaid'] == true ||
+            data['status'] == 'PAID' ||
+            data['status'] == 'OVERPAID' ||
+            data['status'] == 'APPROVED';
 
-    await Future.delayed(const Duration(milliseconds: 600));
+        if (isPaid) {
+          _statusPollingTimer?.cancel();
+          _countdownTimer?.cancel();
 
-    if (mounted) {
-      setState(() {
-        _isProcessing = false;
-      });
-      widget.onPaymentSuccess();
+          if (mounted) {
+            setState(() {
+              _isProcessing = false;
+            });
+
+            // Đọc giọng nói chúc mừng
+            TtsService().speakTestFeedback(
+              'Tài khoản ${widget.customerEmail} đã nhận được tiền từ ngân hàng và nâng cấp thành công lên gói ${widget.pkg['name']}!'
+            );
+
+            // Hiển thị Popup chúc mừng đã nhận được tín hiệu bank và nâng cấp ngay
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (dCtx) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                contentPadding: const EdgeInsets.all(22),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFDCFCE7),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 40),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'THANH TOÁN THÀNH CÔNG!',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF15803D),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: const Text(
+                        'Tín hiệu Bank: ĐÃ NHẬN TIỀN TỰ ĐỘNG',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Tài khoản: ${widget.customerEmail}\nĐã nâng cấp lên gói: ${widget.pkg['name']}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(dCtx);
+                        },
+                        child: const Text('Bắt đầu sử dụng ngay', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+
+            if (mounted) {
+              widget.onPaymentSuccess();
+            }
+          }
+          return;
+        }
+      }
+
+      if (isManual && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF334155),
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            content: Row(
+              children: [
+                const Icon(Icons.access_time_rounded, color: Color(0xFFFBBF24), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Chưa nhận được tín hiệu tiền vào cho mã ${widget.orderCode}. Vui lòng chuyển khoản đúng nội dung, hệ thống sẽ tự động kích hoạt.',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (isManual && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFDC2626),
+            content: Text('Lỗi kiểm tra trạng thái: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (isManual && mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
   Future<void> _handleGooglePayCheckout() async {
+    final sysConfig = context.read<SystemConfigProvider>();
+    if (sysConfig.googlePayMaintenance) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFDC2626),
+          content: Text(sysConfig.googlePayMaintenanceMsg),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
-    // Giả lập popup xác thực Google Pay 1 chạm bảo mật
-    await showDialog(
+    // Hiển thị popup xác thực Google Pay 1 chạm bảo mật
+    showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dlgCtx) => AlertDialog(
@@ -2359,10 +2999,10 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
             const SizedBox(height: 16),
             const CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF4285F4)),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Đang xử lý giao dịch qua Google Play...',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: WebTheme.textHeading),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: WebTheme.textHeading),
             ),
             const SizedBox(height: 4),
             Text(
@@ -2375,12 +3015,23 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
       ),
     );
 
-    // Kích hoạt thanh toán thành công
-    await _confirmAndActivatePayment();
+    // Chờ 1.5 giây mô phỏng xác thực thanh toán của Google Play Console
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    // Đóng popup Google Pay
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+
+    // Kiểm tra trạng thái đơn hàng
+    await _checkPaymentStatus(isManual: true);
   }
 
   @override
   Widget build(BuildContext context) {
+    final sysConfig = context.watch<SystemConfigProvider>();
+    final bool isGpayMaintenance = sysConfig.googlePayMaintenance;
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.92,
@@ -2445,7 +3096,10 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                 children: [
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _selectedPaymentMethod = 0),
+                      onTap: () {
+                        context.read<SystemConfigProvider>().fetchConfig();
+                        setState(() => _selectedPaymentMethod = 0);
+                      },
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 9),
@@ -2480,7 +3134,10 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                   ),
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _selectedPaymentMethod = 1),
+                      onTap: () {
+                        context.read<SystemConfigProvider>().fetchConfig();
+                        setState(() => _selectedPaymentMethod = 1);
+                      },
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 9),
@@ -2497,13 +3154,19 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                             const GoogleLogo(size: 14),
                             const SizedBox(width: 6),
                             Text(
-                              '2. Google Pay (GPay)',
+                              isGpayMaintenance ? '2. Google Pay (Bảo trì)' : '2. Google Pay (+10%)',
                               style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: _selectedPaymentMethod == 1 ? FontWeight.bold : FontWeight.w600,
-                                color: _selectedPaymentMethod == 1 ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                                color: isGpayMaintenance
+                                    ? const Color(0xFFDC2626)
+                                    : (_selectedPaymentMethod == 1 ? const Color(0xFF0F172A) : const Color(0xFF64748B)),
                               ),
                             ),
+                            if (isGpayMaintenance) ...[
+                              const SizedBox(width: 4),
+                              const Icon(Icons.build_rounded, size: 11, color: Color(0xFFDC2626)),
+                            ],
                           ],
                         ),
                       ),
@@ -2645,6 +3308,12 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                     const Divider(height: 10, color: WebTheme.cardBorder),
                     _buildPaymentRow('Chủ tài khoản nhận:', widget.bankName, null),
                     const Divider(height: 10, color: WebTheme.cardBorder),
+                    if (widget.pkg['originalPrice'] != null) ...[
+                      _buildPaymentRow('Giá gốc niêm yết:', widget.pkg['originalPriceText'] ?? '', null),
+                      const Divider(height: 10, color: WebTheme.cardBorder),
+                      _buildPaymentRow('Voucher tân thủ (3 ngày):', '-10% (Đã trừ thẳng vào gói)', null, isDiscount: true),
+                      const Divider(height: 10, color: WebTheme.cardBorder),
+                    ],
                     if (_discount > 0) ...[
                       _buildPaymentRow('Giá gốc:', CurrencyFormatter.formatVND(widget.amount.toDouble()), null),
                       const Divider(height: 10, color: WebTheme.cardBorder),
@@ -2660,65 +3329,107 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
 
               const SizedBox(height: 14),
 
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16A34A),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(WebTheme.radiusSm)),
-                    elevation: 1,
-                  ),
-                  onPressed: _isProcessing ? null : _confirmAndActivatePayment,
-                  child: _isProcessing
-                      ? const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                            SizedBox(width: 8),
-                            Text('Đang kích hoạt bản quyền từ Admin...', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.white)),
-                          ],
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle_rounded, size: 18, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text(
-                              'Xác nhận đã chuyển khoản • Kích hoạt gói',
-                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ],
+              // HỘP THÔNG BÁO TÍN HIỆU THANH TOÁN TỰ ĐỘNG
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(WebTheme.radiusSm),
+                  border: Border.all(color: const Color(0xFF86EFAC), width: 1.2),
+                ),
+                child: const Row(
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2.2, color: Color(0xFF16A34A)),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Đang chờ nhận tiền chuyển khoản... Hệ thống sẽ tự động kích hoạt gói ngay khi có tín hiệu tiền về thành công.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF166534),
+                          height: 1.35,
                         ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
 
               SizedBox(
                 width: double.infinity,
-                height: 38,
+                height: 44,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    side: const BorderSide(color: Color(0xFF0284C7), width: 1.2),
+                    backgroundColor: const Color(0xFFF0F9FF),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(WebTheme.radiusSm)),
                   ),
-                  onPressed: _isProcessing ? null : _confirmAndActivatePayment,
-                  icon: const Icon(Icons.sync_rounded, size: 16, color: WebTheme.primary),
-                  label: const Text(
-                    'Kiểm tra giao dịch tự động',
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: WebTheme.primary),
+                  onPressed: _isProcessing ? null : () => _checkPaymentStatus(isManual: true),
+                  icon: _isProcessing
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0284C7)))
+                      : const Icon(Icons.sync_rounded, size: 18, color: Color(0xFF0284C7)),
+                  label: Text(
+                    _isProcessing ? 'Đang kiểm tra tín hiệu tự động...' : 'Kiểm tra giao dịch tự động',
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
                   ),
                 ),
               ),
             ] else ...[
               // === TAB 2: THANH TOÁN GOOGLE PAY ===
+              if (isGpayMaintenance)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(WebTheme.radiusMd),
+                    border: Border.all(color: const Color(0xFFFCA5A5), width: 1.2),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.build_circle_rounded, color: Color(0xFFDC2626), size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Cổng Google Pay Đang Tạm Bảo Trì',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              sysConfig.googlePayMaintenanceMsg,
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF7F1D1D), height: 1.35),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: isGpayMaintenance ? const Color(0xFFFFF1F2) : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(WebTheme.radiusMd),
-                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                  border: Border.all(color: isGpayMaintenance ? const Color(0xFFFECDD3) : const Color(0xFFCBD5E1)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2735,10 +3446,21 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
+                            color: isGpayMaintenance ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: isGpayMaintenance ? const Color(0xFFFECACA) : const Color(0xFFFDE68A),
+                              width: 0.8,
+                            ),
                           ),
-                          child: const Text('Bảo mật 100%', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF166534))),
+                          child: Text(
+                            isGpayMaintenance ? 'ĐANG BẢO TRÌ' : '+10% Phí Google Play',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              color: isGpayMaintenance ? const Color(0xFFDC2626) : const Color(0xFFB45309),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -2747,9 +3469,15 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                     const Divider(height: 10, color: Color(0xFFE2E8F0)),
                     _buildPaymentRow('Tài khoản Google:', widget.customerEmail, null),
                     const Divider(height: 10, color: Color(0xFFE2E8F0)),
+                    _buildPaymentRow('Giá gốc niêm yết:', CurrencyFormatter.formatVND(widget.amount.toDouble()), null),
+                    const Divider(height: 10, color: Color(0xFFE2E8F0)),
+                    _buildPaymentRow(
+                      'Phí dịch vụ Google Play (+10%):',
+                      '+${CurrencyFormatter.formatVND(_googlePayFee.toDouble())}',
+                      null,
+                    ),
+                    const Divider(height: 10, color: Color(0xFFE2E8F0)),
                     if (_discount > 0) ...[
-                      _buildPaymentRow('Giá niêm yết:', CurrencyFormatter.formatVND(widget.amount.toDouble()), null),
-                      const Divider(height: 10, color: Color(0xFFE2E8F0)),
                       _buildPaymentRow('Giảm giá Coupon:', '-${CurrencyFormatter.formatVND(_discount.toDouble())}', null, isDiscount: true),
                       const Divider(height: 10, color: Color(0xFFE2E8F0)),
                     ],
@@ -2765,39 +3493,68 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
 
               const SizedBox(height: 16),
 
-              // Nút Google Pay chuẩn đen sang trọng
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF000000),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 2,
-                  ),
-                  onPressed: _isProcessing ? null : _handleGooglePayCheckout,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const GoogleLogo(size: 18),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Pay với Google Pay (${CurrencyFormatter.formatVND(_finalPayableAmount.toDouble())})',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
-                      ),
-                    ],
+              if (isGpayMaintenance) ...[
+                // Khi bật bảo trì: Khóa thanh toán GG, hướng dẫn thanh toán qua VietQR
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 2,
+                    ),
+                    onPressed: () => setState(() => _selectedPaymentMethod = 0),
+                    icon: const Icon(Icons.qr_code_2_rounded, size: 20),
+                    label: const Text(
+                      'Chuyển sang Chuyển khoản VietQR (Hoạt động 100%)',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    '⚠️ Cổng thanh toán Google Pay tạm khóa theo cấu hình Quản trị viên (Admin)',
+                    style: TextStyle(fontSize: 10, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ] else ...[
+                // Nút Google Pay chuẩn đen sang trọng khi hoạt động bình thường
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF000000),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 2,
+                    ),
+                    onPressed: _isProcessing ? null : _handleGooglePayCheckout,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const GoogleLogo(size: 18),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Pay với Google Pay (${CurrencyFormatter.formatVND(_finalPayableAmount.toDouble())})',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-              const SizedBox(height: 8),
-              const Center(
-                child: Text(
-                  'Thanh toán an toàn 1 chạm bảo vệ bởi Google Play Console & MBBank',
-                  style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    'Thanh toán an toàn 1 chạm bảo vệ bởi Google Play Console & MBBank',
+                    style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                  ),
                 ),
-              ),
+              ],
             ],
           ],
         ),

@@ -31,12 +31,12 @@ class _PhoneSimulatorFrameState extends State<PhoneSimulatorFrame> {
 
   @override
   Widget build(BuildContext context) {
-    // Nếu chạy trên thiết bị di động thật hoặc màn hình nhỏ dưới 550px thì hiển thị toàn màn hình chuẩn
-    final screenWidth = MediaQuery.of(context).size.width;
-    if (!kIsWeb && screenWidth <= 550) {
+    // Khi chạy trên thiết bị di động thật (Android / iOS): Luôn hiển thị toàn màn hình gốc
+    if (!kIsWeb) {
       return widget.child;
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
     if (screenWidth <= 500 || !_showFrame) {
       return widget.child;
     }

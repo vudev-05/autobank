@@ -2,23 +2,46 @@ import { BANKS_DATA as defaultBanks } from '../data/banks-data.js';
 
 // Environment variables
 export const ENV_ADMIN_USER = import.meta.env.VITE_ADMIN_USERNAME || 'admin';
-export const ENV_ADMIN_PASS = import.meta.env.VITE_ADMIN_PASSWORD || 'autobank@2026';
 export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
 
 // Storage keys
 export const STORAGE_AUTH_TOKEN = 'autobank_admin_session';
+export const STORAGE_JWT_TOKEN = 'autobank_admin_jwt';
 export const STORAGE_CONFIG = 'autobank_system_config';
 export const STORAGE_BANKS = 'autobank_banks_custom';
 export const STORAGE_USERS = 'autobank_users_list';
 export const STORAGE_ORDERS = 'autobank_orders_list';
 export const STORAGE_PUSH = 'autobank_push_notifications';
 
+// Helper lấy tiêu đề Authorization chứa JWT Token quản trị viên
+export function getAdminHeaders() {
+  const jwt = sessionStorage.getItem(STORAGE_JWT_TOKEN);
+  const headers = { 'Content-Type': 'application/json' };
+  if (jwt) {
+    headers['Authorization'] = `Bearer ${jwt}`;
+  }
+  return headers;
+}
+
+// Wrapper fetch chuyên dụng cho Admin - tự động gắn JWT Token và bắt lỗi hết hạn phiên
+export async function adminFetch(url, options = {}) {
+  const headers = { ...getAdminHeaders(), ...(options.headers || {}) };
+  const res = await fetch(url, { ...options, headers });
+  if (res.status === 401 || res.status === 403) {
+    sessionStorage.removeItem(STORAGE_AUTH_TOKEN);
+    sessionStorage.removeItem(STORAGE_JWT_TOKEN);
+    window.location.href = '/admin/login.html';
+    throw new Error('Phiên quản trị viên đã hết hạn hoặc không có quyền');
+  }
+  return res;
+}
+
 // Default initial config
 export const defaultConfig = {
   brandName: 'Đọc thông báo nhận tiền',
   brandSlogan: 'Tiền vừa sang ~ máy báo vang',
   chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
-  youtubeLink: 'https://www.youtube.com/@vudev05',
+  youtubeLink: '',
   hotline: '0869226687',
   email: 'tranquocvu3011@gmail.com',
   facebook: 'https://www.facebook.com/Baochuyentienbanggiongnoi',
@@ -26,128 +49,51 @@ export const defaultConfig = {
   bankCode: 'MB',
   bankAcc: '3011200588888',
   bankName: 'TRẦN QUỐC VŨ',
+  serverDomain: 'http://192.168.1.217:3000',
+  webDomain: 'http://192.168.1.217:5173',
+  apiPort: 3000,
   priceTrial: '0đ (3 ngày)',
   price1m: 38000,
   price3m: 99000,
   price6m: 179000,
   price9m: 249000,
   price1y: 299000,
+  priceLifetime: 499000,
+  packages: [
+    { key: 'trial', name: 'Dùng thử miễn phí', durationDays: 3, price: 0, badge: 'Miễn phí', description: 'Trải nghiệm 100% tính năng cao cấp trong 3 ngày', isActive: true },
+    { key: '1m', name: 'Gói 1 Tháng', durationDays: 30, price: 39000, badge: '', description: 'Bản quyền 30 ngày đầy đủ thông báo giọng nói & live sync', isActive: true },
+    { key: '3m', name: 'Gói 3 Tháng', durationDays: 90, price: 99000, badge: 'Tiết kiệm 15%', description: 'Bản quyền 90 ngày cho cửa hàng kinh doanh', isActive: true },
+    { key: '6m', name: 'Gói 6 Tháng', durationDays: 180, price: 179000, badge: 'Phổ biến', description: 'Bản quyền 180 ngày ổn định 24/7', isActive: true },
+    { key: '9m', name: 'Gói 9 Tháng', durationDays: 270, price: 249000, badge: 'Tiết kiệm', description: 'Bản quyền 270 ngày vận hành quầy thu ngân', isActive: true },
+    { key: '1y', name: 'Gói 1 Năm', durationDays: 365, price: 299000, badge: 'Khuyên dùng (Bán chạy nhất)', description: 'Tặng thêm 2 tháng VIP + Hỗ trợ kỹ thuật 24/7', isActive: true },
+    { key: 'lifetime', name: 'Gói Vĩnh Viễn', durationDays: 9999, price: 499000, badge: 'Trọn đời VIP', description: 'Dùng trọn đời không giới hạn thời gian', isActive: true },
+  ],
   maintenance: false,
   maintenanceMsg: 'Hệ thống đang bảo trì nâng cấp máy chủ định kỳ. Vui lòng quay lại sau 15 phút.',
   latestVersion: '1.2.0',
   minVersion: '1.0.0',
 };
 
-export const defaultUsers = [
-  { id: 'USR-VU-01', name: 'Trần Quốc Vũ', email: 'tranquocvu3011@gmail.com', device: 'Samsung Galaxy Android', version: '1.2.0', pkg: 'Gói 1 năm (365 ngày)', expires: '2027-10-11', status: 'ACTIVE' },
-  { id: 'USR-AN-02', name: 'Nguyễn Văn An', email: 'nguyenvanan.dev@gmail.com', device: 'Samsung Galaxy Android 14', version: '1.2.0', pkg: 'Dùng thử 3 ngày', expires: '2026-10-14', status: 'ACTIVE' },
-  { id: 'USR-KIMANH-03', name: 'Trần Thị Kim Anh (Tiệm Bánh Mì Kim Anh)', email: 'tiembanhmikimanh@gmail.com', device: 'Xiaomi Redmi Note 13', version: '1.2.0', pkg: 'Chưa kích hoạt gói', expires: '2026-10-12', status: 'ACTIVE' },
-];
-
+export const defaultUsers = [];
 export const defaultOrders = [];
 
 // Auth Guard
 export function checkAuth() {
   const token = sessionStorage.getItem(STORAGE_AUTH_TOKEN);
-  if (token !== 'autobank_admin_authenticated') {
-    window.location.href = 'login.html';
+  const jwt = sessionStorage.getItem(STORAGE_JWT_TOKEN);
+  if (token !== 'autobank_admin_authenticated' || !jwt) {
+    window.location.href = '/admin/login.html';
     return false;
   }
   return true;
 }
 
-// Sidebar Setup
+// Sidebar Setup (Delegates to dedicated admin-sidebar.js component)
+import { renderAdminSidebar } from './admin-sidebar.js';
+export { renderAdminSidebar };
+
 export function initSidebar(activePageKey = 'overview') {
-  const links = document.querySelectorAll('.admin-nav-item');
-  links.forEach(a => {
-    if (a.getAttribute('data-page') === activePageKey) {
-      a.classList.add('active');
-    } else {
-      a.classList.remove('active');
-    }
-  });
-
-  // Display username
-  const userEl = document.getElementById('admin-display-username');
-  if (userEl) userEl.textContent = ENV_ADMIN_USER;
-
-  // Setup Mobile Off-canvas Drawer Toggle & Overlay
-  let overlay = document.querySelector('.admin-sidebar-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.className = 'admin-sidebar-overlay';
-    document.body.appendChild(overlay);
-  }
-  overlay.onclick = () => document.body.classList.remove('sidebar-open');
-
-  const brand = document.querySelector('.admin-sidebar-brand');
-  if (brand && !document.getElementById('admin-sidebar-close')) {
-    const closeBtn = document.createElement('button');
-    closeBtn.id = 'admin-sidebar-close';
-    closeBtn.className = 'admin-sidebar-close';
-    closeBtn.type = 'button';
-    closeBtn.title = 'Đóng Menu Quản Trị';
-    closeBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-    closeBtn.onclick = () => document.body.classList.remove('sidebar-open');
-    brand.appendChild(closeBtn);
-  }
-
-  // Ensure hamburger toggle button exists in topbar
-  const topbar = document.querySelector('.admin-topbar');
-  if (topbar && !document.getElementById('admin-menu-toggle')) {
-    const toggleBtn = document.createElement('button');
-    toggleBtn.id = 'admin-menu-toggle';
-    toggleBtn.className = 'admin-menu-toggle';
-    toggleBtn.type = 'button';
-    toggleBtn.title = 'Mở Menu Sidebar';
-    toggleBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
-    toggleBtn.onclick = () => document.body.classList.toggle('sidebar-open');
-    topbar.insertBefore(toggleBtn, topbar.firstChild);
-  } else {
-    const toggleBtn = document.getElementById('admin-menu-toggle');
-    if (toggleBtn) toggleBtn.onclick = () => document.body.classList.toggle('sidebar-open');
-  }
-
-  // Close drawer on mobile when clicking nav links
-  links.forEach(a => {
-    a.addEventListener('click', () => {
-      if (window.innerWidth <= 992) {
-        document.body.classList.remove('sidebar-open');
-      }
-    });
-  });
-
-  // Logout button
-  const logoutBtn = document.getElementById('admin-logout-btn');
-  if (logoutBtn) {
-    logoutBtn.onclick = () => {
-      if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi trang quản trị?')) {
-        sessionStorage.removeItem(STORAGE_AUTH_TOKEN);
-        window.location.href = 'login.html';
-      }
-    };
-  }
-
-  // Update badges
-  const banksBadge = document.getElementById('admin-badge-banks');
-  if (banksBadge) banksBadge.textContent = loadBanks().length;
-
-  const usersBadge = document.getElementById('admin-badge-users');
-  const cachedUsers = loadUsers();
-  if (usersBadge) usersBadge.textContent = cachedUsers.length;
-
-  const ordersBadge = document.getElementById('admin-badge-orders');
-  const cachedOrders = loadOrders();
-  if (ordersBadge) ordersBadge.textContent = cachedOrders.length;
-
-  // Asynchronously sync live counts from real MySQL database
-  fetchUsers().then(users => {
-    if (usersBadge && Array.isArray(users)) usersBadge.textContent = users.length;
-  }).catch(() => {});
-
-  fetchOrders().then(orders => {
-    if (ordersBadge && Array.isArray(orders)) ordersBadge.textContent = orders.length;
-  }).catch(() => {});
+  renderAdminSidebar(activePageKey);
 }
 
 // Toast helper
@@ -199,9 +145,9 @@ export function saveConfig(cfg) {
   } catch (_) {}
 
   // 3. Persist to MySQL via NestJS API
-  fetch(`${API_BASE}/admin/configs`, {
+  adminFetch(`${API_BASE}/admin/configs`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify(merged),
   }).catch(() => {});
 }
@@ -211,16 +157,67 @@ export function loadBanks() {
     const saved = localStorage.getItem(STORAGE_BANKS);
     if (saved) return JSON.parse(saved);
   } catch (_) {}
-  return defaultBanks.map(b => ({ ...b, active: true }));
+  return [];
 }
 
 export function saveBanks(list) {
   localStorage.setItem(STORAGE_BANKS, JSON.stringify(list));
 }
 
+export async function fetchBanks() {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/banks`);
+    if (res.ok) {
+      const list = await res.json();
+      const normalized = list.map(b => ({
+        ...b,
+        active: b.isActive !== false,
+      }));
+      localStorage.setItem(STORAGE_BANKS, JSON.stringify(normalized));
+      return normalized;
+    }
+  } catch (_) {}
+  return loadBanks();
+}
+
+export async function saveBankApi(bankData) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/banks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bankData),
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function toggleBankApi(id) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/banks/${encodeURIComponent(id)}/toggle`, {
+      method: 'PUT',
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function deleteBankApi(id) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/banks/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
 export async function fetchStats() {
   try {
-    const res = await fetch(`${API_BASE}/admin/stats`);
+    const res = await adminFetch(`${API_BASE}/admin/stats`);
     if (res.ok) return await res.json();
   } catch (_) {}
   return null;
@@ -228,7 +225,7 @@ export async function fetchStats() {
 
 export async function fetchLogs() {
   try {
-    const res = await fetch(`${API_BASE}/admin/logs`);
+    const res = await adminFetch(`${API_BASE}/admin/logs`);
     if (res.ok) return await res.json();
   } catch (_) {}
   return [];
@@ -244,7 +241,7 @@ export function loadUsers() {
 
 export async function fetchUsers() {
   try {
-    const res = await fetch(`${API_BASE}/admin/users`);
+    const res = await adminFetch(`${API_BASE}/admin/users`);
     if (res.ok) {
       const users = await res.json();
       localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
@@ -260,7 +257,7 @@ export function saveUsers(list) {
 
 export async function saveUserApi(userData) {
   try {
-    const res = await fetch(`${API_BASE}/admin/users`, {
+    const res = await adminFetch(`${API_BASE}/admin/users`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
@@ -273,7 +270,7 @@ export async function saveUserApi(userData) {
 
 export async function extendUserApi(email, days) {
   try {
-    const res = await fetch(`${API_BASE}/admin/users/${encodeURIComponent(email)}/extend`, {
+    const res = await adminFetch(`${API_BASE}/admin/users/${encodeURIComponent(email)}/extend`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ days }),
@@ -286,7 +283,7 @@ export async function extendUserApi(email, days) {
 
 export async function toggleBlockUserApi(email) {
   try {
-    const res = await fetch(`${API_BASE}/admin/users/${encodeURIComponent(email)}/toggle-block`, {
+    const res = await adminFetch(`${API_BASE}/admin/users/${encodeURIComponent(email)}/toggle-block`, {
       method: 'PUT',
     });
     return res.ok;
@@ -297,7 +294,7 @@ export async function toggleBlockUserApi(email) {
 
 export async function deleteUserApi(email) {
   try {
-    const res = await fetch(`${API_BASE}/admin/users/${encodeURIComponent(email)}`, {
+    const res = await adminFetch(`${API_BASE}/admin/users/${encodeURIComponent(email)}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -316,7 +313,7 @@ export function loadOrders() {
 
 export async function fetchOrders() {
   try {
-    const res = await fetch(`${API_BASE}/admin/orders`);
+    const res = await adminFetch(`${API_BASE}/admin/orders`);
     if (res.ok) {
       const orders = await res.json();
       localStorage.setItem(STORAGE_ORDERS, JSON.stringify(orders));
@@ -332,7 +329,7 @@ export function saveOrders(list) {
 
 export async function saveOrderApi(orderData) {
   try {
-    const res = await fetch(`${API_BASE}/admin/orders`, {
+    const res = await adminFetch(`${API_BASE}/admin/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(orderData),
@@ -345,7 +342,7 @@ export async function saveOrderApi(orderData) {
 
 export async function approveOrderApi(orderCode) {
   try {
-    const res = await fetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderCode)}/approve`, {
+    const res = await adminFetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderCode)}/approve`, {
       method: 'PUT',
     });
     return res.ok;
@@ -356,7 +353,7 @@ export async function approveOrderApi(orderCode) {
 
 export async function deleteOrderApi(orderCode) {
   try {
-    const res = await fetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderCode)}`, {
+    const res = await adminFetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderCode)}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -380,3 +377,219 @@ export function initCopyButtons() {
     };
   });
 }
+
+// Coupons Management APIs & Storage
+export const STORAGE_COUPONS = 'autobank_coupons_list';
+
+export function loadCoupons() {
+  try {
+    const saved = localStorage.getItem(STORAGE_COUPONS);
+    if (saved) return JSON.parse(saved);
+  } catch (_) {}
+  return [];
+}
+
+export async function fetchCoupons() {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/coupons`);
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem(STORAGE_COUPONS, JSON.stringify(data));
+      return data;
+    }
+  } catch (_) {}
+  return loadCoupons();
+}
+
+export async function saveCouponApi(couponData) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/coupons`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(couponData),
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function toggleCouponApi(id) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/coupons/${encodeURIComponent(id)}/toggle`, {
+      method: 'PUT',
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function deleteCouponApi(id) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/coupons/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function validateCouponApi(code, amount) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/coupons/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, amount }),
+    });
+    return await res.json();
+  } catch (e) {
+    return { valid: false, message: e.message };
+  }
+}
+
+export function loadPushHistory() {
+  try {
+    const saved = localStorage.getItem(STORAGE_PUSH);
+    if (saved) return JSON.parse(saved);
+  } catch (_) {}
+  return [];
+}
+
+export async function fetchPushes() {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/push`);
+    if (res.ok) {
+      const list = await res.json();
+      const normalized = list.map(p => ({
+        id: p.id,
+        type: p.type,
+        title: p.title,
+        body: p.body,
+        action: p.action,
+        timestamp: p.createdAt,
+      }));
+      localStorage.setItem(STORAGE_PUSH, JSON.stringify(normalized));
+      return normalized;
+    }
+  } catch (_) {}
+  return loadPushHistory();
+}
+
+export async function sendPushApi(data) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function updatePushApi(id, data) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/push/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function deletePushApi(id) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/push/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+// API Keys & Server Keys Management (MySQL)
+export const STORAGE_CLIENT_KEYS = 'autobank_client_api_keys';
+export const STORAGE_SERVER_KEYS = 'autobank_server_keys';
+
+export async function fetchApiKeys() {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/api-keys`);
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem(STORAGE_CLIENT_KEYS, JSON.stringify(data));
+      return data;
+    }
+  } catch (_) {}
+  try {
+    const saved = localStorage.getItem(STORAGE_CLIENT_KEYS);
+    if (saved) return JSON.parse(saved);
+  } catch (_) {}
+  return [];
+}
+
+export async function saveApiKeyApi(data) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/api-keys`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function deleteApiKeyApi(idOrKey) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/api-keys/${encodeURIComponent(idOrKey)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function fetchServerKeys() {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/server-keys`);
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem(STORAGE_SERVER_KEYS, JSON.stringify(data));
+      return data;
+    }
+  } catch (_) {}
+  try {
+    const saved = localStorage.getItem(STORAGE_SERVER_KEYS);
+    if (saved) return JSON.parse(saved);
+  } catch (_) {}
+  return {
+    masterKey: 'ak_live_master_autobank_secret_key_2026',
+    fcmKey: '',
+    webhookUrl: 'http://localhost:3000/transactions/webhook',
+  };
+}
+
+export async function saveServerKeysApi(data) {
+  try {
+    const res = await adminFetch(`${API_BASE}/admin/server-keys`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) {
+      localStorage.setItem(STORAGE_SERVER_KEYS, JSON.stringify(data));
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+

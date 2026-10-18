@@ -23,9 +23,21 @@ export function initBankDirectory() {
 
   if (!container) return;
 
-  const currentBanks = getActiveBanks();
+  let currentBanks = getActiveBanks();
   let currentCategory = BANK_CATEGORIES.ALL;
   let currentQuery = '';
+
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+  fetch(`${API_BASE}/admin/banks`)
+    .then(res => res.json())
+    .then(list => {
+      if (Array.isArray(list) && list.length > 0) {
+        currentBanks = list.filter(b => b.isActive !== false);
+        render();
+      }
+    })
+    .catch(() => {});
+
 
   function getCategoryLabel(cat) {
     switch (cat) {

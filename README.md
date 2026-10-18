@@ -432,10 +432,10 @@ server {
     listen 80;
     server_name your-domain.com;
 
-    # Landing Page & Admin Web
+    # Landing Page, Live Hub & Admin Web (Hỗ trợ URL sạch không cần đuôi .html)
     location / {
         root /path/to/autobank/apps/web/dist;
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri.html $uri/ /index.html;
     }
 
     # Backend API

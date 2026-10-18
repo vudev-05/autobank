@@ -9,4 +9,7 @@ export class CreateTransactionDto {
   rawContent!: string;
   fingerprint!: string;
   merchantSlug?: string;
+  userEmail?: string;
+  category?: string;
+  note?: string;
 }

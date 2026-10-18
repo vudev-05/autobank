@@ -1,276 +1,240 @@
-import { checkAuth, initSidebar, showToast, loadConfig, saveConfig, STORAGE_PUSH, API_BASE } from './admin-core.js';
+import { checkAuth, initSidebar, showToast, fetchPushes, sendPushApi, updatePushApi, deletePushApi } from './admin-core.js';
 
 let pushHistory = [];
+let editingPushId = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if (!checkAuth()) return;
   initSidebar('notifications');
 
-  const appConfig = loadConfig();
-  loadPushHistory();
-  renderPushHistory();
-  initPushForm();
-  initPushEditModal();
-  initMaintenanceAndVersion(appConfig);
+  await reloadPushHistory();
+  initPushModal();
+  initTableEventDelegation();
 });
 
-function loadPushHistory() {
-  try {
-    const raw = localStorage.getItem(STORAGE_PUSH);
-    if (raw) {
-      pushHistory = JSON.parse(raw);
-      return;
-    }
-  } catch (_) {}
-
-  // Sample default notification if empty
-  pushHistory = [
-    {
-      type: 'system_update',
-      title: 'Chào mừng bản cập nhật 1.2.0',
-      body: 'Tối ưu tốc độ đọc thông báo nhận tiền xuống dưới 0.3s, tương thích 100% Android 14!',
-      action: 'open_app',
-      timestamp: new Date().toISOString(),
-    },
-    {
-      type: 'promotion',
-      title: 'Ưu đãi gia hạn gói 1 Năm',
-      body: 'Gia hạn gói 1 Năm ngay hôm nay chỉ 299.000đ tặng thêm 30 ngày sử dụng!',
-      action: 'open_pricing',
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ];
-  savePushHistory();
-}
-
-function savePushHistory() {
-  localStorage.setItem(STORAGE_PUSH, JSON.stringify(pushHistory));
+async function reloadPushHistory() {
+  pushHistory = await fetchPushes();
+  renderPushHistory();
 }
 
 function renderPushHistory() {
-  const tbody = document.getElementById('admin-push-history-body');
+  const tbody = document.getElementById('admin-push-table-body');
+  const countBadge = document.getElementById('admin-badge-push');
   if (!tbody) return;
 
+  if (countBadge) countBadge.textContent = pushHistory.length;
+
   if (pushHistory.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 30px;">Chưa có thông báo push nào được phát.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 30px;">Chưa có lịch sử bắn thông báo nào. Bấm "+ Soạn Thông Báo Mới" bên trên.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = pushHistory.map((p, idx) => `
-    <tr>
-      <td style="color: #94a3b8; font-size: 0.8rem; font-family: monospace;">
-        ${formatDateTime(p.timestamp)}
+  tbody.innerHTML = pushHistory.map(p => `
+    <tr data-push-id="${p.id}">
+      <td style="color: #94a3b8; font-size: 0.82rem; white-space: nowrap;">
+        ${formatDate(p.timestamp)}
       </td>
       <td>
-        <span class="admin-badge admin-badge-${getTypeBadge(p.type)}">${getTypeText(p.type)}</span>
+        <span class="admin-badge admin-badge-${getTypeBadgeClass(p.type)}">
+          ${getTypeText(p.type)}
+        </span>
       </td>
-      <td><strong style="color: #fff;">${p.title}</strong></td>
-      <td style="color: #cbd5e1; max-width: 320px; font-size: 0.85rem;">${p.body}</td>
-      <td style="color: #38bdf8; font-size: 0.82rem;">${getActionText(p.action)}</td>
       <td>
-        <div style="display: flex; gap: 6px;">
-          <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-resend-push="${idx}" title="Bắn lại thông báo này">Bắn lại</button>
-          <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-edit-push="${idx}" title="Chỉnh sửa">Sửa</button>
-          <button type="button" class="admin-btn admin-btn-danger admin-btn-sm" data-delete-push="${idx}" title="Xóa khỏi lịch sử">Xóa</button>
+        <strong style="color: #fff; font-size: 0.95rem; display: block;">${p.title}</strong>
+        <p style="color: #cbd5e1; font-size: 0.85rem; margin: 4px 0 0; line-height: 1.4;">${p.body}</p>
+      </td>
+      <td>
+        <code style="color: #38bdf8; font-size: 0.8rem; background: rgba(15,23,42,0.8); padding: 4px 8px; border-radius: 4px;">
+          ${getActionText(p.action)}
+        </code>
+      </td>
+      <td>
+        <span class="admin-badge admin-badge-success">Đã gửi</span>
+      </td>
+      <td>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-action="resend" data-id="${p.id}" title="Gửi lại thông báo này ngay lập tức">Gửi lại</button>
+          <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-action="edit" data-id="${p.id}" title="Sửa nội dung">Sửa</button>
+          <button type="button" class="admin-btn admin-btn-danger admin-btn-sm" data-action="delete" data-id="${p.id}" title="Xóa thông báo">Xóa</button>
         </div>
       </td>
     </tr>
   `).join('');
-
-  attachPushHistoryActions();
 }
 
-function formatDateTime(iso) {
-  if (!iso) return 'Vừa xong';
+function formatDate(val) {
+  if (!val) return 'Mới đây';
   try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString('vi-VN');
-  } catch (_) {
-    return 'Vừa xong';
-  }
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString('vi-VN');
+    }
+  } catch (_) {}
+  return String(val);
 }
 
-function getTypeBadge(type) {
-  if (type === 'promotion') return 'warning';
-  if (type === 'warning') return 'danger';
-  return 'info';
+function getTypeBadgeClass(type) {
+  switch (type) {
+    case 'security_alert': return 'danger';
+    case 'promotion': return 'warning';
+    case 'maintenance': return 'info';
+    default: return 'info';
+  }
 }
 
 function getTypeText(type) {
   switch (type) {
-    case 'promotion': return 'Khuyến mãi';
-    case 'warning': return 'Cảnh báo';
-    case 'custom': return 'Chung';
+    case 'security_alert': return 'Bảo mật';
+    case 'promotion': return 'Khuyến mại';
+    case 'maintenance': return 'Bảo trì';
     default: return 'Cập nhật';
   }
 }
 
 function getActionText(action) {
   switch (action) {
-    case 'open_chplay': return 'Mở CH Play';
-    case 'open_pricing': return 'Mở Bảng Giá';
+    case 'upgrade_vip': return 'Nâng Cấp Gói';
+    case 'battery_guide': return 'Tắt Tiết Kiệm Pin';
+    case 'bank_setting': return 'Cài Đặt Ngân Hàng';
     default: return 'Mở Ứng Dụng';
   }
 }
 
-function attachPushHistoryActions() {
-  // Resend
-  document.querySelectorAll('[data-resend-push]').forEach(btn => {
-    btn.onclick = () => {
-      const idx = parseInt(btn.getAttribute('data-resend-push'), 10);
-      const p = pushHistory[idx];
+function initTableEventDelegation() {
+  const tbody = document.getElementById('admin-push-table-body');
+  if (!tbody || tbody.dataset.delegated) return;
+  tbody.dataset.delegated = 'true';
+
+  tbody.addEventListener('click', async (e) => {
+    // Resend
+    const resendBtn = e.target.closest('[data-action="resend"]');
+    if (resendBtn) {
+      const id = resendBtn.getAttribute('data-id');
+      const p = pushHistory.find(x => x.id === id);
       if (p) {
-        p.timestamp = new Date().toISOString();
-        savePushHistory();
-        renderPushHistory();
-
-        // Broadcast to MySQL API
-        fetch(`${API_BASE}/admin/push`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(p),
-        }).catch(() => {});
-
-        showToast(`Đã bắn lại thông báo "${p.title}" đến toàn bộ thiết bị thành công!`, 'success');
+        resendBtn.disabled = true;
+        const ok = await sendPushApi({
+          type: p.type,
+          title: p.title,
+          body: p.body,
+          action: p.action,
+        });
+        if (ok) {
+          showToast(`Đã bắn lại thông báo "${p.title}" đến toàn bộ thiết bị App!`, 'success');
+          await reloadPushHistory();
+        } else {
+          showToast('Lỗi khi bắn lại thông báo', 'error');
+        }
+        resendBtn.disabled = false;
       }
-    };
-  });
+      return;
+    }
 
-  // Edit
-  const editModal = document.getElementById('admin-push-modal');
-  document.querySelectorAll('[data-edit-push]').forEach(btn => {
-    btn.onclick = () => {
-      const idx = parseInt(btn.getAttribute('data-edit-push'), 10);
-      const p = pushHistory[idx];
-      if (!p) return;
+    // Edit
+    const editBtn = e.target.closest('[data-action="edit"]');
+    if (editBtn) {
+      const id = editBtn.getAttribute('data-id');
+      openPushModal(id);
+      return;
+    }
 
-      document.getElementById('edit-push-index').value = idx;
-      document.getElementById('m-push-type').value = p.type || 'system_update';
-      document.getElementById('m-push-title').value = p.title || '';
-      document.getElementById('m-push-body').value = p.body || '';
-      document.getElementById('m-push-action').value = p.action || 'open_app';
-
-      editModal.classList.add('is-open');
-    };
-  });
-
-  // Delete
-  document.querySelectorAll('[data-delete-push]').forEach(btn => {
-    btn.onclick = () => {
-      const idx = parseInt(btn.getAttribute('data-delete-push'), 10);
-      if (confirm('Bạn có chắc chắn muốn xóa thông báo này khỏi lịch sử?')) {
-        pushHistory.splice(idx, 1);
-        savePushHistory();
-        renderPushHistory();
-        showToast('Đã xóa thông báo khỏi lịch sử!');
+    // Delete
+    const delBtn = e.target.closest('[data-action="delete"]');
+    if (delBtn) {
+      const id = delBtn.getAttribute('data-id');
+      const p = pushHistory.find(x => x.id === id);
+      if (confirm(`Bạn có chắc muốn xóa thông báo "${p?.title || id}" khỏi hệ thống MySQL?`)) {
+        delBtn.disabled = true;
+        const ok = await deletePushApi(id);
+        if (ok) {
+          showToast('Đã xóa thông báo khỏi MySQL thành công!', 'success');
+          await reloadPushHistory();
+        } else {
+          showToast('Lỗi khi xóa thông báo', 'error');
+          delBtn.disabled = false;
+        }
       }
-    };
-  });
-
-  // Clear all
-  const clearBtn = document.getElementById('btn-clear-push-history');
-  if (clearBtn) {
-    clearBtn.onclick = () => {
-      if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử thông báo push?')) {
-        pushHistory = [];
-        savePushHistory();
-        renderPushHistory();
-        showToast('Đã xóa sạch lịch sử thông báo!');
-      }
-    };
-  }
-}
-
-function initPushForm() {
-  const pushForm = document.getElementById('push-notify-form');
-  if (!pushForm) return;
-
-  pushForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const payload = {
-      type: document.getElementById('push-type').value,
-      title: document.getElementById('push-title').value.trim(),
-      body: document.getElementById('push-body').value.trim(),
-      action: document.getElementById('push-action').value,
-      timestamp: new Date().toISOString(),
-    };
-
-    pushHistory.unshift(payload);
-    savePushHistory();
-    renderPushHistory();
-
-    // Post to MySQL API
-    fetch(`${API_BASE}/admin/push`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }).catch(() => {});
-
-    pushForm.reset();
-    showToast('Đã phát thông báo Push thành công đến toàn bộ thiết bị đang online!', 'success');
+      return;
+    }
   });
 }
 
-function initPushEditModal() {
+function openPushModal(pushId = null) {
   const modal = document.getElementById('admin-push-modal');
+  const form = document.getElementById('form-push-notify');
+  if (!modal || !form) return;
+
+  editingPushId = pushId;
+  if (pushId) {
+    const p = pushHistory.find(x => x.id === pushId);
+    if (!p) return;
+    document.getElementById('modal-push-title').textContent = `Chỉnh Sửa Thông Báo: ${p.title}`;
+    document.getElementById('push-type').value = p.type || 'system_update';
+    document.getElementById('push-action').value = p.action || 'open_app';
+    document.getElementById('push-title').value = p.title || '';
+    document.getElementById('push-body').value = p.body || '';
+  } else {
+    document.getElementById('modal-push-title').textContent = 'Soạn Thông Báo Mới Gửi Đến Toàn Bộ Thiết Bị';
+    form.reset();
+  }
+
+  modal.classList.add('is-open');
+}
+
+function closePushModal() {
+  const modal = document.getElementById('admin-push-modal');
+  if (modal) modal.classList.remove('is-open');
+  editingPushId = null;
+}
+
+function initPushModal() {
+  const modal = document.getElementById('admin-push-modal');
+  const addBtn = document.getElementById('btn-add-push');
   const closeBtn = document.getElementById('modal-push-close');
   const cancelBtn = document.getElementById('modal-push-cancel');
-  const form = document.getElementById('form-edit-push');
+  const form = document.getElementById('form-push-notify');
 
-  const closeModal = () => modal.classList.remove('is-open');
-  if (closeBtn) closeBtn.onclick = closeModal;
-  if (cancelBtn) cancelBtn.onclick = closeModal;
+  if (closeBtn) closeBtn.onclick = closePushModal;
+  if (cancelBtn) cancelBtn.onclick = closePushModal;
+  if (addBtn) addBtn.onclick = () => openPushModal(null);
+
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closePushModal();
+    });
+  }
 
   if (form && !form.dataset.bound) {
     form.dataset.bound = 'true';
-    form.onsubmit = (e) => {
+    form.onsubmit = async (e) => {
       e.preventDefault();
-      const editIdx = parseInt(document.getElementById('edit-push-index').value, 10);
-      if (editIdx >= 0 && pushHistory[editIdx]) {
-        pushHistory[editIdx].type = document.getElementById('m-push-type').value;
-        pushHistory[editIdx].title = document.getElementById('m-push-title').value.trim();
-        pushHistory[editIdx].body = document.getElementById('m-push-body').value.trim();
-        pushHistory[editIdx].action = document.getElementById('m-push-action').value;
+      const payload = {
+        type: document.getElementById('push-type').value,
+        action: document.getElementById('push-action').value,
+        title: document.getElementById('push-title').value.trim(),
+        body: document.getElementById('push-body').value.trim(),
+      };
 
-        savePushHistory();
-        closeModal();
-        renderPushHistory();
-        showToast('Đã cập nhật thông báo thành công!');
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      let ok = false;
+      if (editingPushId) {
+        ok = await updatePushApi(editingPushId, payload);
+        if (ok) showToast('Cập nhật nội dung thông báo thành công!', 'success');
+      } else {
+        ok = await sendPushApi(payload);
+        if (ok) showToast(`Đã bắn thông báo "${payload.title}" đến toàn bộ thiết bị App thành công!`, 'success');
       }
+
+      if (!ok) {
+        showToast('Lỗi khi lưu thông báo vào MySQL', 'error');
+      } else {
+        closePushModal();
+        await reloadPushHistory();
+      }
+
+      if (submitBtn) submitBtn.disabled = false;
     };
-  }
-}
-
-function initMaintenanceAndVersion(appConfig) {
-  const toggle = document.getElementById('toggle-maintenance');
-  const msgInput = document.getElementById('cfg-maintenance-msg');
-  const latestVer = document.getElementById('cfg-latest-version');
-  const minVer = document.getElementById('cfg-min-version');
-  const saveVerBtn = document.getElementById('btn-save-version');
-
-  if (toggle) {
-    toggle.checked = appConfig.maintenance === true;
-    if (msgInput) msgInput.value = appConfig.maintenanceMsg || '';
-
-    toggle.addEventListener('change', () => {
-      saveConfig({
-        maintenance: toggle.checked,
-        maintenanceMsg: msgInput ? msgInput.value.trim() : appConfig.maintenanceMsg,
-      });
-      showToast(`${toggle.checked ? 'ĐÃ KÍCH HOẠT BẢO TRÌ TOÀN HỆ THỐNG' : 'Đã tắt bảo trì, hệ thống hoạt động bình thường'}`);
-    });
-  }
-
-  if (latestVer) latestVer.value = appConfig.latestVersion || '1.2.0';
-  if (minVer) minVer.value = appConfig.minVersion || '1.0.0';
-
-  if (saveVerBtn) {
-    saveVerBtn.addEventListener('click', () => {
-      saveConfig({
-        latestVersion: latestVer.value.trim(),
-        minVersion: minVer.value.trim(),
-      });
-      showToast('Đã cập nhật ràng buộc phiên bản App mobile thành công vào MySQL!');
-    });
   }
 }

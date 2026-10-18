@@ -24,10 +24,10 @@ class TransactionLocalDataSource {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
-          CREATE TABLE $_tableName (
+          CREATE TABLE IF NOT EXISTS $_tableName (
             id TEXT PRIMARY KEY,
             bank_code TEXT,
             account_number TEXT,
@@ -45,11 +45,21 @@ class TransactionLocalDataSource {
         ''');
 
         await db.execute(
-          'CREATE INDEX idx_transactions_time ON $_tableName (transaction_time DESC)',
+          'CREATE INDEX IF NOT EXISTS idx_transactions_time ON $_tableName (transaction_time DESC)',
         );
         await db.execute(
-          'CREATE INDEX idx_transactions_fingerprint ON $_tableName (fingerprint)',
+          'CREATE INDEX IF NOT EXISTS idx_transactions_fingerprint ON $_tableName (fingerprint)',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          try {
+            await db.execute('ALTER TABLE $_tableName ADD COLUMN category TEXT');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE $_tableName ADD COLUMN note TEXT');
+          } catch (_) {}
+        }
       },
     );
   }
@@ -120,65 +130,102 @@ class TransactionLocalDataSource {
       return List<NormalizedTransaction>.from(_inMemoryList);
     }
 
-    final db = await database;
-    final maps = await db.query(
-      _tableName,
-      orderBy: 'transaction_time DESC',
-      limit: limit,
-      offset: offset,
-    );
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableName,
+        orderBy: 'transaction_time DESC',
+        limit: limit,
+        offset: offset,
+      );
 
-    return maps.map((m) => NormalizedTransaction.fromMap(m)).toList();
+      return maps.map((m) => NormalizedTransaction.fromMap(m)).toList();
+    } catch (e) {
+      debugPrint('[AutoBank] Lỗi đọc getTransactions SQLite: $e');
+      return List<NormalizedTransaction>.from(_inMemoryList);
+    }
   }
 
   /// Tính tổng số tiền nhận được trong ngày hôm nay (CREDIT)
+  /// Lấy thời điểm hiện tại chuẩn múi giờ Việt Nam (UTC+7)
+  static DateTime get _nowInVietnam => DateTime.now().toUtc().add(const Duration(hours: 7));
+
+  /// Tính tổng số tiền nhận được trong ngày hôm nay (CREDIT) theo 0h sáng giờ Việt Nam (UTC+7)
   Future<double> getTodayTotalReceived() async {
+    final nowVN = _nowInVietnam;
     if (kIsWeb) {
-      final now = DateTime.now();
       return _inMemoryList
-          .where((t) => t.type == TransactionType.credit && t.transactionTime.year == now.year && t.transactionTime.month == now.month && t.transactionTime.day == now.day)
+          .where((t) {
+            final tVN = t.transactionTime.toUtc().add(const Duration(hours: 7));
+            return t.type == TransactionType.credit && tVN.year == nowVN.year && tVN.month == nowVN.month && tVN.day == nowVN.day;
+          })
           .fold<double>(0.0, (sum, t) => sum + t.amount);
     }
 
-    final db = await database;
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
+    try {
+      final db = await database;
+      final startOfDay = DateTime(nowVN.year, nowVN.month, nowVN.day).toIso8601String();
 
-    final result = await db.rawQuery('''
-      SELECT SUM(amount) as total
-      FROM $_tableName
-      WHERE type = 'credit' AND transaction_time >= ?
-    ''', [startOfDay]);
+      final result = await db.rawQuery('''
+        SELECT SUM(amount) as total
+        FROM $_tableName
+        WHERE type = 'credit' AND transaction_time >= ?
+      ''', [startOfDay]);
 
-    if (result.isNotEmpty && result.first['total'] != null) {
-      return (result.first['total'] as num).toDouble();
+      if (result.isNotEmpty && result.first['total'] != null) {
+        return (result.first['total'] as num).toDouble();
+      }
+    } catch (e) {
+      debugPrint('[AutoBank] Lỗi tính getTodayTotalReceived: $e');
     }
     return 0.0;
   }
 
-  /// Đếm số lượng giao dịch nhận tiền trong ngày hôm nay
+  /// Đếm số lượng giao dịch nhận tiền trong ngày hôm nay theo 0h sáng giờ Việt Nam (UTC+7)
   Future<int> getTodayTransactionCount() async {
+    final nowVN = _nowInVietnam;
     if (kIsWeb) {
-      final now = DateTime.now();
       return _inMemoryList
-          .where((t) => t.type == TransactionType.credit && t.transactionTime.year == now.year && t.transactionTime.month == now.month && t.transactionTime.day == now.day)
+          .where((t) {
+            final tVN = t.transactionTime.toUtc().add(const Duration(hours: 7));
+            return t.type == TransactionType.credit && tVN.year == nowVN.year && tVN.month == nowVN.month && tVN.day == nowVN.day;
+          })
           .length;
     }
 
-    final db = await database;
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
+    try {
+      final db = await database;
+      final startOfDay = DateTime(nowVN.year, nowVN.month, nowVN.day).toIso8601String();
 
-    final result = await db.rawQuery('''
-      SELECT COUNT(*) as count
-      FROM $_tableName
-      WHERE type = 'credit' AND transaction_time >= ?
-    ''', [startOfDay]);
+      final result = await db.rawQuery('''
+        SELECT COUNT(*) as count
+        FROM $_tableName
+        WHERE type = 'credit' AND transaction_time >= ?
+      ''', [startOfDay]);
 
-    if (result.isNotEmpty && result.first['count'] != null) {
-      return (result.first['count'] as num).toInt();
+      if (result.isNotEmpty && result.first['count'] != null) {
+        return (result.first['count'] as num).toInt();
+      }
+    } catch (e) {
+      debugPrint('[AutoBank] Lỗi đếm getTodayTransactionCount: $e');
     }
     return 0;
+  }
+
+  /// Xóa 1 giao dịch cụ thể theo ID
+  Future<bool> deleteTransaction(String id) async {
+    _inMemoryList.removeWhere((t) => t.id == id);
+    if (!kIsWeb) {
+      try {
+        final db = await database;
+        await db.delete(
+          _tableName,
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      } catch (_) {}
+    }
+    return true;
   }
 
   /// Xóa toàn bộ lịch sử (dùng khi cần reset data để test)

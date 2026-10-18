@@ -1037,13 +1037,10 @@ textarea{
   }
 
   /* 6. BẢNG GIÁ: HUY HIỆU KHUYÊN DÙNG GỌN GÀNG KHÔNG TRÀN */
-  .single-price.featured::before {
-    content: "Khuyên dùng" !important;
-    font-size: 0.65rem !important;
-    padding: 2px 6px !important;
-    max-width: 85% !important;
-    white-space: nowrap !important;
-    border-radius: 4px !important;
+  .single-price.featured::before,
+  .pricing-area .single-price.featured::before {
+    display: none !important;
+    content: none !important;
   }
 
   /* 7. HỖ TRỢ 65+ NGÂN HÀNG & VÍ: CĂN GIỮA VÀ DÀN ĐỀU 5 CỘT CÂN ĐỐI (IMAGE 1 FIX) */

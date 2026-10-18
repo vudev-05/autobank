@@ -15,9 +15,15 @@ class MBBankParser implements IBankParser {
     final combined = '$title $body'.toLowerCase();
 
     return lowerPkg.contains('mbmobile') ||
+        lowerPkg.contains('mb.bank') ||
+        lowerPkg.contains('mbbank') ||
         combined.contains('mbbank') ||
         combined.contains('mb bank') ||
-        (combined.contains('biến động số dư') && combined.contains('mb'));
+        combined.contains('mb-bank') ||
+        combined.contains('quân đội') ||
+        combined.contains('quan doi') ||
+        title.trim().toUpperCase() == 'MB' ||
+        (combined.contains('biến động số dư') && (combined.contains('mb') || lowerPkg.contains('mb')));
   }
 
   @override
@@ -71,7 +77,7 @@ class MBBankParser implements IBankParser {
 
     // 3. Trích xuất nội dung (ND: ...) - dùng \bND\b để tránh nhầm chữ ND trong VND
     String content = '';
-    final contentRegex = RegExp(r'(?:\bND\b|Nội dung|Noi dung)\s*[:]?\s*([^|\r\n]+)', caseSensitive: false);
+    final contentRegex = RegExp(r'(?:\bND\b|Nội dung|Noi dung)\s*[:]?\s*([^|\r\n;]+)', caseSensitive: false);
     final contentMatch = contentRegex.firstMatch(fullText);
     if (contentMatch != null) {
       content = contentMatch.group(1)?.trim() ?? '';
