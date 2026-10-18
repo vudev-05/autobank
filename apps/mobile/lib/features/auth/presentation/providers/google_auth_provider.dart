@@ -284,18 +284,21 @@ class GoogleAuthProvider extends ChangeNotifier {
     });
   }
 
-  /// Tải thông tin người dùng thực tế từ Cơ sở dữ liệu MySQL (Không bao giờ tạo dữ liệu ảo trong code)
+  /// Tải thông tin người dùng thực tế từ Cơ sở dữ liệu MySQL nếu thiết bị đã từng đăng nhập
   Future<void> _loadUserFromBackend() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final cachedEmail = prefs.getString('last_signed_in_email');
+      if (cachedEmail == null || cachedEmail.trim().isEmpty) return;
+
       final uri = Uri.parse('${AppConfig.apiBaseUrl}/admin/users');
       final res = await http.get(uri).timeout(const Duration(seconds: 4));
       if (res.statusCode == 200) {
         final List<dynamic> list = jsonDecode(res.body);
         if (list.isNotEmpty && _accounts.isEmpty) {
-          final primary = list.firstWhere(
-            (u) => (u['email'] ?? '').toString() == 'tranquocvu3011@gmail.com',
-            orElse: () => list.first,
+          final primary = list.cast<Map<String, dynamic>?>().firstWhere(
+            (u) => (u?['email'] ?? '').toString().toLowerCase() == cachedEmail.trim().toLowerCase(),
+            orElse: () => null,
           );
 
           if (primary != null && primary['email'] != null) {
@@ -490,6 +493,9 @@ class GoogleAuthProvider extends ChangeNotifier {
 
     // Đồng bộ tiếp với máy chủ trong nền
     _syncUserToBackend();
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('last_signed_in_email', email);
+    }).catchError((_) {});
 
     try {
       onNotificationEvent?.call(
@@ -695,6 +701,9 @@ class GoogleAuthProvider extends ChangeNotifier {
     _isSignedIn = false;
     _currentIndex = 0;
     notifyListeners();
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('last_signed_in_email');
+    }).catchError((_) {});
     try {
       onNotificationEvent?.call(
         '🔒 Đã đăng xuất an toàn',

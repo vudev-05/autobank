@@ -171,8 +171,15 @@ class MainActivity : FlutterActivity() {
                                 notificationManager.createNotificationChannel(channel)
                             }
 
+                            val smallIconRes = try {
+                                val resId = resources.getIdentifier("ic_notification", "drawable", packageName)
+                                if (resId != 0) resId else android.R.drawable.stat_notify_chat
+                            } catch (e: Exception) {
+                                android.R.drawable.stat_notify_chat
+                            }
+
                             val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
-                                .setSmallIcon(applicationInfo.icon)
+                                .setSmallIcon(smallIconRes)
                                 .setContentTitle(title)
                                 .setContentText(content)
                                 .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(content))

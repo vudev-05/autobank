@@ -228,21 +228,23 @@ class InitialPlanSelectionPage extends StatelessWidget {
                               final success = auth.startTrial();
                               if (success) {
                                 TtsService().speakTestFeedback('Chúc mừng bạn đã kích hoạt gói dùng thử ba ngày. Loa sẵn sàng trực biến động số dư!');
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    backgroundColor: Color(0xFF16A34A),
-                                    behavior: SnackBarBehavior.floating,
-                                    content: Row(
-                                      children: [
-                                        Icon(Icons.verified_rounded, color: Colors.white, size: 20),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text('🎉 Kích hoạt dùng thử 3 ngày thành công! Thời gian bắt đầu đếm ngược từ bây giờ.'),
-                                        ),
-                                      ],
+                                if (context.mounted) {
+                                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                                    const SnackBar(
+                                      backgroundColor: Color(0xFF16A34A),
+                                      behavior: SnackBarBehavior.floating,
+                                      content: Row(
+                                        children: [
+                                          Icon(Icons.verified_rounded, color: Colors.white, size: 20),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text('🎉 Kích hoạt dùng thử 3 ngày thành công! Thời gian bắt đầu đếm ngược từ bây giờ.'),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
+                                  );
+                                }
                               }
                             },
                             child: const Row(

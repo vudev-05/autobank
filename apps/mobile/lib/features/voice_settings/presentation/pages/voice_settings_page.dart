@@ -2047,8 +2047,8 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                           await NotificationService.ensureMaxVolume();
                           await provider.setVolume(1.0);
                           TtsService().speakTestFeedback('Đang phát thông báo với âm lượng to nhất theo điện thoại');
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                          if (mounted) {
+                            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                               const SnackBar(
                                 content: Text('🔊 Đã kích âm lượng loa ngoài lên 100% cực đại của điện thoại!'),
                                 duration: Duration(seconds: 2),

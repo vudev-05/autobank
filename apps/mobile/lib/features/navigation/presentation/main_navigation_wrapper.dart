@@ -29,6 +29,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
   int _currentIndex = 0;
   late AnimationController _strobeController;
   late Animation<double> _strobeAnimation;
+  VoidCallback? _syncAccountListener;
+  GoogleAuthProvider? _googleAuth;
 
   @override
   void initState() {
@@ -67,6 +69,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
           txProvider.clearOnLogout();
         }
       }
+      _googleAuth = googleAuth;
+      _syncAccountListener = syncAccountContext;
       syncAccountContext();
       googleAuth.addListener(syncAccountContext);
 
@@ -100,6 +104,9 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
 
   @override
   void dispose() {
+    if (_syncAccountListener != null && _googleAuth != null) {
+      _googleAuth!.removeListener(_syncAccountListener!);
+    }
     _strobeController.dispose();
     super.dispose();
   }
