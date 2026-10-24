@@ -1,61 +1,88 @@
 # 🏦 ĐỌC THÔNG BÁO NHẬN TIỀN (AutoBank Ecosystem)
+### 🚀 Bản Cập Nhật Toàn Diện: Ngày 24/10/2026 (Phiên bản v1.0.3 · Build 4)
 
 > **Slogan cốt lõi:** *"Tiền vừa sang ~ máy báo vang"*  
-> **Giải pháp:** Hệ sinh thái quản lý thanh toán, tự động bắt biến động số dư 66+ ngân hàng & ví điện tử, loa phát thanh tiếng Việt tức thì và đối soát đơn hàng 24/7.
+> **Giải pháp:** Hệ sinh thái quản lý thanh toán, tự động bắt biến động số dư 66+ ngân hàng & ví điện tử Việt Nam, trợ lý phát loa giọng nói AI tiếng Việt tức thì, đối soát đơn hàng thông minh và chia sẻ biến động số dư Live Web 24/7.
 
-![Platform](https://img.shields.io/badge/Nền_tảng-Android_APK_|_Web_SaaS_|_NestJS_API-0284c7)
+![Platform](https://img.shields.io/badge/Nền_tảng-Android_APK_|_Google_Play_AAB_|_Web_SaaS_|_NestJS_API-0284c7)
 ![Flutter](https://img.shields.io/badge/Mobile-Flutter_3.x_+_Kotlin_Native-0284c7)
 ![Backend](https://img.shields.io/badge/Backend-NestJS_12_+_Prisma_ORM-e11d48)
 ![Database](https://img.shields.io/badge/Database-MySQL_8.0-f59e0b)
-![Architecture](https://img.shields.io/badge/Kiến_trúc-Monorepo_Clean_Architecture-10b981)
+![Version](https://img.shields.io/badge/Release-v1.0.3_(24/10/2026)-10b981)
+![Security](https://img.shields.io/badge/Security-Root_Screen_Lock_+_Email_OTP-purple)
 
 ---
 
 ## 📋 MỤC LỤC
 
-1. [Tầm nhìn & Giá trị cốt lõi](#-tầm-nhìn--giá-trị-cốt-lõi)
-2. [Chi tiết 12 Chức năng cốt lõi của APK](#-chi-tiết-12-chức-năng-cốt-lõi-của-apk)
-3. [Cấu trúc Monorepo hoàn chỉnh](#-cấu-trúc-monorepo-hoàn-chỉnh)
-4. [Khởi động nhanh trong 1 Click (Quick Start)](#-khởi-động-nhanh-trong-1-click-quick-start)
-5. [Hướng dẫn cài đặt chi tiết từng phân hệ](#-hướng-dẫn-cài-đặt-chi-tiết-từng-phân-hệ)
-   - [5.1. Backend API (NestJS + Prisma + MySQL)](#51-backend-api-appsapi)
-   - [5.2. Web Portal & Admin Dashboard (Vite)](#52-web-portal--admin-dashboard-appsweb)
-   - [5.3. Mobile App (Flutter + Android Native)](#53-mobile-app-appsmobile)
-6. [Cổng thanh toán tự động & Kích hoạt bản quyền](#-cổng-thanh-toán-tự-động--kích-hoạt-bản-quyền)
-7. [Cam kết bảo mật & Chính sách quyền Android](#-cam-kết-bảo-mật--chính-sách-quyền-android)
-8. [Đóng gói phát hành APK Release](#-đóng-gói-phát-hành-apk-release)
+1. [Điểm mới nổi bật trong Bản cập nhật 24/10/2026](#-điểm-mới-nổi-bật-trong-bản-cập-nhật-24102026)
+2. [Tầm nhìn & Giá trị cốt lõi](#-tầm-nhìn--giá-trị-cốt-lõi)
+3. [Chi tiết 14 Chức năng cốt lõi của Hệ thống](#-chi-tiết-14-chức-năng-cốt-lõi-của-hệ-thống)
+4. [Cấu trúc Monorepo hoàn chỉnh](#-cấu-trúc-monorepo-hoàn-chỉnh)
+5. [Bộ cài đặt & Phát hành (APK & Google Play AAB)](#-bộ-cài-đặt--phát-hành-apk--google-play-aab)
+6. [Hướng dẫn cài đặt & Chạy Local](#-hướng-dẫn-cài-đặt--chạy-local)
+   - [6.1. Backend API (NestJS + Prisma + MySQL)](#61-backend-api-appsapi)
+   - [6.2. Web Portal & Admin Dashboard (Vite)](#62-web-portal--admin-dashboard-appsweb)
+   - [6.3. Mobile App (Flutter + Android Native)](#63-mobile-app-appsmobile)
+7. [Triển khai hệ thống lên VPS Production](#-triển-khai-hệ-thống-lên-vps-production)
+8. [Cam kết bảo mật & Quyền riêng tư](#-cam-kết-bảo-mật--quyền-riêng-tư)
 
 ---
 
-## 🌟 TẦM NHÌN & GIÁ TRỊ CỐT LÕI
+## 🌟 ĐIỂM MỚI NỔI BẬT TRONG BẢN CẬP NHẬT 24/10/2026
+
+* 🛡️ **Bảo mật mã PIN tầng gốc (Root Screen Lock):**
+  - Chuyển đổi toàn bộ màn hình khóa PIN thành lớp bao phủ Root Widget (`AppLockScreenOverlay`). Khi chưa mở khóa, toàn bộ màn hình app bên dưới hoàn toàn **không được dựng (không render)**.
+  - Ngăn chặn 100% việc lọt vào ứng dụng khi bấm nút Back (`PopScope(canPop: false)`) hoặc khi bấm "Quên mã PIN".
+  - **Loại bỏ hoàn toàn Master PIN / Mã cứu hộ dự phòng:** Đã gỡ bỏ toàn bộ mã mặc định `1234`/`8888`. Chỉ duy nhất mã PIN chính xác của người dùng mới có thể mở app.
+* 📧 **Cấp lại mã PIN bằng mã OTP 6 số qua Email:**
+  - Tích hợp dịch vụ gửi mail qua SMTP Gmail chính chủ (`tranquocvu3011@gmail.com`).
+  - Khi quên mã, người dùng nhận mã xác thực OTP 6 số qua hộp thư Gmail trong vòng 10 phút để thiết lập mã PIN mới an toàn ngay trên màn hình khóa.
+* 🎥 **Hệ thống 5 Video Hướng Dẫn YouTube Tự Động:**
+  - **Video 1 (Người mới):** Hướng dẫn mở đầu khi vừa vào app (`videoGuideNewbie`).
+  - **Video 2 (Chạy mượt):** Hướng dẫn cấp quyền chạy ngầm 24/7 không bị tắt (`videoGuideSmooth`).
+  - **Video 3 (Đọc lại):** Hướng dẫn tra cứu và nghe lại lịch sử giao dịch tại Tab Báo Cáo (`videoGuideHistory`).
+  - **Video 4 (Cá nhân hóa câu đọc):** Hướng dẫn tùy biến mẫu câu đọc tiền tại Tab Câu Đọc (`videoGuideVoice`).
+  - **Video 5 (Giới thiệu bạn bè):** Hướng dẫn kiếm tiền hoa hồng Affiliate (`videoGuideAffiliate`).
+  - Tất cả popup video đều tích hợp trình phát YouTube mượt mà, có nút **"Đóng"** và nút tích **"Không hiển thị lại"** ghi nhớ vĩnh viễn.
+* 📦 **Đóng gói phát hành v1.0.3 (Build 4):**
+  - Biên dịch bản **APK Release siêu nhẹ (64.0 MB)** cài đặt trực tiếp.
+  - Biên dịch bản **Android App Bundle (.aab)** ký chính thức bằng Keystore phát hành (`autobank-release.jks`), đáp ứng Target SDK 36 sẵn sàng tải lên **Google Play Console** làm bản Test/Phát hành.
+  - Cung cấp công cụ 1-click cài đặt vào điện thoại qua USB: [`install_apk_to_phone.bat`](install_apk_to_phone.bat).
+
+---
+
+## 💡 TẦM NHÌN & GIÁ TRỊ CỐT LÕI
 
 Hệ sinh thái **AutoBank - Đọc thông báo nhận tiền** được thiết kế để giải quyết triệt để 2 bài toán lớn nhất của các chủ quán cà phê, nhà hàng, tiệm tạp hóa và hộ kinh doanh tại Việt Nam: **Chống gian lận làm giả hình ảnh chuyển khoản ("bill ảo")** và **Tự động hóa quản trị dòng tiền 24/7**.
 
 ### 5 Nguyên Tắc Vận Hành Độc Bản:
 1. **Tuyệt đối an toàn (Zero Credential Risk):** Ứng dụng **không bao giờ yêu cầu mật khẩu ngân hàng, mã OTP hay mã PIN thẻ**. Hoạt động hoàn toàn dựa trên cơ chế lắng nghe thông báo đẩy (push notification) ngoài hệ điều hành Android.
-2. **Tốc độ đọc siêu tức thì (0.1 giây):** Khi có biến động số dư, loa lập tức phát thanh tiếng Việt to rõ qua loa máy hoặc loa Bluetooth.
+2. **Tốc độ đọc siêu tức thì (0.1 giây):** Khi có biến động số dư, loa lập tức phát thanh tiếng Việt to rõ qua loa máy hoặc loa Bluetooth ngoài.
 3. **Cảnh báo đa giác quan:** Kết hợp âm thanh TTS Chị Google chuẩn giọng tiếng Việt + Hiệu ứng **viền đèn Neon Strobe Flash** chớp sáng toàn màn hình + Pop-up thông báo số tiền cực lớn.
 4. **Vận hành Offline-First:** Xử lý trực tiếp trên thiết bị; ngay cả khi mất mạng internet lên server, app vẫn tự bắt thông báo, phát loa đọc tiền và lưu lịch sử cục bộ.
 5. **Hệ sinh thái đồng bộ:** Điện thoại chính nhận tiền, máy tính bảng hoặc PC tại quầy kết nối **Live Web** nghe loa từ xa, Admin Portal quản lý toàn bộ người dùng và doanh số.
 
 ---
 
-## 📱 CHI TIẾT 12 CHỨC NĂNG CỐT LÕI CỦA APK
+## 📱 CHI TIẾT 14 CHỨC NĂNG CỐT LÕI CỦA HỆ THỐNG
 
 | STT | Tên chức năng | Mô tả chi tiết kỹ thuật |
 | :---: | :--- | :--- |
 | **1** | **Bắt biến động số dư (Notification Listener)** | Lắng nghe thông báo nền 24/7 từ **66+ ngân hàng & ví điện tử** tại VN (VCB, TCB, MB, ACB, BIDV, MoMo, ZaloPay, Viettel Money...). Regex phân tích chính xác: Số tiền (+/-), Ngân hàng, Người gửi, Nội dung CK, Số tài khoản. Băm **SHA-256 Fingerprint** chống đọc trùng thông báo. |
-| **2** | **Trợ lý đọc loa giọng nói (TTS Engine)** | Phát loa giọng Chị Google tự nhiên. Tùy chỉnh tốc độ (0.5x – 2.0x), cao độ (pitch), âm lượng. Hỗ trợ tùy biến mẫu câu đọc, bộ lọc số tiền tối thiểu, tính năng nhắc lại 2 lần và **Chế độ im lặng ban đêm** (hẹn giờ bắt đầu - kết thúc). |
-| **3** | **Quản lý giao dịch & Sổ thu chi** | Danh sách biến động số dư theo thời gian thực (tiền vào xanh `+`, tiền ra đỏ `-`). Bộ lọc đa năng theo ngày, tuần, tháng, ngân hàng, loại dòng tiền. Tìm kiếm tức thì theo nội dung chuyển khoản, số tiền, tên người gửi. |
-| **4** | **Xuất báo cáo tài chính chuyên nghiệp** | Xuất 3 loại báo cáo (Sổ chi tiết giao dịch, Tổng hợp doanh thu trong ngày, Phân bổ dòng tiền theo ngân hàng). Định dạng **Excel/CSV chuẩn UTF-8 BOM** không lỗi font tiếng Việt, chia sẻ nhanh qua Zalo, Messenger, Telegram. |
-| **5** | **Quầy thu ngân thông minh (POS Cashier)** | Tạo mã **VietQR động** chuẩn Napas gán sẵn số tiền và mã đơn. Chế độ thu ngân toàn màn hình, đèn Neon chớp xanh rực rỡ và phát chuông xác nhận tiền về quầy ngay lập tức. |
-| **6** | **Bảo mật & Mã PIN an toàn** | Khóa ứng dụng bằng **Mã PIN 4 chữ số** mã hóa cục bộ. Yêu cầu nhập PIN khi xem doanh thu, cài đặt, xuất báo cáo, hoặc khi app resume sau thời gian chờ. |
-| **7** | **Tiện ích Live Web & Nghe loa từ xa** | Đồng bộ dữ liệu giao dịch real-time lên giao diện Web Live ([`apps/web/live.html`](file:///c:/Users/ACER/Downloads/auto_bank/apps/web/live.html)). Cho phép nhân viên thu ngân hoặc chủ quán nghe loa và theo dõi tiền về trên máy tính PC/iPad thông qua mã PIN xác thực. |
-| **8** | **Thống kê & Quản lý Quỹ (Analytics)** | Biểu đồ doanh thu trực quan theo ngày/tuần/tháng. **Quản lý Quỹ chi tiêu & Hạn mức ngân sách (Budgeting):** Thêm quỹ mới (Tiền nhà, Ăn uống, Tiết kiệm...) kèm 4 cấp độ cảnh báo: Tốt, Cảnh báo, Nguy kịch, Lố hạn mức. |
-| **9** | **Kiếm tiền & Affiliate** | Tạo mã giới thiệu riêng cho từng tài khoản. Nhận hoa hồng tự động khi người được giới thiệu mua gói VIP. Theo dõi doanh số, quản lý số dư hoa hồng và gửi yêu cầu rút tiền về tài khoản ngân hàng. |
-| **10** | **Bản quyền & Gói cước VIP** | Đăng nhập an toàn bằng tài khoản Google. Hỗ trợ 5 gói cước: Dùng thử (3 ngày), 1 tháng, 3 tháng, 1 năm, Vĩnh viễn (Lifetime). Áp dụng mã giảm giá Coupon và tự động kích hoạt gói sau khi quét VietQR. |
-| **11** | **Quản lý quyền & Tối ưu pin** | Kiểm tra trạng thái 3 quyền hệ thống: Đọc thông báo, Bỏ qua tối ưu pin (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`), Hiển thị trên app khác (Overlay). Dẫn trực tiếp vào màn hình cài đặt tự khởi chạy riêng của Xiaomi, Oppo, Samsung, Vivo... |
-| **12** | **Trung tâm trợ giúp & CSKH** | Tích hợp video YouTube hướng dẫn cài đặt và cấp quyền từng bước trực tiếp trong modal ứng dụng. Kênh liên hệ hỗ trợ nhanh qua Hotline & Zalo. |
+| **2** | **Trợ lý đọc loa giọng nói (TTS Engine)** | Phát loa giọng Chị Google tự nhiên. Tùy chỉnh tốc độ (0.5x – 2.0x), cao độ (pitch), âm lượng. Hỗ trợ 26 giọng đọc AI vùng miền tiếng Việt (Bắc, Trung, Nam, Chị Google, Loa Siêu Thị). |
+| **3** | **Cá nhân hóa câu đọc nhận tiền** | Tùy biến mẫu câu đọc tiền linh hoạt (Dạng siêu ngắn, Dạng chi tiết đối soát, Dạng kéo thả khối thành phần). Tích hợp video hướng dẫn trực quan tại Tab Câu Đọc. |
+| **4** | **Quản lý giao dịch & Sổ thu chi** | Danh sách biến động số dư theo thời gian thực (tiền vào xanh `+`, tiền ra đỏ `-`). Bộ lọc đa năng theo ngày, tuần, tháng, ngân hàng, loại dòng tiền. Tìm kiếm tức thì theo nội dung chuyển khoản, số tiền, tên người gửi. |
+| **5** | **Trang Đọc Lại (Tra cứu & Nghe lại)** | Cho phép nghe lại âm thanh đọc tiền của từng giao dịch bất cứ lúc nào, hỗ trợ tra cứu đối soát khi khách hàng thắc mắc. Có video hướng dẫn sử dụng riêng. |
+| **6** | **Xuất báo cáo tài chính chuyên nghiệp** | Xuất 3 loại báo cáo (Sổ chi tiết giao dịch, Tổng hợp doanh thu trong ngày, Phân bổ dòng tiền theo ngân hàng). Định dạng **Excel/CSV chuẩn UTF-8 BOM** không lỗi font tiếng Việt, chia sẻ nhanh qua Zalo, Messenger, Telegram. |
+| **7** | **Quầy thu ngân thông minh (POS Cashier)** | Tạo mã **VietQR động** chuẩn Napas gán sẵn số tiền và mã đơn. Chế độ thu ngân toàn màn hình, đèn Neon chớp xanh rực rỡ và phát chuông xác nhận tiền về quầy ngay lập tức. |
+| **8** | **Bảo mật mã PIN tầng gốc (Root Screen Lock)** | Khóa ứng dụng bằng **Mã PIN 4 chữ số**, bảo vệ tại cấp Root Widget. Chặn phím Back và chống vượt rào. Quy trình cấp lại mã PIN bằng OTP qua Email an toàn khép kín. |
+| **9** | **Tiện ích Live Web & Nghe loa từ xa** | Đồng bộ dữ liệu giao dịch real-time lên giao diện Web Live qua mã PIN 6 số. Cho phép nhân viên thu ngân hoặc chủ quán nghe loa và theo dõi tiền về trên máy tính PC/iPad từ xa. |
+| **10** | **Thống kê & Quản lý Quỹ (Analytics)** | Biểu đồ doanh thu trực quan theo ngày/tuần/tháng. Quản lý Quỹ chi tiêu & Hạn mức ngân sách (Budgeting) kèm cảnh báo vượt hạn mức thông minh. |
+| **11** | **Kiếm tiền & Tiếp thị liên kết (Affiliate)** | Tạo mã giới thiệu riêng cho từng tài khoản. Nhận hoa hồng tự động khi người được giới thiệu mua gói VIP. Quản lý số dư hoa hồng và gửi yêu cầu rút tiền về tài khoản ngân hàng. |
+| **12** | **Bản quyền & Gói cước VIP** | Đăng nhập an toàn bằng tài khoản Google. Hỗ trợ 5 gói cước: Dùng thử (3 ngày), 1 tháng, 3 tháng, 1 năm, Vĩnh viễn (Lifetime). Áp dụng mã giảm giá Coupon (`NGUOIMOI`) tự động. |
+| **13** | **Quản lý quyền & Tối ưu pin** | Kiểm tra trạng thái 3 quyền hệ thống: Đọc thông báo, Bỏ qua tối ưu pin (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`), Hiển thị trên app khác (Overlay). Hướng dẫn cài đặt riêng cho Xiaomi, Oppo, Samsung, Vivo... |
+| **14** | **Trang Quản Trị Admin Toàn Diện** | Quản lý ngân hàng, cấu hình 5 link video YouTube, danh sách khách hàng, nhật ký giao dịch, mã giảm giá, duyệt yêu cầu rút tiền hoa hồng Affiliate. |
 
 ---
 
@@ -68,178 +95,125 @@ auto_bank/
 │   │   ├── android/                           # Cầu nối Native Kotlin Android
 │   │   │   └── app/src/main/kotlin/vn/autobank/autobank_mobile/
 │   │   │       ├── MainActivity.kt            # Xử lý quyền hệ thống, Pin, Wakelock
-│   │   │       └── NotificationListener.kt    # Service lắng nghe thông báo 24/7
-│   │   ├── assets/images/banks/               # Kho 66 logo ngân hàng nội bộ
-│   │   ├── lib/                               # Mã nguồn Flutter (Clean Architecture)
-│   │   │   ├── core/                          # Tầng lõi: TTS, Security PIN, Theme, Utils
-│   │   │   ├── features/
-│   │   │   │   ├── affiliate/                 # Tiếp thị liên kết & Hoa hồng
-│   │   │   │   ├── analytics/                 # Phân tích doanh thu & Quản lý quỹ
-│   │   │   │   ├── auth/                      # Đăng nhập Google & Landing Page
-│   │   │   │   ├── home/                      # Dashboard trực quầy & Giả lập test
-│   │   │   │   ├── navigation/                # Điều hướng 5 tab & Viền đèn Neon
-│   │   │   │   ├── notification_center/       # Trung tâm thông báo nội bộ app
-│   │   │   │   ├── notification_listener/     # Dịch vụ bắt thông báo ngân hàng
-│   │   │   │   ├── pos/                       # Quầy thu ngân thông minh & VietQR
-│   │   │   │   ├── settings/                  # Hướng dẫn cấp quyền & Kết nối Live Web
-│   │   │   │   ├── settings_hub/              # Video hướng dẫn YouTube & CSKH
-│   │   │   │   ├── subscription/              # Đăng ký & Kích hoạt gói VIP
-│   │   │   │   ├── system/                    # Cấu hình thương hiệu, hotline động
-│   │   │   │   ├── transactions/              # Lịch sử giao dịch & Đối soát SHA-256
-│   │   │   │   └── voice_settings/            # Cài đặt chi tiết giọng đọc loa
-│   │   │   └── main.dart                      # Điểm khởi chạy ứng dụng & MultiProvider
-│   │   └── pubspec.yaml
+│   │   │       └── NotificationListener.kt    # Lắng nghe thông báo ngân hàng 24/7
+│   │   ├── lib/
+│   │   │   ├── core/
+│   │   │   │   ├── security/                  # Màn hình khóa Root Overlay & Dịch vụ PIN
+│   │   │   │   ├── tts/                       # Trợ lý đọc loa giọng nói (TTS Engine)
+│   │   │   │   └── widgets/                   # Video guide modal, Youtube dialog, Rating
+│   │   │   └── features/
+│   │   │       ├── home/                      # Trang chủ, Cảnh báo đèn Neon Strobe Flash
+│   │   │       ├── transactions/              # Quản lý giao dịch, Regex phân tích thông báo
+│   │   │       ├── voice_settings/            # Cài đặt giọng đọc & cá nhân hóa câu đọc
+│   │   │       ├── pos/                       # Quầy thu ngân thông minh (POS Cashier)
+│   │   │       ├── affiliate/                 # Giới thiệu bạn bè & Kiếm tiền hoa hồng
+│   │   │       └── subscription/              # Đăng ký gói cước VIP & Thanh toán VietQR
+│   │   └── pubspec.yaml                       # Phiên bản v1.0.3+4
 │   │
-│   ├── api/                                   # MÁY CHỦ BACKEND (NESTJS)
-│   │   ├── prisma/
-│   │   │   └── schema.prisma                  # Lược đồ CSDL MySQL (Users, Orders, Tx...)
+│   ├── api/                                   # BACKEND API SERVER (NESTJS + PRISMA)
 │   │   ├── src/
-│   │   │   ├── admin/                         # Quản trị User, Cấu hình, Bắn push
-│   │   │   ├── auth/                          # Google OAuth 2.0 & JWT Token
-│   │   │   ├── bank-connections/              # Quản lý tài khoản ngân hàng kết nối
-│   │   │   ├── mail/                          # Gửi email hóa đơn & thông báo
-│   │   │   ├── merchants/                     # Quản lý cửa hàng & nhân viên
-│   │   │   ├── orders/                        # Đơn hàng, VietQR & Động cơ đối soát
-│   │   │   ├── thueapi/                       # Webhook thanh toán tự động ThueApi.Pro
-│   │   │   ├── transactions/                  # Ingestion API nhận giao dịch từ mobile
-│   │   │   ├── tts/                           # Engine tổng hợp giọng nói Backend
-│   │   │   └── main.ts                        # Entry point NestJS (Port 3000)
-│   │   ├── .env.example
-│   │   └── package.json
+│   │   │   ├── admin/                         # Quản trị hệ thống, Video YouTube, Doanh thu
+│   │   │   ├── auth/                          # Đăng nhập Google, Bảo mật OTP Gmail
+│   │   │   ├── mail/                          # Dịch vụ gửi mail SMTP tự động
+│   │   │   ├── transactions/                  # Webhook, Xử lý giao dịch, SSE Live Stream
+│   │   │   ├── tts/                           # 26 Giọng đọc AI & Mẫu câu đọc thông minh
+│   │   │   └── coupons/                       # Mã giảm giá (NGUOIMOI)
+│   │   └── prisma/schema.prisma               # Mô hình cơ sở dữ liệu MySQL
 │   │
-│   └── web/                                   # CỔNG THÔNG TIN WEB SAAS & ADMIN
-│       ├── index.html                         # Landing Page bán gói, test giọng, tải APK
-│       ├── live.html                          # Màn hình Live Stream thu ngân nghe loa
-│       ├── blog.html / article.html           # Hệ sinh thái 50+ bài viết chuẩn SEO
-│       ├── privacy.html                       # Chính sách bảo mật chuẩn Google Play
-│       ├── admin/                             # ADMIN DASHBOARD PORTAL
-│       │   ├── index.html                     # Thống kê tổng quan & Chart.js
-│       │   ├── users.html                     # Quản lý người dùng, gia hạn VIP
-│       │   ├── orders.html                    # Danh sách đơn hàng & duyệt VietQR
-│       │   ├── config.html                    # Cấu hình giá gói, hotline, video
-│       │   ├── coupons.html                   # Quản lý mã giảm giá
-│       │   ├── banks.html                     # Quản lý danh mục 66 ngân hàng
-│       │   ├── payment-autobank.html          # Cấu hình cổng ThueApi.Pro
-│       │   ├── notifications.html             # Bắn thông báo đẩy đến Mobile App
-│       │   └── keys.html                      # API Keys & Webhook bên thứ 3
-│       └── vite.config.js
+│   └── web/                                   # GIAO DIỆN WEB & ADMIN (VITE + VANILLA JS)
+│       ├── admin/                             # Dashboard Quản trị viên
+│       │   ├── index.html                     # Thống kê tổng quan & Doanh số
+│       │   ├── config.html                    # Cấu hình 5 link video YouTube & Tài khoản
+│       │   ├── banks.html                     # Bật/tắt 40+ app ngân hàng
+│       │   ├── users.html                     # Quản lý thành viên & Gia hạn gói cước
+│       │   └── affiliate.html                 # Quản lý yêu cầu rút tiền hoa hồng
+│       ├── live.html                          # Tiện ích Live Web nghe loa từ xa qua PC/iPad
+│       └── index.html                         # Trang chủ giới thiệu, Bảng giá & Thanh toán
 │
-├── scripts/                                   # BỘ TOOL TRIỂN KHAI & TỰ ĐỘNG HÓA
-│   ├── deploy_full_system.js                  # Triển khai toàn bộ hệ thống lên VPS
-│   ├── setup_vps_autobank.js                  # Thiết lập môi trường VPS ban đầu
-│   ├── upload_apk.js                          # Upload file APK mới lên server tải
-│   ├── generate_seo_articles.js               # Tool tự động sinh bài viết SEO
-│   └── generate_favicons.ps1                  # Tool sinh bộ icon/banner đa kích thước
-│
-├── start_all.bat                              # File 1-Click khởi động toàn bộ dịch vụ local
-├── package.json                               # Cấu hình Monorepo root workspaces
-├── DANH_SACH_CHUC_NANG_APK.txt                # Danh mục 12 chức năng ứng dụng
-└── DocThongBaoNhanTien_Release_v1.0.3.apk     # Bộ cài đặt APK phát hành mới nhất
+├── release_builds/                            # THƯ MỤC CHỨA CÁC BẢN PHÁT HÀNH
+│   ├── AutoBank_v1.0.3_Release.apk            # Bản APK cài đặt trực tiếp (64.0 MB)
+│   └── AutoBank_v1.0.3_GooglePlay_Test.aab    # Bản AAB chuẩn Google Play Console (Target SDK 36)
+├── install_apk_to_phone.bat                   # Script 1-click cài đặt APK vào điện thoại qua USB
+└── README.md                                  # Tài liệu hướng dẫn dự án (24/10/2026)
 ```
 
 ---
 
-## ⚡ KHỞI ĐỘNG NHANH TRONG 1 CLICK (QUICK START)
+## 📦 BỘ CÀI ĐẶT & PHÁT HÀNH (APK & GOOGLE PLAY AAB)
 
-Trên Windows, bạn chỉ cần nhấp đúp vào file [`start_all.bat`](file:///c:/Users/ACER/Downloads/auto_bank/start_all.bat) ở thư mục gốc:
-
-```cmd
-start_all.bat
-```
-
-Hệ thống sẽ tự động mở 3 cửa sổ dịch vụ và trình duyệt web:
-* 🌐 **Web Landing Page & Admin:** `http://localhost:5173` (Admin: `/admin`)
-* 🔊 **Màn hình Live Stream nghe loa:** `http://localhost:5173/live`
-* 📱 **Giả lập Mobile App Preview:** `http://localhost:8080`
-* ⚡ **Backend API Server:** `http://localhost:3000`
+| Tên File | Đường dẫn | Mục đích sử dụng |
+| :--- | :--- | :--- |
+| **AutoBank_v1.0.3_Release.apk** | [`release_builds/AutoBank_v1.0.3_Release.apk`](release_builds/AutoBank_v1.0.3_Release.apk) | File APK Release chính thức (**64.0 MB**), cài trực tiếp trên mọi điện thoại Android (kèm file chạy nhanh [`install_apk_to_phone.bat`](install_apk_to_phone.bat)). |
+| **AutoBank_v1.0.3_GooglePlay_Test.aab** | [`release_builds/AutoBank_v1.0.3_GooglePlay_Test.aab`](release_builds/AutoBank_v1.0.3_GooglePlay_Test.aab) | File Android App Bundle (.aab) ký chính thức bằng Keystore phát hành, Target SDK 36, **dùng để tải lên Google Play Console** (Internal / Closed Testing). |
 
 ---
 
-## 🛠️ HƯỚNG DẪN CÀI ĐẶT CHI TIẾT TỪNG PHÂN HỆ
+## 💻 HƯỚNG DẪN CÀI ĐẶT & CHẠY LOCAL
 
-### 5.1. Backend API (`apps/api`)
+### 1. Yêu cầu môi trường:
+* **Node.js**: >= 18.x (khuyên dùng Node 20+)
+* **Flutter SDK**: >= 3.24.x
+* **MySQL Database**: >= 8.0
+* **Android SDK**: Build Tools 34+ / Target SDK 36
+
+### 2. Cài đặt các phân hệ:
+
+#### 6.1. Backend API (`apps/api`):
 ```bash
-# 1. Chuyển vào thư mục api
 cd apps/api
-
-# 2. Tạo file cấu hình môi trường từ mẫu
-cp .env.example .env
-
-# 3. Chỉnh sửa DATABASE_URL trong .env trỏ đến MySQL của bạn:
-# DATABASE_URL="mysql://root:password@localhost:3306/autobank"
-
-# 4. Sinh Prisma Client và migrate database
+npm install
 npx prisma generate
 npx prisma db push
-
-# 5. Khởi động Backend API ở chế độ dev
-npm run start:dev
+npm run build
+node dist/main.js
+# Backend API sẽ chạy tại: http://localhost:3000
 ```
 
-### 5.2. Web Portal & Admin Dashboard (`apps/web`)
+#### 6.2. Web Portal & Admin Dashboard (`apps/web`):
 ```bash
-# 1. Chuyển vào thư mục web
 cd apps/web
-
-# 2. Cài đặt dependencies (nếu chạy riêng lẻ)
 npm install
-
-# 3. Khởi động máy chủ phát triển Vite
 npm run dev
+# Giao diện Web sẽ chạy tại: http://localhost:5173
+# Trang Admin: http://localhost:5173/admin (admin / autobank@2026)
 ```
 
-### 5.3. Mobile App (`apps/mobile`)
+#### 6.3. Mobile App (`apps/mobile`):
 ```bash
-# 1. Chuyển vào thư mục mobile
 cd apps/mobile
-
-# 2. Tải các package Flutter
 flutter pub get
-
-# 3. Chạy ứng dụng trên thiết bị Android thật (bật USB Debugging):
-flutter run -d android
-
-# Hoặc chạy kiểm thử nhanh trên nền web:
+# Chạy trên máy ảo Web:
 flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0
+# Chạy hoặc cài đặt trực tiếp trên điện thoại Android:
+flutter run -d <device_id> --release
 ```
 
 ---
 
-## 💳 CỔNG THANH TOÁN TỰ ĐỘNG & KÍCH HOẠT BẢN QUYỀN
+## 🌐 TRIỂN KHAI HỆ THỐNG LÊN VPS PRODUCTION
 
-AutoBank tích hợp sẵn cơ chế kích hoạt gói bản quyền 24/7 hoàn toàn tự động:
-1. Người dùng chọn gói cước trên App hoặc Web (1 tháng, 3 tháng, 1 năm, Vĩnh viễn).
-2. Hệ thống sinh mã **VietQR động** chứa số tiền chính xác và nội dung đơn hàng (Ví dụ: `DH1024`).
-3. Khách hàng quét mã chuyển khoản qua bất kỳ app ngân hàng nào.
-4. Cổng thanh toán tự động (**ThueApi.Pro**) nhận biến động và gửi Webhook về Backend API.
-5. Động cơ đối soát (`Reconciliation Engine`) so khớp mã đơn và số tiền:
-   - **Đúng số tiền & đúng mã đơn:** Tự động chuyển trạng thái `PAID` và gia hạn gói trên tài khoản Google của khách ngay tức khắc.
-   - Bắn thông báo chúc mừng về thiết bị di động.
+Hệ thống đã tích hợp sẵn script tự động hóa toàn bộ quá trình triển khai lên VPS Linux:
+* **Địa chỉ VPS:** `180.93.59.46`
+* **Công nghệ vận hành:** Ubuntu Server, Apache2 Reverse Proxy, Node.js + PM2 Daemon Manager, MariaDB.
 
----
-
-## 🔒 CAM KẾT BẢO MẬT & CHÍNH SÁCH QUYỀN ANDROID
-
-* **Không yêu cầu mật khẩu:** Ứng dụng hoạt động theo cơ chế thụ động thông qua `NotificationListenerService`. Không có bất kỳ dòng code nào yêu cầu người dùng nhập thông tin đăng nhập ngân hàng.
-* **Mã hóa cục bộ:** Mã PIN bảo mật 4 chữ số được băm và lưu trữ bằng `SharedPreferences` bảo vệ bởi sandbox hệ điều hành Android.
-* **Chống trùng lặp:** Toàn bộ thông báo được kiểm tra qua thuật toán băm SHA-256 fingerprint trên RAM trước khi kích hoạt âm thanh đọc tiền.
-
----
-
-## 📦 ĐÓNG GÓI PHÁT HÀNH APK RELEASE
-
-Để tạo bản cài đặt APK chuẩn phát hành cho khách hàng:
-
+**Lệnh triển khai tự động chỉ với 1 bước:**
 ```bash
-cd apps/mobile
-flutter build apk --release --split-per-abi
-# Hoặc tạo file APK fat universal duy nhất:
-flutter build apk --release
+node scripts/deploy_production_complete.cjs
 ```
-
-File cài đặt APK đầu ra sẽ nằm tại:  
-`apps/mobile/build/app/outputs/flutter-apk/app-release.apk`
+Script sẽ tự động:
+1. Đóng gói giao diện Web Dist mới nhất và đồng bộ vào thư mục Apache `/var/www/autobank/apps/web/dist`.
+2. Đồng bộ mã nguồn API, cập nhật cấu hình SMTP Email trong `.env`, chạy migration database.
+3. Rebuild Backend API và reload dịch vụ PM2 `autobank-api` mà không làm gián đoạn người dùng.
+4. Tải bản APK mới nhất vào link tải trực tiếp trên website.
 
 ---
 
-*Hệ thống được phát triển và vận hành bởi AutoBank Ecosystem — 2026.*
+## 🛡️ CAM KẾT BẢO MẬT & QUYỀN RIÊNG TƯ
+
+1. **Tuyệt đối không can thiệp tài khoản ngân hàng:** Ứng dụng chỉ đọc nội dung thông báo hiển thị trên thanh trạng thái do hệ điều hành Android cung cấp, hoàn toàn không truy cập vào tài khoản ngân hàng của bạn.
+2. **Bảo mật mã PIN cấp Root:** Giao diện bên trong app hoàn toàn được bảo vệ bởi màn hình khóa tầng gốc, ngăn chặn truy cập trái phép khi người khác cầm vào máy.
+3. **Mã hóa dữ liệu:** Thông tin biến động số dư được lưu trữ an toàn bằng SQLite cục bộ trên máy và truyền tải qua giao thức HTTPS/WSS có mã hóa SSL.
+
+---
+© 2026 **AutoBank Pro**. Phát triển và vận hành bởi đội ngũ Kỹ sư Hệ thống AutoBank.  
+Mã nguồn lưu trữ tại: **https://github.com/vudev-05/autobank.git**
