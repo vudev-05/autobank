@@ -148,68 +148,36 @@ class TransactionLocalDataSource {
 
   /// Tính tổng số tiền nhận được trong ngày hôm nay (CREDIT)
   /// Lấy thời điểm hiện tại chuẩn múi giờ Việt Nam (UTC+7)
-  static DateTime get _nowInVietnam => DateTime.now().toUtc().add(const Duration(hours: 7));
-
-  /// Tính tổng số tiền nhận được trong ngày hôm nay (CREDIT) theo 0h sáng giờ Việt Nam (UTC+7)
+  /// Tính tổng số tiền nhận được trong ngày hôm nay (CREDIT) theo giờ địa phương của máy
   Future<double> getTodayTotalReceived() async {
-    final nowVN = _nowInVietnam;
-    if (kIsWeb) {
-      return _inMemoryList
-          .where((t) {
-            final tVN = t.transactionTime.toUtc().add(const Duration(hours: 7));
-            return t.type == TransactionType.credit && tVN.year == nowVN.year && tVN.month == nowVN.month && tVN.day == nowVN.day;
-          })
-          .fold<double>(0.0, (sum, t) => sum + t.amount);
-    }
-
+    final now = DateTime.now();
     try {
-      final db = await database;
-      final startOfDay = DateTime(nowVN.year, nowVN.month, nowVN.day).toIso8601String();
-
-      final result = await db.rawQuery('''
-        SELECT SUM(amount) as total
-        FROM $_tableName
-        WHERE type = 'credit' AND transaction_time >= ?
-      ''', [startOfDay]);
-
-      if (result.isNotEmpty && result.first['total'] != null) {
-        return (result.first['total'] as num).toDouble();
-      }
+      final list = await getTransactions(limit: 1000);
+      return list.where((t) {
+        if (t.type != TransactionType.credit) return false;
+        final local = t.transactionTime.toLocal();
+        return local.year == now.year && local.month == now.month && local.day == now.day;
+      }).fold<double>(0.0, (sum, t) => sum + t.amount);
     } catch (e) {
       debugPrint('[AutoBank] Lỗi tính getTodayTotalReceived: $e');
+      return 0.0;
     }
-    return 0.0;
   }
 
-  /// Đếm số lượng giao dịch nhận tiền trong ngày hôm nay theo 0h sáng giờ Việt Nam (UTC+7)
+  /// Đếm số lượng giao dịch nhận tiền trong ngày hôm nay theo giờ địa phương của máy
   Future<int> getTodayTransactionCount() async {
-    final nowVN = _nowInVietnam;
-    if (kIsWeb) {
-      return _inMemoryList
-          .where((t) {
-            final tVN = t.transactionTime.toUtc().add(const Duration(hours: 7));
-            return t.type == TransactionType.credit && tVN.year == nowVN.year && tVN.month == nowVN.month && tVN.day == nowVN.day;
-          })
-          .length;
-    }
-
+    final now = DateTime.now();
     try {
-      final db = await database;
-      final startOfDay = DateTime(nowVN.year, nowVN.month, nowVN.day).toIso8601String();
-
-      final result = await db.rawQuery('''
-        SELECT COUNT(*) as count
-        FROM $_tableName
-        WHERE type = 'credit' AND transaction_time >= ?
-      ''', [startOfDay]);
-
-      if (result.isNotEmpty && result.first['count'] != null) {
-        return (result.first['count'] as num).toInt();
-      }
+      final list = await getTransactions(limit: 1000);
+      return list.where((t) {
+        if (t.type != TransactionType.credit) return false;
+        final local = t.transactionTime.toLocal();
+        return local.year == now.year && local.month == now.month && local.day == now.day;
+      }).length;
     } catch (e) {
       debugPrint('[AutoBank] Lỗi đếm getTodayTransactionCount: $e');
+      return 0;
     }
-    return 0;
   }
 
   /// Xóa 1 giao dịch cụ thể theo ID
@@ -237,5 +205,36 @@ class TransactionLocalDataSource {
 
     final db = await database;
     await db.delete(_tableName);
+  }
+
+  /// Lấy toàn bộ danh sách giao dịch chưa đồng bộ lên máy chủ (is_synced = 0)
+  Future<List<NormalizedTransaction>> getUnsyncedTransactions() async {
+    if (kIsWeb) return [];
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableName,
+        where: 'is_synced = 0',
+        limit: 50,
+      );
+      return maps.map((m) => NormalizedTransaction.fromMap(m)).toList();
+    } catch (e) {
+      debugPrint('[AutoBank] Lỗi getUnsyncedTransactions: $e');
+      return [];
+    }
+  }
+
+  /// Đánh dấu giao dịch đã được đồng bộ lên máy chủ VPS thành công
+  Future<void> markTransactionSynced(String id) async {
+    if (kIsWeb) return;
+    try {
+      final db = await database;
+      await db.update(
+        _tableName,
+        {'is_synced': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    } catch (_) {}
   }
 }

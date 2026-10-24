@@ -1,8 +1,9 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
-Disallow: /admin/*
 Disallow: /api/
-Disallow: /webhooks/
 
-Sitemap: https://appbaochuyentien.com/sitemap.xml
+# Sitemaps
+Sitemap: https://docthongbaobank.com/sitemap.xml
+Sitemap: https://docthongbaobank.com/sitemap-articles.xml
+Sitemap: https://docthongbaobank.com/sitemap-main.xml

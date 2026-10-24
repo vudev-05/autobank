@@ -40,11 +40,76 @@ class NotificationService {
     }
   }
 
-  /// Request to ignore battery optimizations
+  /// Request to ignore battery optimizations (Opens Application Details Settings on Android)
   static Future<void> requestIgnoreBatteryOptimizations() async {
     if (kIsWeb) return;
     try {
       await _methodChannel.invokeMethod('requestIgnoreBatteryOptimizations');
+    } catch (_) {}
+  }
+
+  /// Check if app post notifications permission is granted
+  static Future<bool> isNotificationPermissionGranted() async {
+    if (kIsWeb) return true;
+    try {
+      final bool granted = await _methodChannel.invokeMethod('isNotificationPermissionGranted');
+      return granted;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Request app post notification permission
+  static Future<void> requestNotificationPermission() async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('requestNotificationPermission');
+    } catch (_) {}
+  }
+
+  /// Check if photo gallery permission is granted
+  static Future<bool> isPhotoPermissionGranted() async {
+    if (kIsWeb) return true;
+    try {
+      final bool granted = await _methodChannel.invokeMethod('isPhotoPermissionGranted');
+      return granted;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Request photo gallery permission
+  static Future<void> requestPhotoPermission() async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('requestPhotoPermission');
+    } catch (_) {}
+  }
+
+  /// Mark battery optimization as manually confirmed by user (e.g., Oppo/Realme/Xiaomi)
+  static Future<void> setBatteryOptimizationIgnored({bool granted = true}) async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('setBatteryOptimizationIgnored', {'granted': granted});
+    } catch (_) {}
+  }
+
+  /// Check if Overlay Permission (Draw over other apps) is granted
+  static Future<bool> isOverlayPermissionGranted() async {
+    if (kIsWeb) return true;
+    try {
+      final bool isGranted = await _methodChannel.invokeMethod('isOverlayPermissionGranted');
+      return isGranted;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Request Overlay Permission (Open Android Manage Overlay Settings)
+  static Future<void> requestOverlayPermission() async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('requestOverlayPermission');
     } catch (_) {}
   }
 
@@ -53,6 +118,14 @@ class NotificationService {
     if (kIsWeb) return;
     try {
       await _methodChannel.invokeMethod('openAppSettings');
+    } catch (_) {}
+  }
+
+  /// Mở đường link trình duyệt hoặc ứng dụng YouTube bên ngoài
+  static Future<void> openUrl(String url) async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('openUrl', {'url': url});
     } catch (_) {}
   }
 
@@ -69,6 +142,22 @@ class NotificationService {
     if (kIsWeb) return;
     try {
       await _methodChannel.invokeMethod('setScreenBrightness', {'brightness': brightness});
+    } catch (_) {}
+  }
+
+  /// Giữ màn hình luôn bật (phục vụ Chế độ quầy thu ngân 24/24)
+  static Future<void> setKeepScreenOn(bool keepOn) async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('setKeepScreenOn', {'keepOn': keepOn});
+    } catch (_) {}
+  }
+
+  /// Đánh thức sáng màn hình ngay lập tức khi nhận được tiền
+  static Future<void> wakeUpScreen() async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('wakeUpScreen');
     } catch (_) {}
   }
 
@@ -102,6 +191,18 @@ class NotificationService {
     try {
       await _methodChannel.invokeMethod('cancelNotification', {'id': id});
     } catch (_) {}
+  }
+
+  /// Mở trang ứng dụng thật trên Google Play Store (CH Play)
+  static Future<bool> openPlayStoreListing({String appId = 'com.docthongbaobank.app'}) async {
+    if (kIsWeb) return true;
+    try {
+      final res = await _methodChannel.invokeMethod('openPlayStoreListing', {'appId': appId});
+      return res == true;
+    } catch (e) {
+      debugPrint("Error opening Google Play Store listing: $e");
+      return false;
+    }
   }
 
   /// Listen to incoming notifications from the Android Service

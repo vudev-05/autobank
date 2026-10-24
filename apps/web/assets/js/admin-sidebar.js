@@ -96,6 +96,14 @@ export function renderAdminSidebar(activePageKey = 'overview') {
         <span class="admin-nav-badge" id="admin-badge-orders">--</span>
       </a>
 
+      <a href="/admin/affiliate" class="admin-nav-item ${activePageKey === 'affiliate' ? 'active' : ''}" data-page="affiliate">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/>
+        </svg>
+        <span>Giới thiệu &amp; Rút tiền</span>
+        <span class="admin-nav-badge" id="admin-badge-affiliate" style="background:#0284c7; display:none;">0</span>
+      </a>
+
       <a href="/admin/payment-autobank" class="admin-nav-item ${activePageKey === 'payment-autobank' ? 'active' : ''}" data-page="payment-autobank">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -224,4 +232,26 @@ export async function syncSidebarBadgesFromSql() {
     const el = document.getElementById('admin-badge-keys');
     if (el && Array.isArray(keys)) el.textContent = keys.length;
   }).catch(() => {});
+
+  // Affiliate Withdrawals Pending Badge
+  try {
+    const jwt = sessionStorage.getItem('autobank_admin_jwt');
+    if (jwt) {
+      fetch(`${API_BASE}/admin/affiliate/overview`, {
+        headers: { Authorization: `Bearer ${jwt}` },
+      }).then(r => r.json()).then(data => {
+        const el = document.getElementById('admin-badge-affiliate');
+        if (el && data && data.withdrawals) {
+          const pending = data.withdrawals.filter(w => String(w.status).toUpperCase() === 'PENDING').length;
+          if (pending > 0) {
+            el.textContent = pending;
+            el.style.background = '#f59e0b';
+            el.style.display = 'inline-block';
+          } else {
+            el.style.display = 'none';
+          }
+        }
+      }).catch(() => {});
+    }
+  } catch (_) {}
 }

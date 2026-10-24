@@ -59,6 +59,12 @@
             <span class="admin-nav-badge" id="admin-badge-orders">0</span>
           </a>
 
+          <a href="/admin/affiliate" class="admin-nav-item" data-page="affiliate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            Giới thiệu &amp; Rút tiền
+            <span class="admin-nav-badge" style="background: #10b981;" id="admin-badge-affiliate">VIP</span>
+          </a>
+
           <a href="/admin/payment-autobank" class="admin-nav-item" data-page="payment-autobank">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             Thanh toán AutoBank
@@ -128,7 +134,7 @@
                   <div class="admin-form-group">
                     <label>Tên miền Máy chủ API (Backend Cloud Server / API Gateway)</label>
                     <div style="display: flex; gap: 8px;">
-                      <input type="text" id="cfg-server-domain" class="admin-input" placeholder="Ví dụ: https://api.autobank.vn hoặc http://192.168.1.217:3000" required />
+                      <input type="text" id="cfg-server-domain" class="admin-input" placeholder="Ví dụ: https://api.docthongbaobank.com" required />
                       <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-ping-domain" title="Kiểm tra kết nối tên miền" style="white-space: nowrap;">Kiểm tra Ping</button>
                     </div>
                     <small style="color: #64748b; font-size: 0.76rem; display: block; margin-top: 4px;">Tất cả ứng dụng Android APK, Webhook VietQR và Web Admin sẽ trỏ về tên miền API này.</small>
@@ -136,7 +142,7 @@
 
                   <div class="admin-form-group">
                     <label>Tên miền Website Khách hàng (Landing Page &amp; Web App)</label>
-                    <input type="text" id="cfg-web-domain" class="admin-input" placeholder="Ví dụ: https://autobank.vn hoặc http://192.168.1.217:5173" required />
+                    <input type="text" id="cfg-web-domain" class="admin-input" placeholder="Ví dụ: https://docthongbaobank.com" required />
                     <small style="color: #64748b; font-size: 0.76rem; display: block; margin-top: 4px;">Dùng để tạo liên kết thanh toán, chia sẻ màn hình máy tính và trang tải ứng dụng.</small>
                   </div>
 
@@ -182,6 +188,18 @@
                   </div>
 
                   <div class="admin-form-group">
+                    <label>Đường dẫn đánh giá 5 sao (CH Play Rating URL)</label>
+                    <input type="url" id="cfg-rating-link" class="admin-input" placeholder="https://play.google.com/store/apps/details?id=com.docthongbaobank.app" />
+                    <small style="color: #64748b; font-size: 0.76rem; display: block; margin-top: 4px;">Link CH Play mở trực tiếp để người dùng đánh giá 5 sao từ App Mobile.</small>
+                  </div>
+
+                  <div class="admin-form-group">
+                    <label>Mã PIN Live Web dự phòng cho Quản trị viên (6 số)</label>
+                    <input type="text" id="cfg-live-pin" class="admin-input" maxlength="6" placeholder="Mã 6 số dự phòng..." />
+                    <small style="color: #64748b; font-size: 0.76rem; display: block; margin-top: 4px;">Mỗi người dùng trên App có mã 6 số riêng biệt không trùng nhau. Đây là mã dự phòng của Quản trị viên.</small>
+                  </div>
+
+                  <div class="admin-form-group">
                     <label>Link Video YouTube (Video, Playlist hoặc Kênh — Để trống sẽ ẩn)</label>
                     <div style="display: flex; gap: 8px;">
                       <input type="text" id="cfg-youtube-link" class="admin-input" placeholder="Ví dụ: https://www.youtube.com/watch?v=... hoặc để trống để ẩn mục Video" />
@@ -208,6 +226,123 @@
                   <div class="admin-form-group">
                     <label>Link Kênh TikTok</label>
                     <input type="url" id="cfg-tiktok" class="admin-input" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- YOUTUBE GUIDE VIDEOS CONFIGURATION (APP MOBILE INTEGRATION) -->
+            <div class="admin-card" style="border-left: 4px solid #ef4444;">
+              <div class="admin-card-head">
+                <div class="admin-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #ef4444;"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                  Cấu Hình Video Hướng Dẫn YouTube (Tự động phát trực tiếp trong App Mobile)
+                </div>
+                <div class="admin-live-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
+                  <span class="admin-live-dot" style="background: #ef4444;"></span>
+                  Video Nhúng Trực Tiếp Trong App
+                </div>
+              </div>
+              <div class="admin-card-body">
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0; margin-bottom: 18px;">
+                  Admin nhập đường dẫn video YouTube tại đây. Ứng dụng Mobile sẽ <strong>tự động gọi video YouTube vào hiển thị và phát trực tiếp ngay trong ứng dụng</strong> (kèm nút Đóng và tùy chọn Không hiển thị lại).
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+                  <!-- 1. Video Người Mới -->
+                  <div class="admin-form-group" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <label style="color: #f87171; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                      <span>1. Link Video Hướng Dẫn Cho Người Mới Bắt Đầu</span>
+                      <span style="font-size: 0.72rem; background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 2px 6px; border-radius: 4px;">Popup chào mừng &amp; Trang chưa đăng nhập</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                      <input type="text" id="cfg-video-newbie" class="admin-input" placeholder="Ví dụ: https://www.youtube.com/watch?v=kYJqD9bZ_fQ" />
+                      <button type="button" class="admin-btn admin-btn-outline admin-btn-sm btn-test-video" data-target="cfg-video-newbie" style="white-space: nowrap;">Kiểm tra</button>
+                    </div>
+                    <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">Tự động hiện pop-up phát video sau khi người mới tạo tài khoản và đọc câu chào mừng, đồng thời hiển thị nút xem ở màn hình đăng nhập.</small>
+                  </div>
+
+                  <!-- 2. Video Sử Dụng Mượt Mà -->
+                  <div class="admin-form-group" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <label style="color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                      <span>2. Link Video Hướng Dẫn Sử Dụng Ứng Dụng Mượt Mà Hơn</span>
+                      <span style="font-size: 0.72rem; background: rgba(56, 189, 248, 0.2); color: #7dd3fc; padding: 2px 6px; border-radius: 4px;">Tối ưu pin &amp; Chạy ngầm 24/7</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                      <input type="text" id="cfg-video-smooth" class="admin-input" placeholder="Ví dụ: https://www.youtube.com/watch?v=..." />
+                      <button type="button" class="admin-btn admin-btn-outline admin-btn-sm btn-test-video" data-target="cfg-video-smooth" style="white-space: nowrap;">Kiểm tra</button>
+                    </div>
+                    <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">Hướng dẫn người dùng cấp quyền đọc thông báo, tắt tối ưu hóa pin Xiaomi/Oppo/Samsung để loa trực bền bỉ xuyên đêm.</small>
+                  </div>
+
+                  <!-- 3. Video Giới Thiệu Bạn Bè -->
+                  <div class="admin-form-group" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <label style="color: #f59e0b; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                      <span>3. Link Video Hướng Dẫn Giới Thiệu Bạn Bè &amp; Nhận Hoa Hồng</span>
+                      <span style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.2); color: #fde68a; padding: 2px 6px; border-radius: 4px;">Affiliate &amp; Rút Tiền</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                      <input type="text" id="cfg-video-affiliate" class="admin-input" placeholder="Ví dụ: https://www.youtube.com/watch?v=..." />
+                      <button type="button" class="admin-btn admin-btn-outline admin-btn-sm btn-test-video" data-target="cfg-video-affiliate" style="white-space: nowrap;">Kiểm tra</button>
+                    </div>
+                    <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">Hiển thị trong trang Giới thiệu bạn bè để hướng dẫn cách lấy mã giới thiệu, chia sẻ cho người khác và tạo lệnh rút tiền về STK.</small>
+                  </div>
+
+                  <!-- 4. Video Trang Đọc Lại -->
+                  <div class="admin-form-group" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <label style="color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                      <span>4. Link Video Hướng Dẫn Thao Tác Trang "Đọc Lại"</span>
+                      <span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #a7f3d0; padding: 2px 6px; border-radius: 4px;">Lịch sử giao dịch &amp; Báo cáo</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                      <input type="text" id="cfg-video-history" class="admin-input" placeholder="Ví dụ: https://www.youtube.com/watch?v=..." />
+                      <button type="button" class="admin-btn admin-btn-outline admin-btn-sm btn-test-video" data-target="cfg-video-history" style="white-space: nowrap;">Kiểm tra</button>
+                    </div>
+                    <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">Tự động hiện pop-up video khi người dùng lần đầu truy cập trang Đọc lại (có nút Đóng và tích chọn "Không hiển thị lại").</small>
+                  </div>
+
+                  <!-- 5. Video Trang Câu Đọc -->
+                  <div class="admin-form-group" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <label style="color: #a855f7; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                      <span>5. Link Video Hướng Dẫn Trang "Câu Đọc"</span>
+                      <span style="font-size: 0.72rem; background: rgba(168, 85, 247, 0.2); color: #e9d5ff; padding: 2px 6px; border-radius: 4px;">Cá nhân hóa &amp; Tối ưu mẫu câu</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                      <input type="text" id="cfg-video-voice" class="admin-input" placeholder="Ví dụ: https://www.youtube.com/watch?v=..." />
+                      <button type="button" class="admin-btn admin-btn-outline admin-btn-sm btn-test-video" data-target="cfg-video-voice" style="white-space: nowrap;">Kiểm tra</button>
+                    </div>
+                    <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">Tự động hiện pop-up video khi người dùng vào trang Câu đọc để hướng dẫn chèn tên quán, lời cảm ơn và tùy biến giọng đọc.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AFFILIATE COMMISSIONS MANAGEMENT -->
+            <div class="admin-card" style="border-left: 4px solid #f59e0b;">
+              <div class="admin-card-head">
+                <div class="admin-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg>
+                  Quản Lý Hoa Hồng Tiếp Thị Liên Kết (Affiliate Commissions)
+                </div>
+                <div class="admin-live-badge" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+                  <span class="admin-live-dot" style="background: #f59e0b;"></span>
+                  Đồng bộ tức thì đến App
+                </div>
+              </div>
+              <div class="admin-card-body">
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0; margin-bottom: 16px;">
+                  Admin toàn quyền tùy chỉnh số tiền hoa hồng mà người giới thiệu nhận được khi khách hàng mua từng gói bản quyền. Dữ liệu tự động cập nhật ngay trên App Mobile.
+                </p>
+                <div id="admin-affiliate-dynamic-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                  <!-- Render động 100% khớp từng gói cước Admin đã cấu hình -->
+                </div>
+                <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+                  <div class="admin-form-group" style="min-width: 260px; max-width: 320px; margin-bottom: 0;">
+                    <label>Mức rút tiền tối thiểu cho CTV (VNĐ)</label>
+                    <input type="number" id="cfg-aff-min-withdraw" class="admin-input" min="10000" step="10000" placeholder="100000" />
+                  </div>
+                  <div style="color: #94a3b8; font-size: 0.8rem; line-height: 1.5; align-self: center;">
+                    💡 Hoa hồng này sẽ tự động gắn liền với từng gói cước bạn tạo (1 Tháng, 3 Tháng, 6 Tháng, 1 Năm, 2 Năm...). Dữ liệu đồng bộ trực tiếp 100% về MySQL &amp; Ứng dụng Mobile.
                   </div>
                 </div>
               </div>
@@ -378,9 +513,14 @@
                 <input type="number" id="m-pkg-price" class="admin-input" min="0" step="1000" placeholder="Ví dụ: 299000" required />
               </div>
               <div class="admin-form-group">
-                <label>Huy hiệu / Nhãn nổi bật (Badge)</label>
-                <input type="text" id="m-pkg-badge" class="admin-input" placeholder="Ví dụ: Tiết kiệm 30%, Bán chạy nhất" />
+                <label>Hoa hồng tiếp thị (VNĐ/lượt)</label>
+                <input type="number" id="m-pkg-affiliate" class="admin-input" min="0" step="1000" placeholder="Ví dụ: 50000" />
               </div>
+            </div>
+
+            <div class="admin-form-group">
+              <label>Huy hiệu / Nhãn nổi bật (Badge)</label>
+              <input type="text" id="m-pkg-badge" class="admin-input" placeholder="Ví dụ: Tiết kiệm 30%, Bán chạy nhất" />
             </div>
 
             <div class="admin-form-group">

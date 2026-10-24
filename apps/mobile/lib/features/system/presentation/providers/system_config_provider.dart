@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:autobank_mobile/core/config/app_config.dart';
 import 'package:autobank_mobile/core/data/banks_data.dart';
+import 'package:autobank_mobile/core/utils/currency_formatter.dart';
 
 class SystemConfigProvider extends ChangeNotifier {
   String _brandName = 'Đọc Thông Báo Nhận Tiền';
@@ -16,12 +17,12 @@ class SystemConfigProvider extends ChangeNotifier {
   String _bankName = 'TRẦN QUỐC VŨ';
   String _latestVersion = '1.2.0 Pro';
   final int _priceTrial = 0;
-  int _price1m = 38000;
-  int _price3m = 99000;
-  int _price6m = 179000;
-  int _price9m = 249000;
-  int _price1y = 299000;
-  int _priceLifetime = 499000;
+  int _price1m = 29000;
+  int _price3m = 69000;
+  int _price6m = 109000;
+  int _price9m = 109000;
+  int _price1y = 159000;
+  int _priceLifetime = 219000;
   int _bonusMonths1y = 2;
   String _marketingBanner = '';
   bool _maintenance = false;
@@ -29,10 +30,71 @@ class SystemConfigProvider extends ChangeNotifier {
   bool _googlePayMaintenance = false;
   String _googlePayMaintenanceMsg = '';
   String _chplayLink = '';
+  String _ratingUrl = '';
   String _youtubeLink = '';
+  String _videoGuideNewbie = '';
+  String _videoGuideSmooth = '';
+  String _videoGuideAffiliate = '';
+  String _videoGuideHistory = '';
+  String _videoGuideVoice = '';
   String _facebook = '';
   String _tiktok = '';
-  List<Map<String, dynamic>> _packages = [];
+  List<Map<String, dynamic>> _packages = [
+    {
+      'key': 'trial',
+      'name': 'Dùng thử miễn phí',
+      'durationDays': 3,
+      'price': 0,
+      'badge': 'Miễn phí',
+      'description': 'Trải nghiệm 100% tính năng cao cấp trong 3 ngày',
+      'isActive': true,
+    },
+    {
+      'key': '1m',
+      'name': '1 Tháng',
+      'durationDays': 30,
+      'price': 29000,
+      'badge': 'Trải nghiệm',
+      'description': 'Bản quyền 30 ngày đầy đủ thông báo giọng nói',
+      'isActive': true,
+    },
+    {
+      'key': '3m',
+      'name': '3 Tháng',
+      'durationDays': 90,
+      'price': 69000,
+      'badge': 'Tiết kiệm',
+      'description': 'Bản quyền 90 ngày cho cửa hàng kinh doanh',
+      'isActive': true,
+    },
+    {
+      'key': '6m',
+      'name': '6 Tháng',
+      'durationDays': 180,
+      'price': 109000,
+      'badge': 'Phổ biến',
+      'description': 'Bản quyền 180 ngày ổn định 24/7',
+      'isActive': true,
+    },
+    {
+      'key': '1y',
+      'name': '1 Năm (tặng 2T)',
+      'durationDays': 425,
+      'price': 159000,
+      'badge': 'Khuyên dùng',
+      'description': 'Tặng thêm 2 tháng + Hỗ trợ kỹ thuật 24/7',
+      'isActive': true,
+    },
+    {
+      'key': '2y',
+      'name': '2 Năm (tặng 6T)',
+      'durationDays': 910,
+      'price': 219000,
+      'badge': 'Tốt Nhất',
+      'description': 'Tặng thêm 6 tháng + Hỗ trợ kỹ thuật 24/7',
+      'isActive': true,
+    },
+  ];
   List<Map<String, dynamic>> _coupons = [];
   List<Map<String, dynamic>> _announcements = [];
   bool _isServerConnected = false;
@@ -71,7 +133,16 @@ class SystemConfigProvider extends ChangeNotifier {
       ? _googlePayMaintenanceMsg
       : 'Cổng thanh toán Google Pay đang tạm bảo trì nâng cấp. Quý khách vui lòng chuyển khoản qua VietQR để kích hoạt ngay!';
   String get chplayLink => _chplayLink;
+  String get ratingUrl => _ratingUrl.isNotEmpty ? _ratingUrl : _chplayLink;
   String get youtubeLink => _youtubeLink;
+  String get youtubeGuideUrl => _youtubeLink.isNotEmpty
+      ? _youtubeLink
+      : 'https://www.youtube.com/watch?v=kYJqD9bZ_fQ';
+  String get videoGuideNewbie => _videoGuideNewbie.isNotEmpty ? _videoGuideNewbie : youtubeGuideUrl;
+  String get videoGuideSmooth => _videoGuideSmooth.isNotEmpty ? _videoGuideSmooth : youtubeGuideUrl;
+  String get videoGuideAffiliate => _videoGuideAffiliate.isNotEmpty ? _videoGuideAffiliate : youtubeGuideUrl;
+  String get videoGuideHistory => _videoGuideHistory.isNotEmpty ? _videoGuideHistory : youtubeGuideUrl;
+  String get videoGuideVoice => _videoGuideVoice.isNotEmpty ? _videoGuideVoice : youtubeGuideUrl;
   String get facebook => _facebook;
   String get tiktok => _tiktok;
   bool get isServerConnected => _isServerConnected;
@@ -79,6 +150,100 @@ class SystemConfigProvider extends ChangeNotifier {
   bool get keepScreenOn => _keepScreenOn;
   bool get isPhoneListening => _isPhoneListening;
   DateTime? get lastHeartbeatSuccess => _lastHeartbeatSuccess;
+
+  // Bảng thưởng hoa hồng đối tác được đồng bộ từ cấu hình Admin
+  List<Map<String, dynamic>> _affiliateRewards = [
+    {'name': 'Gói 1 Tháng', 'duration': '30 ngày', 'reward': 10000, 'desc': 'Nhận 10.000₫/lượt'},
+    {'name': 'Gói 3 Tháng', 'duration': '90 ngày', 'reward': 25000, 'desc': 'Nhận 25.000₫/lượt'},
+    {'name': 'Gói 6 Tháng', 'duration': '180 ngày', 'reward': 45000, 'desc': 'Nhận 45.000₫/lượt'},
+    {'name': 'Gói 1 Năm (VIP)', 'duration': '365 ngày', 'reward': 75000, 'desc': 'Nhận 75.000₫/lượt'},
+    {'name': 'Gói Vĩnh Viễn Trọn Đời', 'duration': 'Trọn đời', 'reward': 120000, 'desc': 'Nhận 120.000₫/lượt'},
+  ];
+
+  List<Map<String, dynamic>> get affiliateRewards {
+    if (_packages.isNotEmpty) {
+      final list = <Map<String, dynamic>>[];
+      for (final p in _packages) {
+        if (p['isActive'] == false) continue;
+        final name = (p['name'] ?? 'Gói VIP').toString();
+        final days = (p['durationDays'] as num?)?.toInt() ?? 30;
+        final key = (p['key'] ?? '').toString();
+        final price = (p['price'] as num?)?.toInt() ?? 0;
+        final comm = getCommissionForPackage(
+          key: key,
+          name: name,
+          durationDays: days,
+          price: price,
+        );
+        list.add({
+          'name': name,
+          'duration': days >= 9999 ? 'Trọn đời' : '$days ngày',
+          'reward': comm,
+          'price': price,
+          'desc': 'Nhận ${CurrencyFormatter.formatVND(comm.toDouble())}/lượt',
+        });
+      }
+      if (list.isNotEmpty) return list;
+    }
+    return _affiliateRewards;
+  }
+
+  void updateAffiliateRewards(List<Map<String, dynamic>> customList) {
+    if (customList.isNotEmpty) {
+      _affiliateRewards = customList;
+      notifyListeners();
+    }
+  }
+
+  /// Lấy mức hoa hồng đại lý / đối tác tương ứng cho từng gói cước
+  /// Ưu tiên 1: Giá trị cài đặt trực tiếp từ Admin Backend MySQL
+  /// Ưu tiên 2: Cấu hình tỷ lệ thưởng theo gói
+  /// Ưu tiên 3: Tỷ lệ thưởng chuẩn theo thời hạn gói
+  int getCommissionForPackage({String? key, String? name, int? durationDays, int? price}) {
+    // 1. Kiểm tra trực tiếp trong danh sách _packages do Admin cài đặt
+    if (_packages.isNotEmpty) {
+      for (final p in _packages) {
+        final pKey = (p['key'] ?? '').toString();
+        final pName = (p['name'] ?? '').toString().toLowerCase();
+        final pDays = (p['durationDays'] as num?)?.toInt();
+
+        final isMatch = (key != null && key.isNotEmpty && pKey == key) ||
+            (name != null && name.isNotEmpty && (pName == name.toLowerCase() || pName.contains(name.toLowerCase()))) ||
+            (durationDays != null && pDays == durationDays);
+
+        if (isMatch) {
+          if (p['commission'] != null && (p['commission'] as num) > 0) {
+            return (p['commission'] as num).toInt();
+          }
+          if (p['affiliateReward'] != null && (p['affiliateReward'] as num) > 0) {
+            return (p['affiliateReward'] as num).toInt();
+          }
+        }
+      }
+    }
+
+    // 2. Kiểm tra trong danh sách _affiliateRewards do Admin cấu hình
+    if (_affiliateRewards.isNotEmpty && name != null) {
+      for (final r in _affiliateRewards) {
+        final rName = (r['name'] ?? '').toString().toLowerCase();
+        if (rName.contains(name.toLowerCase()) || name.toLowerCase().contains(rName)) {
+          if (r['reward'] != null && (r['reward'] as num) > 0) {
+            return (r['reward'] as num).toInt();
+          }
+        }
+      }
+    }
+
+    // 3. Mức hoa hồng chuẩn theo ngày sử dụng gói
+    final days = durationDays ?? 30;
+    if (days <= 3) return 0;
+    if (days <= 30) return 10000;
+    if (days <= 90) return 25000;
+    if (days <= 180) return 45000;
+    if (days <= 270) return 60000;
+    if (days <= 365) return 75000;
+    return 120000;
+  }
 
   Map<String, dynamic>? getBestCouponForUser({DateTime? userCreatedAt, String? userEmail}) {
     if (_coupons.isEmpty) return null;
@@ -209,9 +374,21 @@ class SystemConfigProvider extends ChangeNotifier {
         _googlePayMaintenance = data['googlePayMaintenance'] == true;
         _googlePayMaintenanceMsg = data['googlePayMaintenanceMsg'] ?? '';
         _chplayLink = data['chplayLink'] ?? '';
+        _ratingUrl = data['ratingUrl'] ?? _chplayLink;
         _youtubeLink = data['youtubeLink'] ?? '';
+        _videoGuideNewbie = data['videoGuideNewbie'] ?? '';
+        _videoGuideSmooth = data['videoGuideSmooth'] ?? '';
+        _videoGuideAffiliate = data['videoGuideAffiliate'] ?? '';
+        _videoGuideHistory = data['videoGuideHistory'] ?? '';
+        _videoGuideVoice = data['videoGuideVoice'] ?? '';
         _facebook = data['facebook'] ?? '';
         _tiktok = data['tiktok'] ?? '';
+
+        if (data['affiliateRewards'] != null && data['affiliateRewards'] is List) {
+          _affiliateRewards = (data['affiliateRewards'] as List)
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+        }
 
         if (data['packages'] != null && data['packages'] is List) {
           _packages = (data['packages'] as List)

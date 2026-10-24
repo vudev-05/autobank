@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body, Headers, Req, UnauthorizedException } from
 import type { Request } from 'express';
 import { AuthService } from './auth.service.js';
 
-@Controller('auth')
+@Controller(['auth', 'api/auth'])
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -82,5 +82,21 @@ export class AuthController {
       valid: true,
       payload,
     };
+  }
+
+  /**
+   * Gửi mã OTP cấp lại PIN về Gmail thật
+   */
+  @Post('send-pin-otp')
+  async sendPinOtp(@Body('email') email: string) {
+    return this.authService.sendPinResetOtp(email);
+  }
+
+  /**
+   * Xác thực mã OTP 6 số để đổi mã PIN
+   */
+  @Post('verify-pin-otp')
+  async verifyPinOtp(@Body() body: { email: string; otp: string }) {
+    return this.authService.verifyPinResetOtp(body.email, body.otp);
   }
 }

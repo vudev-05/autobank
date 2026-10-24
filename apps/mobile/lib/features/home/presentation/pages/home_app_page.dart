@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
@@ -18,6 +19,8 @@ import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../../../notification_center/presentation/providers/app_notification_provider.dart';
 import '../../../notification_center/presentation/widgets/notification_center_sheet.dart';
 import '../../../auth/presentation/providers/google_auth_provider.dart';
+import '../../../pos/presentation/pages/pos_smart_cashier_page.dart';
+import '../../../affiliate/presentation/pages/affiliate_earn_page.dart';
 
 class HomeAppPage extends StatefulWidget {
   final VoidCallback? onNavigateToVoiceSettings;
@@ -35,11 +38,11 @@ class HomeAppPage extends StatefulWidget {
   State<HomeAppPage> createState() => _HomeAppPageState();
 }
 
-class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  bool _isSpeakerActive = true;
+class _HomeAppPageState extends State<HomeAppPage> with TickerProviderStateMixin, WidgetsBindingObserver {
+  bool _isSpeakerActive = false;
   bool _showTransactions = true;
   bool _isBatteryIgnored = true;
-  String _sharePin = '889922'; // Mã 6 số mặc định, có thể đổi tùy ý
+  String _sharePin = ''; // Mã 6 số bảo mật riêng biệt của mỗi người dùng (không ai trùng nhau)
   bool _hasConfiguredSharePin = false; // Phải thiết lập trong lần đầu chia sẻ
 
   // Cài đặt quyền & chức năng cho liên kết chia sẻ (Live Share)
@@ -49,9 +52,11 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
   bool _shareShowAmount = true;   // Hiển thị số tiền giao dịch
   bool _shareShowContent = true;  // Hiển thị nội dung giao dịch
   bool _shareRepeatTwice = false; // Đọc nhắc lại x2 lần
+  Timer? _promoCountdownTimer; // Đếm ngược thời gian thực cho banner mã giảm giá tân thủ 3 ngày
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  late AnimationController _particleController;
 
   @override
   void initState() {
@@ -73,6 +78,16 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
+    _particleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    )..repeat();
+
+    // Đồng hồ đếm ngược từng giây cho banner ưu đãi thành viên mới
+    _promoCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+
     // Tải cấu hình mã PIN bảo mật 6 số từ bộ nhớ máy & đồng bộ lên backend
     _loadSharePinSettings();
   }
@@ -80,7 +95,9 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _promoCountdownTimer?.cancel();
     _pulseController.dispose();
+    _particleController.dispose();
     NotificationService.setScreenBrightness(-1.0);
     super.dispose();
   }
@@ -109,18 +126,28 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
     try {
       final prefs = await SharedPreferences.getInstance();
       final hasConfigured = prefs.getBool('has_configured_share_pin') ?? false;
-      final savedPin = prefs.getString('share_pin_code');
+      final savedPin = prefs.getString('share_pin_code') ?? prefs.getString('autobank_live_web_pin_code');
+      String effectivePin = '';
+      if (savedPin != null && savedPin.length == 6 && savedPin != '889922') {
+        effectivePin = savedPin;
+      } else {
+        // Sinh mã 6 số DUY NHẤT riêng biệt cho thiết bị này (tuyệt đối không trùng 889922)
+        final rand = (100000 + (DateTime.now().microsecondsSinceEpoch % 900000)).toString();
+        effectivePin = rand;
+        await prefs.setString('share_pin_code', rand);
+        await prefs.setString('autobank_live_web_pin_code', rand);
+      }
       if (mounted) {
         setState(() {
           _hasConfiguredSharePin = hasConfigured;
-          if (savedPin != null && savedPin.length == 6) {
-            _sharePin = savedPin;
-          }
+          _sharePin = effectivePin;
         });
       }
-      _syncPinToBackend(_sharePin);
+      _syncPinToBackend(effectivePin);
     } catch (_) {
-      _syncPinToBackend(_sharePin);
+      if (_sharePin.isNotEmpty) {
+        _syncPinToBackend(_sharePin);
+      }
     }
   }
 
@@ -133,28 +160,66 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('has_configured_share_pin', true);
       await prefs.setString('share_pin_code', pin);
+      await prefs.setString('autobank_live_web_pin_code', pin);
     } catch (_) {}
     _syncPinToBackend(pin);
   }
 
-  Future<void> _syncPinToBackend(String pin) async {
+  Future<void> _syncPinToBackend(String pin, [String? userEmail]) async {
+    final cleanPin = pin.trim();
+    if (cleanPin.length < 4) return;
+
+    String effectiveEmail = (userEmail ?? '').trim().toLowerCase();
+    if (effectiveEmail.isEmpty) {
+      try {
+        final googleAuth = context.read<GoogleAuthProvider>();
+        effectiveEmail = googleAuth.email.trim().toLowerCase();
+      } catch (_) {}
+    }
+    if (effectiveEmail.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        effectiveEmail = (prefs.getString('last_signed_in_email') ?? '').trim().toLowerCase();
+      } catch (_) {}
+    }
+
     final hosts = <String>{
       AppConfig.apiBaseUrl,
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:5173',
-      'http://192.168.1.217:3000',
+      'https://api.docthongbaobank.com',
       'https://docthongbaobank.com',
     };
+
+    final payload = jsonEncode({
+      'pin': cleanPin,
+      'email': effectiveEmail,
+    });
+
     for (final host in hosts) {
       for (final ep in ['/admin/live-pin', '/api/admin/live-pin']) {
         try {
           final uri = Uri.parse('$host$ep');
-          http.post(
+          final resp = await http.post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'pin': pin}),
-          ).timeout(const Duration(seconds: 3)).catchError((_) => http.Response('', 500));
+            body: payload,
+          ).timeout(const Duration(seconds: 8));
+          if (resp.statusCode == 200 || resp.statusCode == 201) {
+            break;
+          }
+        } catch (_) {}
+      }
+
+      if (effectiveEmail.isNotEmpty) {
+        try {
+          final cfgUri = Uri.parse('$host/api/tts/user-config');
+          await http.post(
+            cfgUri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': effectiveEmail,
+              'sharePin': cleanPin,
+            }),
+          ).timeout(const Duration(seconds: 8));
         } catch (_) {}
       }
     }
@@ -254,13 +319,14 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
               ],
             ),
           ),
-          Transform.scale(
-            scale: 0.82,
-            child: Switch(
-              value: value,
-              activeThumbColor: const Color(0xFF0284C7),
-              onChanged: onChanged,
-            ),
+          Switch.adaptive(
+            value: value,
+            activeThumbColor: Colors.white,
+            activeTrackColor: const Color(0xFF0284C7),
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: const Color(0xFFCBD5E1),
+            trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+            onChanged: onChanged,
           ),
         ],
       ),
@@ -273,32 +339,69 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
       _showUpgradePlanModal(context);
       return;
     }
-    final nextState = !txProvider.isTtsEnabled;
+    final nextState = !_isSpeakerActive;
     if (nextState) {
       if (!kIsWeb) {
-        final isNotifEnabled = await NotificationService.isListenerEnabled();
-        final isBatteryIgnored = await NotificationService.isBatteryOptimizationIgnored();
+        final isAppNotif = await NotificationService.isNotificationPermissionGranted();
+        final isBattery = await NotificationService.isBatteryOptimizationIgnored();
+        final isListener = await NotificationService.isListenerEnabled();
+        final isPhoto = await NotificationService.isPhotoPermissionGranted();
 
-        if (!isNotifEnabled || !isBatteryIgnored) {
+        if (!isAppNotif || !isBattery || !isListener || !isPhoto) {
           if (mounted) {
             _showPermissionValidationModal(context, txProvider);
           }
           return;
         }
       }
-    }
 
-    setState(() {
-      _isSpeakerActive = nextState;
-    });
-    txProvider.toggleTts(nextState);
-    HapticFeedback.heavyImpact();
-
-    if (nextState) {
-      await NotificationService.ensureMaxVolume();
-      TtsService().speakTestFeedback('Đã bật loa Đọc Thông Báo Nhận Tiền, sẵn sàng lắng nghe mọi biến động số dư!');
+      setState(() {
+        _isSpeakerActive = true;
+      });
+      txProvider.toggleTts(true);
+      HapticFeedback.heavyImpact();
+      TtsService().speakTestFeedback('Đã bật hệ thống đọc thông báo nhận tiền tự động.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Đã bật hệ thống đọc thông báo nhận tiền tự động! Loa đang trực 24/7.'),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFF16A34A),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } else {
-      TtsService().speakTestFeedback('Đã tắt loa thông báo nhận tiền.');
+      setState(() {
+        _isSpeakerActive = false;
+      });
+      txProvider.toggleTts(false);
+      HapticFeedback.heavyImpact();
+      TtsService().speakTestFeedback('Đã tắt hệ thống đọc thông báo nhận tiền.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.pause_circle_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Đã tắt hệ thống đọc thông báo nhận tiền.'),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFF475569),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -404,199 +507,348 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
       builder: (bCtx) => StatefulBuilder(
         builder: (ctx, setModalState) {
           return Container(
-            padding: const EdgeInsets.all(20),
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.88),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.security_update_good_rounded, color: Color(0xFFD97706), size: 24),
                       ),
-                      child: const Icon(Icons.security_update_good_rounded, color: Color(0xFFD97706), size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Xác thực quyền vận hành 24/7',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Cần cấp đủ 2 quyền để app không bao giờ bị tắt',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // Quyền 1: Lắng nghe thông báo
-                FutureBuilder<bool>(
-                  future: NotificationService.isListenerEnabled(),
-                  builder: (context, snapshot) {
-                    final granted = snapshot.data ?? false;
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: granted ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: granted ? const Color(0xFF86EFAC) : const Color(0xFFFDE68A)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            granted ? Icons.check_circle_rounded : Icons.notifications_active_outlined,
-                            color: granted ? const Color(0xFF16A34A) : const Color(0xFFD97706),
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  '1. Quyền đọc thông báo ngân hàng',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
-                                Text(
-                                  granted ? 'Đã kích hoạt sẵn sàng' : 'Cần bật để app đọc loa khi tiền về',
-                                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
-                                ),
-                              ],
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Cấp quyền để bật hoạt động app',
+                              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                             ),
-                          ),
-                          if (!granted)
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFD97706),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              onPressed: () async {
-                                await NotificationService.openSettings();
-                                setModalState(() {});
-                              },
-                              child: const Text('Bật ngay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 2),
+                            Text(
+                              'Hoàn thiện các quyền dưới đây để loa hoạt động bền bỉ',
+                              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                             ),
-                        ],
+                          ],
+                        ),
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                // Quyền 2: Chạy ngầm không tắt
-                FutureBuilder<bool>(
-                  future: NotificationService.isBatteryOptimizationIgnored(),
-                  builder: (context, snapshot) {
-                    final ignored = snapshot.data ?? false;
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: ignored ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: ignored ? const Color(0xFF86EFAC) : const Color(0xFFFDE68A)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            ignored ? Icons.check_circle_rounded : Icons.battery_alert_rounded,
-                            color: ignored ? const Color(0xFF16A34A) : const Color(0xFFD97706),
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  '2. Cài đặt Pin ứng dụng: Chọn "Không hạn chế"',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
-                                Text(
-                                  ignored ? 'Đã cài Không hạn chế (Chạy ngầm 24/7)' : 'Cài đặt riêng của AutoBank (KHÔNG phải tiết kiệm pin máy). Cần chọn "Không hạn chế" (Unrestricted) thay vì "Tối ưu hóa".',
-                                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (!ignored)
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2563EB),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              onPressed: () async {
-                                await NotificationService.requestIgnoreBatteryOptimizations();
-                                setModalState(() {});
-                              },
-                              child: const Text('Bật ngay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16A34A),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ],
                   ),
-                  onPressed: () async {
-                    Navigator.pop(bCtx);
-                    final isNotif = await NotificationService.isListenerEnabled();
-                    if (isNotif) {
+                  const SizedBox(height: 18),
+
+                  // Quyền 1: Cho phép ứng dụng phát thông báo
+                  FutureBuilder<bool>(
+                    future: NotificationService.isNotificationPermissionGranted(),
+                    builder: (context, snapshot) {
+                      final granted = snapshot.data ?? false;
+                      return Container(
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: granted ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: granted ? const Color(0xFF86EFAC) : const Color(0xFFFDE68A)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              granted ? Icons.check_circle_rounded : Icons.notifications_none_rounded,
+                              color: granted ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '1. Bật thông báo của ứng dụng',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  Text(
+                                    granted ? 'Đã cho phép gửi thông báo' : 'Cho phép app hiển thị thông báo trạng thái hoạt động trên thanh thông báo',
+                                    style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!granted) ...[
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFD97706),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                onPressed: () async {
+                                  await NotificationService.requestNotificationPermission();
+                                  setModalState(() {});
+                                },
+                                child: const Text('Bật ngay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Quyền 2: Chạy ngầm & Mức sử dụng pin (Nút mở thông tin ứng dụng)
+                  FutureBuilder<bool>(
+                    future: NotificationService.isBatteryOptimizationIgnored(),
+                    builder: (context, snapshot) {
+                      final ignored = snapshot.data ?? false;
+                      return Container(
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: ignored ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: ignored ? const Color(0xFF86EFAC) : const Color(0xFFBFDBFE)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              ignored ? Icons.check_circle_rounded : Icons.battery_charging_full_rounded,
+                              color: ignored ? const Color(0xFF16A34A) : const Color(0xFF0284C7),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '2. Cho app chạy nền & Mức sử dụng pin',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  Text(
+                                    ignored
+                                        ? 'Đã cho phép hoạt động dưới nền (Hoạt động liên tục 24/7)'
+                                        : 'Vào Thông tin ứng dụng → "Mức sử dụng pin" → Bật "Cho phép hoạt động dưới nền" & "Tự động khởi chạy"',
+                                    style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!ignored) ...[
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0284C7),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                ),
+                                onPressed: () async {
+                                  await NotificationService.requestIgnoreBatteryOptimizations();
+                                  setModalState(() {});
+                                },
+                                child: const Text('Mở Cài Đặt', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Quyền 3: Đọc thông báo ngân hàng
+                  FutureBuilder<bool>(
+                    future: NotificationService.isListenerEnabled(),
+                    builder: (context, snapshot) {
+                      final granted = snapshot.data ?? false;
+                      return Container(
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: granted ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: granted ? const Color(0xFF86EFAC) : const Color(0xFFFDE68A)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              granted ? Icons.check_circle_rounded : Icons.notifications_active_outlined,
+                              color: granted ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '3. Quyền đọc thông báo ngân hàng',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  Text(
+                                    granted ? 'Đã kích hoạt sẵn sàng' : 'Cho phép app nhận biết khi có thông báo nhận tiền từ các app ngân hàng',
+                                    style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!granted) ...[
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFD97706),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                onPressed: () async {
+                                  await NotificationService.openSettings();
+                                  setModalState(() {});
+                                },
+                                child: const Text('Bật ngay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Quyền 4: Quyền truy cập ảnh & quét mã QR
+                  FutureBuilder<bool>(
+                    future: NotificationService.isPhotoPermissionGranted(),
+                    builder: (context, snapshot) {
+                      final granted = snapshot.data ?? false;
+                      return Container(
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: granted ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: granted ? const Color(0xFF86EFAC) : const Color(0xFFCBD5E1)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              granted ? Icons.check_circle_rounded : Icons.photo_library_outlined,
+                              color: granted ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '4. Quyền truy cập ảnh & mã QR quầy',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  Text(
+                                    granted ? 'Đã cấp quyền truy cập' : 'Cho phép chọn ảnh mã QR ngân hàng từ thư viện để hiển thị tại quầy thu ngân',
+                                    style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!granted) ...[
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF475569),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                onPressed: () async {
+                                  await NotificationService.requestPhotoPermission();
+                                  setModalState(() {});
+                                },
+                                child: const Text('Cho phép', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // NÚT HOÀN TẤT BẬT HOẠT ĐỘNG
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 2,
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(bCtx);
                       setState(() {
                         _isSpeakerActive = true;
                       });
                       txProvider.toggleTts(true);
-                      await NotificationService.ensureMaxVolume();
-                      TtsService().speakTestFeedback('Đã xác thực thành công. Loa thông báo đang bật.');
-                    } else {
-                      txProvider.checkPermission();
-                    }
-                  },
-                  child: const Text(
-                    'Đã cấp đủ quyền ➔ Bật loa thông báo ngay',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      HapticFeedback.heavyImpact();
+                      TtsService().speakTestFeedback('Đã bật hệ thống đọc thông báo nhận tiền tự động.');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text('Đã bật hệ thống đọc thông báo nhận tiền tự động! Loa đang trực 24/7.'),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: Color(0xFF16A34A),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    },
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.power_settings_new_rounded, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'ĐÃ HOÀN TẤT ➔ BẬT HOẠT ĐỘNG NGAY',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-              ],
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           );
         },
@@ -614,8 +866,9 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
 
     final sentenceToReplay = txProvider.latestBankSentence;
     final hasSentence = sentenceToReplay.isNotEmpty;
+    NotificationService.ensureMaxVolume();
     if (hasSentence) {
-      TtsService().speakSentence(sentenceToReplay, isBankTransaction: true);
+      TtsService().speakSentence(sentenceToReplay, isBankTransaction: true, bypassChecks: true);
     } else {
       TtsService().speakTestFeedback('Chưa có thông báo nhận tiền mới từ ngân hàng để đọc lại.');
     }
@@ -939,19 +1192,21 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (modalCtx) => StatefulBuilder(
         builder: (ctx, setModalState) {
           return Container(
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.9,
+              maxHeight: MediaQuery.of(context).size.height * 0.92,
             ),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 48),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1029,30 +1284,35 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                         Row(
                           children: [
                             Expanded(
-                              child: TextField(
-                                controller: pinController,
-                                maxLength: 6,
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 8,
-                                  color: Color(0xFF0284C7),
+                              child: Container(
+                                height: 48,
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF0284C7).withValues(alpha: 0.08),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                decoration: const InputDecoration(
-                                  counterText: '',
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  border: OutlineInputBorder(),
+                                alignment: Alignment.center,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _sharePin,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 4,
+                                      color: Color(0xFF0284C7),
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
                                 ),
-                                onChanged: (val) {
-                                  if (val.length == 6) {
-                                    _saveSharePin(val);
-                                  }
-                                },
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -1061,8 +1321,9 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                               style: IconButton.styleFrom(
                                 backgroundColor: const Color(0xFFE0F2FE),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.all(12),
                               ),
-                              icon: const Icon(Icons.copy_rounded, color: Color(0xFF0284C7), size: 18),
+                              icon: const Icon(Icons.copy_rounded, color: Color(0xFF0284C7), size: 20),
                               tooltip: 'Sao chép mã bảo mật',
                               onPressed: () {
                                 Clipboard.setData(ClipboardData(text: _sharePin));
@@ -1080,7 +1341,7 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                             OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: Color(0xFF0284C7)),
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                               onPressed: () {
@@ -1088,8 +1349,11 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                                 pinController.text = _sharePin;
                                 setModalState(() {});
                               },
-                              icon: const Icon(Icons.refresh_rounded, size: 15, color: Color(0xFF0284C7)),
-                              label: const Text('Mã mới', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                              icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF0284C7)),
+                              label: const Text(
+                                'Mã mới',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                              ),
                             ),
                           ],
                         ),
@@ -1410,6 +1674,20 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11, color: WebTheme.textMuted, fontStyle: FontStyle.italic),
                   ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      ),
+                      onPressed: () => Navigator.pop(modalCtx),
+                      child: const Text('Đóng Lại', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                    ),
+                  ),
+                  const SizedBox(height: 36),
                 ],
               ),
             ),
@@ -1423,6 +1701,7 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     final sysConfig = context.watch<SystemConfigProvider>();
     final txProvider = context.watch<TransactionProvider>();
+    final googleAuth = context.watch<GoogleAuthProvider>();
     final transactions = txProvider.transactions;
 
     return Scaffold(
@@ -1540,12 +1819,12 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: const [
                                   Text(
-                                    'Cài đặt Pin Ứng dụng: Chọn "Không hạn chế"',
+                                    'Mức sử dụng pin: Bật "Cho phép hoạt động dưới nền"',
                                     style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    'Đây là Cài đặt Pin riêng của ứng dụng AutoBank (không phải chế độ tiết kiệm pin máy). Mặc định Android để là "Tối ưu hóa", cần chuyển sang "Không hạn chế" (Unrestricted) để máy không ngắt app khi tắt màn hình.',
+                                    'Vào Thông tin ứng dụng → Mục "Mức sử dụng pin" → Bật "Cho phép hoạt động dưới nền" & "Tự động khởi chạy". Nên khóa nền app (🔒) ở màn hình đa nhiệm để máy không tắt app khi tắt màn hình.',
                                     style: TextStyle(fontSize: 11, color: Color(0xFFB91C1C), height: 1.3),
                                   ),
                                 ],
@@ -1569,24 +1848,33 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                                   await NotificationService.requestIgnoreBatteryOptimizations();
                                   await _checkBatteryOptimization();
                                 },
-                                child: const Text('Bật "Không hạn chế" (Nhanh)'),
+                                child: const Text('Mở Thông Tin Ứng Dụng'),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: OutlinedButton(
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFF991B1B),
-                                  side: const BorderSide(color: Color(0xFFFCA5A5)),
-                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF16A34A),
+                                  side: const BorderSide(color: Color(0xFF86EFAC)),
+                                  backgroundColor: const Color(0xFFF0FDF4),
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                   textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
                                 onPressed: () async {
-                                  await NotificationService.openAppSettings();
+                                  final sm = ScaffoldMessenger.of(context);
+                                  await NotificationService.setBatteryOptimizationIgnored(granted: true);
+                                  await _checkBatteryOptimization();
+                                  sm.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('✅ Đã xác nhận quyền chạy nền & không giới hạn pin!'),
+                                      backgroundColor: Color(0xFF16A34A),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
                                 },
-                                child: const Text('Mở Cài đặt Pin App'),
+                                child: const Text('Tôi đã bật trong Cài đặt'),
                               ),
                             ),
                           ],
@@ -1597,6 +1885,11 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
 
                 // 1. THANH HEADER THƯƠNG HIỆU CHUẨN WEB (LOGO + SLOGAN + STATUS)
                 _buildBrandHeader(sysConfig),
+
+                const SizedBox(height: 10),
+
+                // 1.1 NÚT THÔNG BÁO CHẠY DƯỚI LOGO: MÃ GIẢM GIÁ NGUOIMOI GIẢM 10% VÀ ĐẾM NGƯỢC 3 NGÀY
+                _buildNewcomerPromoTicker(googleAuth),
 
                 const SizedBox(height: 12),
 
@@ -1616,7 +1909,12 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                 // 4. THẺ DOANH THU HÔM NAY (PULSE CARD - KHÔNG CÓ NÚT TEST)
                 _buildTodayPulseCard(txProvider),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
+                // 4.1. PHÍM TẮT TIỆN ÍCH QUẦY THU NGÂN & KIẾM TIỀN
+                _buildSmartCashierAndAffiliateCards(),
+
+                const SizedBox(height: 14),
 
                 // 5. BỘ 4 PHÍM TẮT TIỆN ÍCH HỆ THỐNG
                 _buildQuickActionsGrid(sysConfig),
@@ -1798,6 +2096,163 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
     );
   }
 
+  /// 1.1 THÔNG BÁO CHẠY DƯỚI LOGO: MÃ GIẢM GIÁ NGUOIMOI TRONG 3 NGÀY DÙNG THỬ VỚI ĐẾM NGƯỢC THỜI GIAN THỰC
+  /// CHỈ HIỂN THỊ VỚI NGƯỜI MỚI DÙNG THỬ VÀ CÒN THỜI HẠN ĐẾM NGƯỢC 3 NGÀY
+  Widget _buildNewcomerPromoTicker(GoogleAuthProvider googleAuth) {
+    // 1. Nếu không phải người mới dùng thử hoặc đã mua các gói chính thức (1m, 3m, 1y, lifetime) thì KHÔNG hiển thị
+    if (googleAuth.isLifetime) return const SizedBox.shrink();
+    final planLower = googleAuth.activePackageName.toLowerCase();
+    final isExplicitPaid = planLower.contains('1 năm') || 
+                           planLower.contains('1 tháng') || 
+                           planLower.contains('3 tháng') || 
+                           planLower.contains('6 tháng') || 
+                           planLower.contains('9 tháng') || 
+                           planLower.contains('vĩnh viễn');
+    if (isExplicitPaid) return const SizedBox.shrink();
+
+    // 2. Tính thời gian đếm ngược 3 ngày (72 giờ) từ thời điểm bắt đầu dùng thử
+    final startTime = googleAuth.trialStartedAt ?? googleAuth.createdAt;
+    final expireTime = startTime.add(const Duration(hours: 72));
+    final now = DateTime.now();
+    final rawRemaining = expireTime.difference(now);
+    final remaining = rawRemaining > const Duration(hours: 72)
+        ? const Duration(hours: 72)
+        : rawRemaining;
+
+    // 3. Nếu đã hết 3 ngày dùng thử (remaining <= 0) thì ẩn đi, không hiển thị
+    if (remaining.isNegative || remaining == Duration.zero) {
+      return const SizedBox.shrink();
+    }
+
+    final days = remaining.inDays;
+    final hours = remaining.inHours % 24;
+    final minutes = remaining.inMinutes % 60;
+    final seconds = remaining.inSeconds % 60;
+    final String countdownStr = days > 0
+        ? '$days ngày ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}'
+        : '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    return Container(
+      height: 38,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF7ED), Color(0xFFFEF2F2)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFFCA5A5), width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEA580C).withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            // Lưu cờ auto_apply_coupon_code = 'NGUOIMOI' để trang Đăng ký tự động áp dụng
+            SharedPreferences.getInstance().then((prefs) {
+              prefs.setString('auto_apply_coupon_code', 'NGUOIMOI');
+            });
+            widget.onNavigateToRegister?.call();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(child: Text('🎉 Đã kích hoạt mã NGUOIMOI - Giảm ngay 10% các gói!')),
+                  ],
+                ),
+                backgroundColor: Color(0xFFEA580C),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+            child: Row(
+              children: [
+                // Tag mã cố định bên trái (Nhỏ gọn, rõ ràng)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFDC2626), Color(0xFFEA580C)],
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.local_fire_department_rounded, color: Colors.yellowAccent, size: 13),
+                      SizedBox(width: 3),
+                      Text(
+                        'NGUOIMOI (-10%)',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Dải chữ chạy (Marquee Ticker) ở giữa: Đầy đủ thông tin, không bao giờ bị tràn/đè
+                Expanded(
+                  child: _MarqueeTickerText(
+                    text: '⚡ Giảm 10% mọi gói khi nhập mã NGUOIMOI • Đếm ngược ưu đãi: $countdownStr • Chạm để áp dụng ngay!',
+                    style: const TextStyle(
+                      color: Color(0xFF991B1B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+
+                // Nút Áp dụng gọn gàng bên phải
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Áp dụng',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                        ),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(Icons.chevron_right_rounded, color: Colors.white, size: 13),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildExpiredPlanBanner() {
     return Consumer<GoogleAuthProvider>(
       builder: (ctx, googleAuth, _) {
@@ -1861,143 +2316,488 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
     );
   }
 
-  // 2. NÚT TẮT BẬT TO ĐÙNG NẰM TRÊN ĐẦU (MASTER ON/OFF POWER BUTTON NHƯ HÌNH MẪU)
+  // DẢI SÓNG ÂM THANH SỐNG ĐỘNG (EQUALIZER BARS) KHI BẬT THÔNG BÁO
+  Widget _buildEqualizerSoundWave() {
+    final colors = [
+      const Color(0xFF10B981), // Emerald
+      const Color(0xFF06B6D4), // Cyan
+      const Color(0xFF3B82F6), // Sky blue
+      const Color(0xFF10B981), // Emerald center
+      const Color(0xFF84CC16), // Lime
+      const Color(0xFF06B6D4), // Cyan
+      const Color(0xFF10B981), // Emerald
+    ];
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, _) {
+        final t = _pulseController.value;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF86EFAC).withValues(alpha: 0.6)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10B981).withValues(alpha: 0.14),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(Icons.graphic_eq_rounded, size: 14, color: Color(0xFF059669)),
+              const SizedBox(width: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(colors.length, (i) {
+                  final phase = (sin((t * 2 * pi) + (i * 0.95)) + 1) / 2;
+                  final barHeight = 5.0 + (phase * 15.0);
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 2.2),
+                    width: 3.5,
+                    height: barHeight,
+                    decoration: BoxDecoration(
+                      color: colors[i],
+                      borderRadius: BorderRadius.circular(3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors[i].withValues(alpha: 0.45),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'LIVE AUDIO',
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF065F46),
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 2. NÚT TẮT BẬT TO ĐÙNG NẰM TRÊN ĐẦU (MASTER ON/OFF POWER BUTTON - VỚI HỆ THỐNG HẠT BAY VÀ HÀO QUANG ĐA SẮC)
   Widget _buildMasterPowerButton(TransactionProvider txProvider) {
     final googleAuth = context.watch<GoogleAuthProvider>();
     final isPlanExpired = googleAuth.isExpired || !googleAuth.isActivated;
     final isSpeakerActive = _isSpeakerActive && txProvider.isTtsEnabled && !isPlanExpired;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        gradient: isSpeakerActive
+            ? const LinearGradient(
+                colors: [
+                  Color(0xFFF0FDF4),
+                  Color(0xFFECFDF5),
+                  Color(0xFFF7FEE7),
+                  Color(0xFFFFFFFF),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                stops: [0.0, 0.35, 0.7, 1.0],
+              )
+            : null,
+        color: isSpeakerActive ? null : Colors.white,
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(
           color: isPlanExpired
-              ? const Color(0xFFFECACA)
-              : (isSpeakerActive ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0)),
-          width: 1.5,
+              ? const Color(0xFFFCA5A5)
+              : (isSpeakerActive ? const Color(0xFF22C55E) : const Color(0xFFCBD5E1)),
+          width: isSpeakerActive ? 2.2 : 1.5,
         ),
         boxShadow: [
-          BoxShadow(
-            color: (isPlanExpired
-                    ? const Color(0xFFDC2626)
-                    : (isSpeakerActive ? const Color(0xFF10B981) : const Color(0xFF64748B)))
-                .withValues(alpha: 0.1),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
+          if (isSpeakerActive) ...[
+            BoxShadow(
+              color: const Color(0xFF10B981).withValues(alpha: 0.32),
+              blurRadius: 32,
+              spreadRadius: 2,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: const Color(0xFF06B6D4).withValues(alpha: 0.18),
+              blurRadius: 48,
+              spreadRadius: 4,
+              offset: const Offset(0, 12),
+            ),
+            BoxShadow(
+              color: const Color(0xFF84CC16).withValues(alpha: 0.12),
+              blurRadius: 60,
+              spreadRadius: 6,
+              offset: const Offset(0, 16),
+            ),
+          ] else ...[
+            BoxShadow(
+              color: (isPlanExpired ? const Color(0xFFDC2626) : const Color(0xFF64748B)).withValues(alpha: 0.08),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ],
       ),
-      child: Column(
-        children: [
-          // NÚT NGUỒN POWER TO ĐÙNG
-          GestureDetector(
-            onTap: () {
-              if (isPlanExpired) {
-                _showUpgradePlanModal(context);
-                return;
-              }
-              _toggleSpeaker(txProvider);
-            },
-            child: AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: isSpeakerActive ? _pulseAnimation.value : 1.0,
-                  child: child,
-                );
-              },
-              child: Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isPlanExpired
-                        ? const [Color(0xFFEF4444), Color(0xFFB91C1C)]
-                        : (isSpeakerActive
-                            ? const [Color(0xFF22C55E), Color(0xFF15803D)]
-                            : const [Color(0xFF94A3B8), Color(0xFF475569)]),
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(26),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isPlanExpired
-                              ? const Color(0xFFEF4444)
-                              : (isSpeakerActive ? const Color(0xFF22C55E) : const Color(0xFF475569)))
-                          .withValues(alpha: 0.38),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // LỚP HIỆU ỨNG HẠT BAY BAY ĐA SẮC XUNG QUANH KHI BẬT (FLOATING PARTICLES)
+            if (isSpeakerActive)
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _particleController,
+                  builder: (context, _) {
+                    return CustomPaint(
+                      painter: _ParticlesPainter(progress: _particleController.value),
+                    );
+                  },
                 ),
-                child: Center(
-                  child: Container(
-                    width: 62,
-                    height: 62,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
+              ),
+
+            // NỘI DUNG CHÍNH CỦA THẺ NẰM ĐÈ TRÊN LỚP HẠT
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+              child: Column(
+                children: [
+                  // HUY HIỆU TRỰC TUYẾN PHÁT SÁNG KHI BẬT
+                  if (isSpeakerActive)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4.5),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF059669), Color(0xFF0D9488)],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.40),
+                            blurRadius: 12,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedBuilder(
+                            animation: _pulseController,
+                            builder: (context, _) => Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withValues(alpha: _pulseController.value),
+                                    blurRadius: 6,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'SẴN SÀNG PHÁT LOA 24/7',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 10,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // NÚT NGUỒN POWER TO ĐÙNG CÓ VÒNG SÓNG RADAR + CÁC HẠT NĂNG LƯỢNG XOAY QUANH
+                  GestureDetector(
+                    onTap: () {
+                      if (isPlanExpired) {
+                        _showUpgradePlanModal(context);
+                        return;
+                      }
+                      _toggleSpeaker(txProvider);
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // VÒNG SÓNG RADAR LAN TỎA ĐA SẮC KHI BẬT (CYAN & EMERALD)
+                        if (isSpeakerActive) ...[
+                          AnimatedBuilder(
+                            animation: _pulseController,
+                            builder: (context, _) {
+                              final scale = 1.0 + (_pulseController.value * 0.38);
+                              final opacity = (1.0 - _pulseController.value).clamp(0.0, 1.0) * 0.45;
+                              return Transform.scale(
+                                scale: scale,
+                                child: Container(
+                                  width: 110,
+                                  height: 110,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(34),
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        const Color(0xFF06B6D4).withValues(alpha: opacity),
+                                        const Color(0xFF10B981).withValues(alpha: 0.0),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          AnimatedBuilder(
+                            animation: _pulseController,
+                            builder: (context, _) {
+                              final scale = 1.0 + ((1.0 - _pulseController.value) * 0.22);
+                              final opacity = (_pulseController.value * 0.65).clamp(0.0, 1.0);
+                              return Transform.scale(
+                                scale: scale,
+                                child: Container(
+                                  width: 104,
+                                  height: 104,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(32),
+                                    border: Border.all(
+                                      color: const Color(0xFF34D399).withValues(alpha: opacity),
+                                      width: 2.2,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          // 4 HẠT PHÁT SÁNG ORBIT XOAY VÒNG QUANH NÚT NGUỒN
+                          AnimatedBuilder(
+                            animation: _particleController,
+                            builder: (context, _) {
+                              final angle = _particleController.value * 2 * pi;
+                              const colors = [
+                                Color(0xFF10B981),
+                                Color(0xFF06B6D4),
+                                Color(0xFFF59E0B),
+                                Color(0xFF84CC16),
+                              ];
+                              return Stack(
+                                alignment: Alignment.center,
+                                children: List.generate(4, (i) {
+                                  final currentAngle = angle + (i * pi / 2);
+                                  final radius = 60.0 + (sin((_particleController.value * 4 * pi) + i) * 5.0);
+                                  final px = cos(currentAngle) * radius;
+                                  final py = sin(currentAngle) * radius;
+                                  return Transform.translate(
+                                    offset: Offset(px, py),
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: colors[i],
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: colors[i].withValues(alpha: 0.85),
+                                            blurRadius: 8,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              );
+                            },
+                          ),
+                        ],
+
+                        // NÚT CHÍNH (POWER BUTTON CHÍNH GIỮA)
+                        AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: isSpeakerActive ? _pulseAnimation.value : 1.0,
+                              child: child,
+                            );
+                          },
+                          child: Container(
+                            width: 98,
+                            height: 98,
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: isPlanExpired
+                                    ? const [Color(0xFFEF4444), Color(0xFFB91C1C)]
+                                    : (isSpeakerActive
+                                        ? const [Color(0xFF059669), Color(0xFF10B981), Color(0xFF0D9488)]
+                                        : const [Color(0xFF94A3B8), Color(0xFF475569)]),
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (isPlanExpired
+                                          ? const Color(0xFFEF4444)
+                                          : (isSpeakerActive ? const Color(0xFF10B981) : const Color(0xFF475569)))
+                                      .withValues(alpha: isSpeakerActive ? 0.60 : 0.25),
+                                  blurRadius: isSpeakerActive ? 28 : 12,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSpeakerActive ? const Color(0xFF86EFAC) : const Color(0xFFF1F5F9),
+                                    width: 2.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: isSpeakerActive
+                                          ? const Color(0xFF10B981).withValues(alpha: 0.25)
+                                          : Colors.black.withValues(alpha: 0.12),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    isPlanExpired ? Icons.lock_clock_rounded : Icons.power_settings_new_rounded,
+                                    size: 36,
+                                    color: isPlanExpired
+                                        ? const Color(0xFFDC2626)
+                                        : (isSpeakerActive ? const Color(0xFF059669) : const Color(0xFF64748B)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: Icon(
-                        isPlanExpired ? Icons.lock_clock_rounded : Icons.power_settings_new_rounded,
-                        size: 36,
-                        color: isPlanExpired
-                            ? const Color(0xFFDC2626)
-                            : (isSpeakerActive ? const Color(0xFF16A34A) : const Color(0xFF64748B)),
-                      ),
-                    ),
                   ),
-                ),
+
+                  // DẢI SÓNG ÂM THANH EQUALIZER BARS KHI BẬT
+                  if (isSpeakerActive) ...[
+                    const SizedBox(height: 14),
+                    _buildEqualizerSoundWave(),
+                  ],
+
+                  const SizedBox(height: 14),
+
+                  // DÒNG CHỮ TRẠNG THÁI TO ĐẬM DƯỚI NÚT NGUỒN
+                  Column(
+                    children: [
+                      Text(
+                        isPlanExpired
+                            ? 'Gói cước đã hết hạn (Đã khóa)'
+                            : (isSpeakerActive ? 'Thông báo đang bật' : 'Thông báo đang tắt'),
+                        textAlign: TextAlign.center,
+                        softWrap: true,
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                          color: isPlanExpired
+                              ? const Color(0xFFDC2626)
+                              : (isSpeakerActive ? const Color(0xFF065F46) : const Color(0xFFDC2626)),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          isPlanExpired
+                              ? 'Chạm nút ở trên để nâng cấp / gia hạn gói dịch vụ'
+                              : (isSpeakerActive
+                                  ? 'Loa sẵn sàng đọc thông báo tức thì khi có biến động số dư'
+                                  : 'Chạm nút nguồn to ở trên để bật phát loa thông báo'),
+                          textAlign: TextAlign.center,
+                          softWrap: true,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: isPlanExpired ? const Color(0xFFDC2626) : WebTheme.textMuted,
+                            fontWeight: FontWeight.w500,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: () async {
+                          HapticFeedback.lightImpact();
+                          await NotificationService.ensureMaxVolume();
+                          TtsService().speakTestFeedback(
+                            'Kiểm tra loa thành công. AutoBank đã nhận được tiền và sẵn sàng đọc thông báo!',
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: isSpeakerActive
+                                ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                                : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSpeakerActive
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.35)
+                                  : const Color(0xFFCBD5E1),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.volume_up_rounded,
+                                size: 16,
+                                color: isSpeakerActive ? const Color(0xFF059669) : const Color(0xFF64748B),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Bấm để nghe thử loa',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSpeakerActive ? const Color(0xFF065F46) : const Color(0xFF475569),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // DÒNG CHỮ TRẠNG THÁI TO ĐẬM DƯỚI NÚT NGUỒN
-          Column(
-            children: [
-              Text(
-                isPlanExpired
-                    ? 'Gói cước đã hết hạn (Đã khóa)'
-                    : (isSpeakerActive ? 'Thông báo đang bật' : 'Thông báo đang tắt'),
-                style: TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w900,
-                  color: isPlanExpired
-                      ? const Color(0xFFDC2626)
-                      : (isSpeakerActive ? const Color(0xFF15803D) : const Color(0xFFDC2626)),
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                isPlanExpired
-                    ? 'Chạm nút ở trên để nâng cấp / gia hạn gói dịch vụ'
-                    : (isSpeakerActive
-                        ? 'Loa sẵn sàng đọc thông báo tức thì khi có biến động số dư'
-                        : 'Chạm nút nguồn to ở trên để bật phát loa thông báo'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isPlanExpired ? const Color(0xFFDC2626) : WebTheme.textMuted,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2776,6 +3576,147 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
     );
   }
 
+  // 4.1. Phím tắt Quầy thu ngân & Kiếm tiền (Nền trắng, sạch sẽ)
+  Widget _buildSmartCashierAndAffiliateCards() {
+    return Row(
+      children: [
+        // Nút 1: Quầy Thu Ngân
+        Expanded(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PosSmartCashierPage()),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0F2FE),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.point_of_sale_rounded, color: Color(0xFF0284C7), size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Quầy Thu Ngân',
+                            style: TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Bán hàng quét QR',
+                            style: TextStyle(color: Color(0xFF64748B), fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Nút 2: Kiếm Tiền App
+        Expanded(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AffiliateEarnPage()),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.monetization_on_rounded, color: Color(0xFF10B981), size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kiếm Tiền',
+                            style: TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Hoa hồng giới thiệu',
+                            style: TextStyle(color: Color(0xFF64748B), fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // 5. Bộ 4 phím tắt tiện ích
   Widget _buildQuickActionsGrid(SystemConfigProvider sysConfig) {
     final googleAuth = context.watch<GoogleAuthProvider>();
@@ -2825,11 +3766,13 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                 _showUpgradePlanModal(context);
                 return;
               }
-              TtsService().speakTestFeedback('Kích hoạt chế độ chạy ngầm tiết kiệm pin và làm mờ màn hình. Máy đang trực biến động 24 trên 24.');
-              context.read<TransactionProvider>().setDimmedScreenActive(true);
+              // Giữ màn hình luôn bật 24/24, không bao giờ tắt màn hình, làm mờ tối đa OLED để tiết kiệm pin
+              await NotificationService.setKeepScreenOn(true);
               await NotificationService.setScreenBrightness(0.01);
-              await NotificationService.ensureMaxVolume();
-              await NotificationService.requestIgnoreBatteryOptimizations();
+              if (mounted) {
+                context.read<TransactionProvider>().setDimmedScreenActive(true);
+              }
+              TtsService().speakTestFeedback('Chế độ chạy ngầm trực biến động hai tư trên hai tư đã kích hoạt. Màn hình duy trì bật liên tục và làm mờ tiết kiệm pin.');
             },
           ),
         ),
@@ -2841,8 +3784,9 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
             bgColor: const Color(0xFFFFF7ED),
             label: 'Hotline 24/7',
             onTap: () {
+              final spokenPhone = _convertPhoneToSpeechText(sysConfig.hotline);
               Clipboard.setData(ClipboardData(text: sysConfig.hotline));
-              TtsService().speakTestFeedback('Đã sao chép số hotline hỗ trợ kỹ thuật hai tư trên bảy: không tám sáu chín, hai hai sáu sáu tám bảy');
+              TtsService().speakTestFeedback('Đã sao chép số hotline hỗ trợ kỹ thuật hai tư trên bảy: $spokenPhone');
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Đã sao chép hotline ${sysConfig.hotline}!'),
@@ -2855,6 +3799,30 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
         ),
       ],
     );
+  }
+
+  String _convertPhoneToSpeechText(String phone) {
+    const digitMap = {
+      '0': 'không',
+      '1': 'một',
+      '2': 'hai',
+      '3': 'ba',
+      '4': 'bốn',
+      '5': 'năm',
+      '6': 'sáu',
+      '7': 'bảy',
+      '8': 'tám',
+      '9': 'chín',
+    };
+    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return phone;
+    final words = digits.split('').map((d) => digitMap[d] ?? d).toList();
+    if (words.length == 10) {
+      return '${words.sublist(0, 4).join(' ')}, ${words.sublist(4, 7).join(' ')}, ${words.sublist(7).join(' ')}';
+    } else if (words.length == 11) {
+      return '${words.sublist(0, 4).join(' ')}, ${words.sublist(4, 7).join(' ')}, ${words.sublist(7).join(' ')}';
+    }
+    return words.join(' ');
   }
 
   Widget _buildActionTile({
@@ -2950,9 +3918,41 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                   ),
                 ],
               ),
-              Text(
-                '${transactions.length} tin',
-                style: const TextStyle(fontSize: 12, color: WebTheme.textMuted),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${transactions.length} tin',
+                    style: const TextStyle(fontSize: 12, color: WebTheme.textMuted),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () {
+                      final txProvider = context.read<TransactionProvider>();
+                      _showAllTodayTransactionsSheet(context, txProvider);
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0F2FE),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFBAE6FD)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.visibility_rounded, size: 12, color: Color(0xFF0284C7)),
+                          SizedBox(width: 3),
+                          Text(
+                            'Xem',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -3023,6 +4023,7 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
                             ],
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           '+${CurrencyFormatter.formatVND(tx.amount)}',
                           style: const TextStyle(
@@ -3038,6 +4039,214 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
               },
             ),
         ],
+      ),
+    );
+  }
+
+  // BOTTOM SHEET HIỂN THỊ TOÀN BỘ LỊCH SỬ BIẾN ĐỘNG TRONG NGÀY HÔM ĐÓ
+  void _showAllTodayTransactionsSheet(BuildContext context, TransactionProvider txProvider) {
+    final now = DateTime.now();
+    final todayTx = txProvider.transactions.where((t) =>
+      t.transactionTime.year == now.year &&
+      t.transactionTime.month == now.month &&
+      t.transactionTime.day == now.day
+    ).toList();
+
+    double totalIn = 0;
+    double totalOut = 0;
+    for (final t in todayTx) {
+      if (t.type.isCredit) {
+        totalIn += t.amount;
+      } else {
+        totalOut += t.amount;
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (modalCtx, setSheetState) => Container(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.history_rounded, color: Color(0xFF0284C7), size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Lịch Sử Biến Động Hôm Nay',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                          ),
+                          Text(
+                            'Ngày ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} • ${todayTx.length} giao dịch',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                    onPressed: () => Navigator.pop(modalCtx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Thống kê nhanh
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('TỔNG TIỀN VÀO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+                          const SizedBox(height: 2),
+                          Text(
+                            '+${CurrencyFormatter.formatVND(totalIn)}',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 28, color: const Color(0xFFCBD5E1)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('TỔNG TIỀN RA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+                          const SizedBox(height: 2),
+                          Text(
+                            '-${CurrencyFormatter.formatVND(totalOut)}',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Danh sách tất cả giao dịch trong ngày
+              Expanded(
+                child: todayTx.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Chưa có giao dịch nào được ghi nhận trong ngày hôm nay.',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: todayTx.length,
+                        separatorBuilder: (_, _) => const Divider(height: 14, color: Color(0xFFF1F5F9)),
+                        itemBuilder: (context, idx) {
+                          final tx = todayTx[idx];
+                          final isCredit = tx.type.isCredit;
+
+                          return InkWell(
+                            onTap: () => _showTransactionDetailSheet(tx, txProvider),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isCredit ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      tx.bankCode,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                        color: isCredit ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          tx.content,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        Text(
+                                          'Lúc ${tx.transactionTime.hour.toString().padLeft(2, '0')}:${tx.transactionTime.minute.toString().padLeft(2, '0')}:${tx.transactionTime.second.toString().padLeft(2, '0')} • ${tx.category ?? "Chưa phân loại"}',
+                                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${isCredit ? '+' : '-'}${CurrencyFormatter.formatVND(tx.amount)}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: isCredit ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -3170,13 +4379,13 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.shield_outlined, size: 16, color: WebTheme.textMuted),
-              const SizedBox(width: 6),
+              Icon(Icons.security_rounded, size: 16, color: WebTheme.emerald),
+              SizedBox(width: 6),
               Text(
-                'Phiên bản: ${sysConfig.latestVersion}',
-                style: const TextStyle(fontSize: 11, color: WebTheme.textMuted),
+                'Bảo mật và mã hóa',
+                style: TextStyle(fontSize: 11, color: WebTheme.textMuted, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -3193,3 +4402,154 @@ class _HomeAppPageState extends State<HomeAppPage> with SingleTickerProviderStat
     );
   }
 }
+
+// HỆ THỐNG HẠT BAY BAY ĐA SẮC DẠNG CUSTOM PAINTER
+class _ParticlesPainter extends CustomPainter {
+  final double progress;
+  static final List<_ParticleData> _particles = List.generate(24, (index) {
+    final random = Random(index * 42 + 7);
+    const colors = [
+      Color(0xFF10B981), // Emerald
+      Color(0xFF34D399), // Mint
+      Color(0xFF06B6D4), // Cyan
+      Color(0xFFF59E0B), // Amber gold
+      Color(0xFF84CC16), // Lime
+      Color(0xFF38BDF8), // Light blue
+    ];
+    return _ParticleData(
+      initialX: 0.08 + (random.nextDouble() * 0.84),
+      initialY: random.nextDouble(),
+      size: 2.5 + (random.nextDouble() * 4.0),
+      speed: 0.6 + (random.nextDouble() * 0.7),
+      wobbleSpeed: 1.2 + (random.nextDouble() * 2.0),
+      color: colors[index % colors.length],
+      isStar: index % 3 == 0,
+    );
+  });
+
+  _ParticlesPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in _particles) {
+      final currentY = (p.initialY - (progress * p.speed)) % 1.0;
+      final y = (currentY < 0 ? currentY + 1.0 : currentY) * size.height;
+      final wobble = sin((progress * 2 * pi * p.wobbleSpeed) + (p.initialX * 10)) * 14.0;
+      final x = (p.initialX * size.width) + wobble;
+
+      final normY = (y / size.height).clamp(0.0, 1.0);
+      final alpha = (sin(normY * pi) * 0.85).clamp(0.0, 1.0);
+
+      final paint = Paint()
+        ..color = p.color.withValues(alpha: alpha)
+        ..style = PaintingStyle.fill;
+
+      final glowPaint = Paint()
+        ..color = p.color.withValues(alpha: alpha * 0.45)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+
+      if (p.isStar) {
+        final path = Path();
+        final s = p.size * 1.5;
+        path.moveTo(x, y - s);
+        path.quadraticBezierTo(x, y, x + s, y);
+        path.quadraticBezierTo(x, y, x, y + s);
+        path.quadraticBezierTo(x, y, x - s, y);
+        path.quadraticBezierTo(x, y, x, y - s);
+        path.close();
+        canvas.drawPath(path, glowPaint);
+        canvas.drawPath(path, paint);
+      } else {
+        canvas.drawCircle(Offset(x, y), p.size * 1.6, glowPaint);
+        canvas.drawCircle(Offset(x, y), p.size, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlesPainter oldDelegate) => oldDelegate.progress != progress;
+}
+
+class _ParticleData {
+  final double initialX;
+  final double initialY;
+  final double size;
+  final double speed;
+  final double wobbleSpeed;
+  final Color color;
+  final bool isStar;
+
+  const _ParticleData({
+    required this.initialX,
+    required this.initialY,
+    required this.size,
+    required this.speed,
+    required this.wobbleSpeed,
+    required this.color,
+    required this.isStar,
+  });
+}
+
+class _MarqueeTickerText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const _MarqueeTickerText({
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  State<_MarqueeTickerText> createState() => _MarqueeTickerTextState();
+}
+
+class _MarqueeTickerTextState extends State<_MarqueeTickerText> {
+  late final ScrollController _scrollController;
+  Timer? _tickerTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startTicker());
+  }
+
+  void _startTicker() {
+    if (!mounted) return;
+    _tickerTimer?.cancel();
+    _tickerTimer = Timer.periodic(const Duration(milliseconds: 35), (_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final maxOffset = _scrollController.position.maxScrollExtent;
+      final currentOffset = _scrollController.offset;
+      if (maxOffset <= 0) return;
+      if (currentOffset >= maxOffset) {
+        _scrollController.jumpTo(0);
+      } else {
+        _scrollController.jumpTo(currentOffset + 1.0);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tickerTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Text(
+        '${widget.text}               ${widget.text}               ',
+        style: widget.style,
+        maxLines: 1,
+      ),
+    );
+  }
+}
+
+

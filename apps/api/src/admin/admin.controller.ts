@@ -2,18 +2,18 @@ import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards } from '@nes
 import { AdminService } from './admin.service.js';
 import { AdminGuard, Public } from './admin.guard.js';
 
-@Controller(['admin', 'api/admin'])
+@Controller(['admin', 'api/admin', 'api'])
 @UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Public()
-  @Get('configs')
+  @Get(['configs', 'config'])
   async getConfig() {
     return this.adminService.getConfig();
   }
 
-  @Post('configs')
+  @Post(['configs', 'config'])
   async updateConfig(@Body() body: any) {
     return this.adminService.updateConfig(body);
   }
@@ -50,6 +50,7 @@ export class AdminController {
     return this.adminService.getUsers();
   }
 
+  @Public()
   @Get('users/:email')
   async getUserByEmail(@Param('email') email: string) {
     return this.adminService.getUserByEmail(email);
@@ -108,8 +109,8 @@ export class AdminController {
 
   @Public()
   @Post('live-pin')
-  async setLivePin(@Body('pin') pin: string) {
-    return await this.adminService.setLivePin(pin);
+  async setLivePin(@Body('pin') pin: string, @Body('email') email?: string) {
+    return await this.adminService.setLivePin(pin, email);
   }
 
   @Public()
@@ -217,5 +218,48 @@ export class AdminController {
   @Post('server-keys')
   async updateServerKeys(@Body() body: any) {
     return this.adminService.updateServerKeys(body);
+  }
+
+  @Public()
+  @Post('marketing/send-trial-reminders')
+  async sendTrialReminders() {
+    return this.adminService.sendTrialExpiryReminders();
+  }
+
+  // ==========================================
+  // QUẢN LÝ GIỚI THIỆU BẠN BÈ & RÚT TIỀN HOA HỒNG
+  // ==========================================
+
+  @Get('affiliate/overview')
+  async getAffiliateOverview() {
+    return this.adminService.getAffiliateOverview();
+  }
+
+  @Post('affiliate/withdrawals/:id/approve')
+  async approveWithdrawal(@Param('id') id: string) {
+    return this.adminService.approveWithdrawal(id);
+  }
+
+  @Post('affiliate/withdrawals/:id/reject')
+  async rejectWithdrawal(@Param('id') id: string, @Body('reason') reason?: string) {
+    return this.adminService.rejectWithdrawal(id, reason);
+  }
+
+  @Public()
+  @Post('affiliate/withdraw')
+  async recordWithdrawalRequest(@Body() body: any) {
+    return this.adminService.recordWithdrawalRequest(body);
+  }
+
+  @Public()
+  @Post('affiliate/bind')
+  async recordReferralBind(@Body() body: any) {
+    return this.adminService.recordReferralBind(body);
+  }
+
+  @Public()
+  @Get('affiliate/stats')
+  async getAffiliateStats(@Param('code') code?: string, @Param('email') email?: string) {
+    return this.adminService.getAffiliateStats(code, email);
   }
 }

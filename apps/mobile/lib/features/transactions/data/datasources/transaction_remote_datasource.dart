@@ -29,7 +29,7 @@ class TransactionRemoteDataSource {
           'type': transaction.type.name,
           'content': transaction.content,
           'orderCode': transaction.orderCode,
-          'transactionTime': transaction.transactionTime.toIso8601String(),
+          'transactionTime': transaction.transactionTime.toUtc().toIso8601String(),
           'rawContent': transaction.rawContent,
           'fingerprint': transaction.fingerprint,
           'userEmail': cleanEmail.isNotEmpty ? cleanEmail : null,

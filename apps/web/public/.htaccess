@@ -5,6 +5,17 @@
     # 1. Clean URL for Web Live (/live -> live.html)
     RewriteRule ^live/?$ live.html [L,QSA]
 
+    # Clean URLs for Terms and Privacy (/privacy, /terms, /dieu-khoan -> privacy.html)
+    RewriteRule ^privacy/?$ privacy.html [L,QSA]
+    RewriteRule ^terms/?$ privacy.html [L,QSA]
+    RewriteRule ^dieu-khoan/?$ privacy.html [L,QSA]
+
+    # Clean URLs for Blog and Articles (/bai-viet, /cam-nang)
+    RewriteRule ^bai-viet/?$ blog.html [L,QSA]
+    RewriteRule ^cam-nang/?$ blog.html [L,QSA]
+    RewriteRule ^bai-viet/([a-zA-Z0-9_-]+)/?$ article.html?slug=$1 [L,QSA]
+    RewriteRule ^cam-nang/([a-zA-Z0-9_-]+)/?$ article.html?slug=$1 [L,QSA]
+
     # 2. Clean URLs for Admin Panel
     RewriteRule ^admin/?$ admin/index.html [L,QSA]
     RewriteRule ^admin/login/?$ admin/login.html [L,QSA]

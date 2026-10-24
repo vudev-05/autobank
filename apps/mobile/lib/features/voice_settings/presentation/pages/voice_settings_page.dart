@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/web_theme.dart';
 import '../../../../core/tts/tts_service.dart';
-import '../../../notification_listener/presentation/notification_service.dart';
+import '../../../../core/widgets/app_video_guide_modal.dart';
 import '../../../auth/presentation/providers/google_auth_provider.dart';
+import '../../../system/presentation/providers/system_config_provider.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../providers/voice_settings_provider.dart';
 
@@ -107,6 +108,7 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final googleAuth = context.read<GoogleAuthProvider>();
       if (googleAuth.isSignedIn && googleAuth.email.isNotEmpty) {
         context.read<VoiceSettingsProvider>().loadConfigFromBackend(googleAuth.email);
@@ -204,6 +206,21 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         actions: [
+          IconButton(
+            tooltip: 'Video hướng dẫn tùy chỉnh câu đọc',
+            icon: const Icon(Icons.smart_display_rounded, color: Color(0xFFEF4444)),
+            onPressed: () {
+              final sysConfig = context.read<SystemConfigProvider>();
+              AppVideoGuideModal.showDirect(
+                context,
+                title: 'Hướng Dẫn Tối Ưu & Cá Nhân Hóa Câu Đọc',
+                subtitle: 'Cách thiết lập thứ tự đọc, gắn tên cửa hàng, rút gọn số tiền và lời cảm ơn riêng',
+                videoUrl: sysConfig.videoGuideVoice,
+                badgeText: 'Tối Ưu & Cá Nhân Hóa',
+                dismissButtonText: 'Đóng',
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Khôi phục cài đặt mặc định',
             icon: const Icon(Icons.restart_alt_rounded, color: WebTheme.primaryDark),
@@ -378,7 +395,7 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Nhận Tiền (Tiền Vào)',
+                      'Nhận Tiền',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: _activeTab == 0 ? FontWeight.w800 : FontWeight.w600,
@@ -430,7 +447,7 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Trừ Tiền (Tiền Ra)',
+                      'Trừ Tiền',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: _activeTab == 1 ? FontWeight.w800 : FontWeight.w600,
@@ -593,9 +610,6 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                 if (provider.isPlayingSample) {
                   provider.stop();
                 } else {
-                  if (provider.isMaxVolumePhone) {
-                    NotificationService.ensureMaxVolume();
-                  }
                   provider.playSample(sampleAmount: selectedSample['words']);
                   final sampleText = provider.generateSentence(
                     amountWords: selectedSample['words'] ?? '500 nghìn đồng',
@@ -603,11 +617,6 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                     bankName: 'MBBank',
                   );
                   _showPlayingSnackbar(context, sampleText, 'Nhận tiền');
-                  NotificationService.showSystemNotification(
-                    title: '🔊 Nghe thử câu nhận tiền',
-                    content: sampleText,
-                    type: 'system',
-                  );
                 }
               },
               icon: Icon(provider.isPlayingSample ? Icons.stop_rounded : Icons.volume_up_rounded),
@@ -645,7 +654,7 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
               },
               icon: const Icon(Icons.flash_on_rounded, size: 18),
               label: const Text(
-                'Bắn thử thông báo nhận tiền MBBank (Demo)',
+                'Bắn thử thông báo nhận tiền MBBank',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
               ),
             ),
@@ -859,9 +868,14 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                               ),
                             )
                           else
-                            Switch(
-                              activeThumbColor: const Color(0xFF10B981),
+                            Switch.adaptive(
                               value: block.isEnabled,
+                              activeThumbColor: Colors.white,
+                              activeTrackColor: const Color(0xFF10B981),
+                              inactiveThumbColor: Colors.white,
+                              inactiveTrackColor: const Color(0xFFCBD5E1),
+                              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               onChanged: (val) {
                                 provider.toggleBlock(block.id);
                                 provider.syncConfigToBackend(googleAuth.email);
@@ -1352,9 +1366,6 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                 if (provider.isPlayingSample) {
                   provider.stop();
                 } else {
-                  if (provider.isMaxVolumePhone) {
-                    NotificationService.ensureMaxVolume();
-                  }
                   provider.playDebitSample(sampleAmount: selectedSample['words']);
                   final sampleText = provider.generateDebitSentence(
                     amountWords: selectedSample['words'] ?? '150 nghìn đồng',
@@ -1362,11 +1373,6 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                     bankName: 'MBBank',
                   );
                   _showPlayingSnackbar(context, sampleText, 'Trừ tiền');
-                  NotificationService.showSystemNotification(
-                    title: '🔊 Nghe thử câu trừ tiền',
-                    content: sampleText,
-                    type: 'system',
-                  );
                 }
               },
               icon: Icon(provider.isPlayingSample ? Icons.stop_rounded : Icons.volume_up_rounded),
@@ -1404,7 +1410,7 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
               },
               icon: const Icon(Icons.flash_on_rounded, size: 18),
               label: const Text(
-                'Bắn thử thông báo trừ tiền MBBank (Demo)',
+                'Bắn thử thông báo trừ tiền MBBank',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
               ),
             ),
@@ -1618,9 +1624,14 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                               ),
                             )
                           else
-                            Switch(
-                              activeThumbColor: const Color(0xFFE11D48),
+                            Switch.adaptive(
                               value: block.isEnabled,
+                              activeThumbColor: Colors.white,
+                              activeTrackColor: const Color(0xFFE11D48),
+                              inactiveThumbColor: Colors.white,
+                              inactiveTrackColor: const Color(0xFFCBD5E1),
+                              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               onChanged: (val) {
                                 provider.toggleDebitBlock(block.id);
                                 provider.syncConfigToBackend(googleAuth.email);
@@ -1978,7 +1989,7 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. CARD ÂM LƯỢNG TỐI ĐA MAX THEO ĐIỆN THOẠI (Yêu cầu đặc biệt của người dùng)
+              // 1. CARD ÂM LƯỢNG ĐỒNG BỘ THEO ĐIỆN THOẠI
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -1999,34 +2010,43 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                           child: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 20),
                         ),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Âm lượng to nhất theo điện thoại (100% MAX)',
-                                style: TextStyle(
+                                provider.isMaxVolumePhone
+                                    ? 'Kích âm lượng tối đa (100% MAX)'
+                                    : 'Âm lượng chuẩn theo điện thoại',
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF14532D),
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'Tự động kích âm Media lên 100% cực đại của điện thoại khi đọc thông báo, to rõ chống ồn quầy thu ngân',
-                                style: TextStyle(fontSize: 10, color: Color(0xFF166534), height: 1.25),
+                                provider.isMaxVolumePhone
+                                    ? 'Tự động kích âm Media lên 100% cực đại của máy để chống ồn.'
+                                    : 'Âm thanh đọc phát theo âm lượng Media hiện tại của điện thoại (bạn tăng/giảm bằng phím vật lý trên máy).',
+                                style: const TextStyle(fontSize: 10, color: Color(0xFF166534), height: 1.25),
                               ),
                             ],
                           ),
                         ),
-                        Switch(
+                        Switch.adaptive(
                           value: provider.isMaxVolumePhone,
-                          activeThumbColor: const Color(0xFF16A34A),
+                          activeThumbColor: Colors.white,
+                          activeTrackColor: const Color(0xFF16A34A),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                          trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
                           onChanged: (val) {
                             provider.setMaxVolumePhone(val, email: googleAuth.email);
                             if (val) {
-                              NotificationService.ensureMaxVolume();
-                              TtsService().speakTestFeedback('Đã bật chế độ đọc to nhất theo âm lượng điện thoại');
+                              TtsService().speakTestFeedback('Đã bật chế độ đọc to nhất');
+                            } else {
+                              TtsService().speakTestFeedback('Đã chuyển về âm lượng chuẩn theo điện thoại');
                             }
                           },
                         ),
@@ -2044,20 +2064,18 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         ),
                         onPressed: () async {
-                          await NotificationService.ensureMaxVolume();
-                          await provider.setVolume(1.0);
-                          TtsService().speakTestFeedback('Đang phát thông báo với âm lượng to nhất theo điện thoại');
+                          TtsService().speakTestFeedback('Đang phát thông báo theo âm lượng điện thoại');
                           if (mounted) {
                             ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                               const SnackBar(
-                                content: Text('🔊 Đã kích âm lượng loa ngoài lên 100% cực đại của điện thoại!'),
+                                content: Text('🔊 Đang phát thông báo dựa theo âm lượng điện thoại của bạn!'),
                                 duration: Duration(seconds: 2),
                               ),
                             );
                           }
                         },
                         icon: const Icon(Icons.volume_up_rounded, size: 16),
-                        label: const Text('Thử ngay âm lượng to nhất theo điện thoại', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        label: const Text('Thử ngay âm lượng theo điện thoại', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -2108,7 +2126,6 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                     const SizedBox(width: 5),
                     _buildQuickValueChip('100% Cực đại (MAX)', provider.volume >= 0.98, () {
                       provider.setVolume(1.0, testAudio: true);
-                      NotificationService.ensureMaxVolume();
                       provider.syncConfigToBackend(googleAuth.email);
                     }),
                   ],

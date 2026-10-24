@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quản Lý Giới Thiệu Bạn Bè & Lịch Sử Rút Tiền — Admin Portal</title>
+    <link rel="shortcut icon" href="../assets/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="../assets/css/admin.css" />
+    <style>
+      .aff-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .aff-stat-card {
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        position: relative;
+        overflow: hidden;
+      }
+      .aff-stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 4px; height: 100%;
+      }
+      .aff-stat-paid::before { background: #10b981; }
+      .aff-stat-pending::before { background: #f59e0b; }
+      .aff-stat-total::before { background: #38bdf8; }
+      .aff-stat-orders::before { background: #a855f7; }
+
+      .aff-stat-label {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-bottom: 6px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .aff-stat-val {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: #fff;
+      }
+
+      /* TOP 3 PODIUM */
+      .top3-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      @media (max-width: 860px) {
+        .top3-container { grid-template-columns: 1fr; }
+      }
+      .top3-card {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95));
+        border-radius: 14px;
+        padding: 18px;
+        position: relative;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .top3-card:hover {
+        transform: translateY(-3px);
+      }
+      .top3-card-1 {
+        border-color: rgba(234, 179, 8, 0.5);
+        box-shadow: 0 8px 24px rgba(234, 179, 8, 0.15);
+      }
+      .top3-card-2 {
+        border-color: rgba(148, 163, 184, 0.4);
+      }
+      .top3-card-3 {
+        border-color: rgba(205, 127, 50, 0.4);
+      }
+      .top3-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        margin-bottom: 12px;
+      }
+      .top3-badge-1 { background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid #eab308; }
+      .top3-badge-2 { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid #94a3b8; }
+      .top3-badge-3 { background: rgba(205, 127, 50, 0.2); color: #fdba74; border: 1px solid #f97316; }
+
+      .top3-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        margin: 0 auto 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #fff;
+      }
+      .top3-name { font-weight: 700; color: #fff; font-size: 1rem; margin-bottom: 2px; }
+      .top3-code { font-size: 0.78rem; color: #38bdf8; font-family: monospace; font-weight: 700; margin-bottom: 8px; }
+      .top3-amount { font-size: 1.25rem; font-weight: 900; color: #10b981; }
+      .top3-sub { font-size: 0.76rem; color: #94a3b8; margin-top: 2px; }
+
+      /* TABS */
+      .aff-tab-btns {
+        display: flex;
+        gap: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+      }
+      .aff-tab-btn {
+        padding: 8px 16px;
+        background: transparent;
+        border: 1px solid transparent;
+        color: #94a3b8;
+        font-weight: 700;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .aff-tab-btn.active {
+        background: rgba(56, 189, 248, 0.15);
+        border-color: #38bdf8;
+        color: #38bdf8;
+      }
+
+      .badge-status {
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: inline-block;
+      }
+      .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+      .badge-approved { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+      .badge-rejected { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+    </style>
+  </head>
+  <body>
+    <div class="admin-layout">
+      <!-- SIDEBAR -->
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-brand">
+          <img src="../assets/images/favicon.png" alt="AutoBank Logo" />
+          <div>
+            <strong>Đọc Thông Báo</strong>
+            <span>Admin Portal</span>
+          </div>
+        </div>
+
+        <nav class="admin-sidebar-nav">
+          <a href="/admin" class="admin-nav-item" data-page="overview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Tổng quan hệ thống
+          </a>
+
+          <a href="/admin/config" class="admin-nav-item" data-page="config">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Cấu hình Web & App
+          </a>
+
+          <a href="/admin/banks" class="admin-nav-item" data-page="banks">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="5 6 12 3 19 6"/><line x1="4" y1="10" x2="4" y2="21"/><line x1="20" y1="10" x2="20" y2="21"/><line x1="8" y1="14" x2="8" y2="17"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="16" y1="14" x2="16" y2="17"/></svg>
+            65+ Ngân Hàng & Ví
+          </a>
+
+          <a href="/admin/users" class="admin-nav-item" data-page="users">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Người dùng & Thiết bị
+          </a>
+
+          <a href="/admin/notifications" class="admin-nav-item" data-page="notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Bắn thông báo đến App
+          </a>
+
+          <a href="/admin/coupons" class="admin-nav-item" data-page="coupons">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            Mã Giảm Giá
+          </a>
+
+          <a href="/admin/orders" class="admin-nav-item" data-page="orders">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Đơn hàng & Giao dịch
+          </a>
+
+          <a href="/admin/affiliate" class="admin-nav-item active" data-page="affiliate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            Giới thiệu &amp; Rút tiền
+            <span class="admin-nav-badge" style="background: #10b981;" id="admin-badge-affiliate">VIP</span>
+          </a>
+
+          <a href="/admin/payment-autobank" class="admin-nav-item" data-page="payment-autobank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Thanh toán AutoBank
+          </a>
+
+          <a href="/admin/keys" class="admin-nav-item" data-page="keys">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            API Keys & Kết nối
+          </a>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <div class="admin-user-pill">
+            <div class="admin-avatar">AD</div>
+            <div class="admin-user-info">
+              <strong id="admin-display-username">Administrator</strong>
+              <small>● Toàn quyền quản trị</small>
+            </div>
+          </div>
+          <button type="button" class="admin-logout-btn" id="admin-logout-btn" title="Đăng xuất">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="admin-main">
+        <header class="admin-topbar">
+          <div style="display: flex; align-items: center;">
+            <button id="admin-menu-toggle" class="admin-menu-toggle" type="button" aria-label="Menu" title="Mở danh mục">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="admin-topbar-title">
+              <span>Quản Lý Giới Thiệu Bạn Bè &amp; Lịch Sử Rút Tiền</span>
+            </div>
+          </div>
+
+          <div class="admin-topbar-actions">
+            <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-refresh-affiliate" style="display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Làm mới dữ liệu
+            </button>
+          </div>
+        </header>
+
+        <div class="admin-content">
+          <!-- 1. STATS KPI -->
+          <div class="aff-stats-grid">
+            <div class="aff-stat-card aff-stat-paid">
+              <div class="aff-stat-label">Tổng Hoa Hồng Đã Chi Trả</div>
+              <div class="aff-stat-val" id="stat-total-paid" style="color: #10b981;">0 đ</div>
+              <small style="color: #64748b; font-size: 0.75rem;">Các lệnh rút đã duyệt thành công</small>
+            </div>
+            <div class="aff-stat-card aff-stat-pending">
+              <div class="aff-stat-label">Tiền Chờ Duyệt Rút</div>
+              <div class="aff-stat-val" id="stat-pending-withdraw" style="color: #f59e0b;">0 đ</div>
+              <small style="color: #64748b; font-size: 0.75rem;"><span id="stat-pending-count">0</span> lệnh đang chờ Admin duyệt</small>
+            </div>
+            <div class="aff-stat-card aff-stat-total">
+              <div class="aff-stat-label">Tổng Lượt Mời Thành Công</div>
+              <div class="aff-stat-val" id="stat-total-referrals" style="color: #38bdf8;">0</div>
+              <small style="color: #64748b; font-size: 0.75rem;">Bạn bè đã kích hoạt mua gói</small>
+            </div>
+            <div class="aff-stat-card aff-stat-orders">
+              <div class="aff-stat-label">Mức Thưởng Lớn Nhất</div>
+              <div class="aff-stat-val" style="color: #a855f7;">120.000 đ</div>
+              <small style="color: #64748b; font-size: 0.75rem;">Cho mỗi gói Vĩnh Viễn Trọn Đời</small>
+            </div>
+          </div>
+
+          <!-- 2. TOP 3 REFERRERS PODIUM -->
+          <div class="admin-card" style="margin-bottom: 20px;">
+            <div class="admin-card-head">
+              <div class="admin-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #eab308;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Top 3 Đại Sứ Giới Thiệu Xuất Sắc Nhất Hệ Thống
+              </div>
+              <span style="font-size: 0.8rem; color: #94a3b8;">Vinh danh đại lý &amp; đối tác uy tín</span>
+            </div>
+            <div class="admin-card-body">
+              <div class="top3-container" id="top3-podium-container">
+                <!-- Rendered dynamically via JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. TABS: YÊU CẦU RÚT TIỀN & LỊCH SỬ GIỚI THIỆU -->
+          <div class="admin-card">
+            <div class="admin-card-head" style="border-bottom: none; padding-bottom: 0;">
+              <div class="aff-tab-btns">
+                <button type="button" class="aff-tab-btn active" id="tab-btn-withdrawals">
+                  💸 Quản Lý Yêu Cầu Rút Tiền (<span id="count-withdrawals">0</span>)
+                </button>
+                <button type="button" class="aff-tab-btn" id="tab-btn-referrals">
+                  🤝 Lịch Sử Giới Thiệu Thành Công (<span id="count-referrals">0</span>)
+                </button>
+              </div>
+            </div>
+
+            <div class="admin-card-body" style="padding-top: 8px;">
+              <!-- TAB 1: WITHDRAWALS TABLE -->
+              <div id="tab-content-withdrawals">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" class="admin-btn admin-btn-sm admin-btn-outline filter-wd-btn active" data-filter="ALL">Tất cả</button>
+                    <button type="button" class="admin-btn admin-btn-sm admin-btn-outline filter-wd-btn" data-filter="PENDING" style="color: #fbbf24;">Chờ duyệt</button>
+                    <button type="button" class="admin-btn admin-btn-sm admin-btn-outline filter-wd-btn" data-filter="APPROVED" style="color: #34d399;">Đã duyệt</button>
+                    <button type="button" class="admin-btn admin-btn-sm admin-btn-outline filter-wd-btn" data-filter="REJECTED" style="color: #f87171;">Từ chối</button>
+                  </div>
+                  <small style="color: #94a3b8;">* Bấm "Duyệt" để hoàn tất chuyển tiền, hoặc "Từ chối" để hoàn lại số dư</small>
+                </div>
+
+                <div class="admin-table-wrap">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Mã lệnh</th>
+                        <th>Người rút (Mã / Email)</th>
+                        <th>Ngân hàng nhận</th>
+                        <th>Số tài khoản</th>
+                        <th>Tên chủ TK</th>
+                        <th>Số tiền rút</th>
+                        <th>Thời gian</th>
+                        <th>Trạng thái</th>
+                        <th style="text-align: right;">Thao tác duyệt</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-withdrawals-body">
+                      <!-- Rendered dynamically via JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- TAB 2: REFERRALS TABLE -->
+              <div id="tab-content-referrals" style="display: none;">
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0; margin-bottom: 12px;">
+                  Danh sách ghi nhận các lượt giới thiệu bạn bè thành công khi bạn bè kích hoạt mua gói cước bản quyền.
+                </p>
+                <div class="admin-table-wrap">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Mã GD</th>
+                        <th>Người giới thiệu</th>
+                        <th>Bạn bè được giới thiệu</th>
+                        <th>Gói cước mua</th>
+                        <th>Hoa hồng cộng thưởng</th>
+                        <th>Thời gian</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-referrals-body">
+                      <!-- Rendered dynamically via JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- MODAL: REJECT WITHDRAWAL -->
+    <div id="modal-reject" class="admin-modal-overlay">
+      <div class="admin-modal-box" style="max-width: 440px;">
+        <div class="admin-modal-box-head">
+          <strong style="color: #f87171;">Từ Chối Lệnh Rút Tiền</strong>
+          <button type="button" class="admin-logout-btn" id="modal-reject-close">&times;</button>
+        </div>
+        <form id="form-reject-withdrawal">
+          <input type="hidden" id="reject-wd-id" />
+          <div class="admin-modal-box-body">
+            <p style="color: #94a3b8; font-size: 0.88rem; margin-top: 0;">
+              Khi bạn từ chối, số tiền sẽ được <strong>tự động hoàn trả 100%</strong> về số dư khả dụng của đối tác để họ kiểm tra lại thông tin STK.
+            </p>
+            <div class="admin-form-group">
+              <label>Lý do từ chối (Gửi thông báo đến người dùng)</label>
+              <textarea id="reject-reason" class="admin-input" rows="3" placeholder="Ví dụ: Sai số tài khoản ngân hàng, vui lòng kiểm tra lại STK hoặc tên chủ tài khoản..." required></textarea>
+            </div>
+          </div>
+          <div class="admin-modal-box-foot">
+            <button type="button" class="admin-btn admin-btn-outline" id="modal-reject-cancel">Hủy</button>
+            <button type="submit" class="admin-btn" style="background: #ef4444; color: #fff;">Xác nhận Từ chối &amp; Hoàn tiền</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="admin-toast-container" class="admin-toast-container"></div>
+    <script type="module" src="../assets/js/admin-affiliate.js"></script>
+  </body>
+</html>

@@ -5,7 +5,9 @@
 (function () {
   'use strict';
 
-  let API_BASE = 'http://localhost:3000';
+  let API_BASE = (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+    ? 'https://api.docthongbaobank.com'
+    : (window.__API_BASE__ || 'http://localhost:3000');
   let BANK_ID = 'MB';
   let ACCOUNT_NO = '3011200588888';
   let ACCOUNT_NAME = 'TRẦN QUỐC VŨ';
@@ -62,22 +64,11 @@
       });
     }
 
-    // Đồng bộ giá hiển thị trực tiếp trên Landing Page HTML
-    const updateCardPrice = (key, text) => {
-      const btn = document.querySelector(`[data-package="${key}"]`);
-      if (btn) {
-        const card = btn.closest('.single-price');
-        if (card) {
-          const priceEl = card.querySelector('.package-price');
-          if (priceEl) priceEl.textContent = text;
-        }
-      }
-    };
-    if (packages['1month']) updateCardPrice('1month', packages['1month'].text);
-    if (packages['3month']) updateCardPrice('3month', packages['3month'].text);
-    if (packages['6month']) updateCardPrice('6month', packages['6month'].text);
-    if (packages['9month']) updateCardPrice('9month', packages['9month'].text);
-    if (packages['1year']) updateCardPrice('1year', packages['1year'].text);
+    // Đồng bộ toàn bộ Bảng giá gói cước động trên Trang Chủ (index.html) và Trang Chính sách (privacy.html)
+    if (Array.isArray(cfg.packages) && cfg.packages.length > 0) {
+      syncLandingPricingGrid(cfg.packages);
+      syncPrivacyPricingTable(cfg.packages);
+    }
 
     // Đồng bộ hotline & Zalo trên Landing Page
     if (cfg.hotline) {
@@ -112,6 +103,83 @@
     }
   }
 
+  function syncLandingPricingGrid(pkgs) {
+    const container = document.getElementById('pricing-packages-container');
+    if (!container || !Array.isArray(pkgs) || pkgs.length === 0) return;
+
+    const activeList = pkgs.filter(p => p.isActive !== false);
+    if (activeList.length === 0) return;
+
+    container.innerHTML = activeList.map(p => {
+      const isFree = p.price === 0;
+      const isFeatured = p.badge && (p.badge.includes('Khuyên') || p.badge.includes('Tốt') || p.badge.includes('VIP') || p.badge.includes('bán chạy'));
+      const priceText = isFree ? '3 ngày miễn phí' : `${Number(p.price).toLocaleString('vi-VN')}đ`;
+      const btnText = isFree ? 'Dùng thử 3 ngày' : `Chọn gói ${p.name}`;
+      const badgeHtml = p.badge ? `<span style="position: absolute; top: 12px; right: 12px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;">${p.badge}</span>` : '';
+
+      return `
+        <div class="single-price text-center ${isFeatured ? 'featured active' : ''}" style="position: relative;">
+          ${badgeHtml}
+          <div class="price-icon mx-auto" style="${isFeatured ? 'background: #0f172a !important; color: #fff !important;' : ''}">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              ${isFree 
+                ? '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' 
+                : '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'}
+            </svg>
+          </div>
+          <h3 class="package-name mb-15">${p.name}</h3>
+          <p class="package-price mb-20" style="${isFree ? 'color: #0f172a;' : 'color: #0284c7;'}">${priceText}</p>
+          <ul class="package-details">
+            <li>Thời hạn sử dụng: <strong>${p.durationDays >= 9999 ? 'Vĩnh viễn' : p.durationDays + ' ngày'}</strong></li>
+            <li>${p.description || 'Đầy đủ tính năng loa đọc tiền VietQR 24/7'}</li>
+            <li>Hỗ trợ toàn bộ 65+ ngân hàng &amp; ví điện tử</li>
+            <li>Thanh toán VietQR tự động kích hoạt tức thì</li>
+          </ul>
+          <a href="#${p.key}" class="btn-hover price-btn main-btn" data-package="${p.key}" style="${isFeatured ? 'background: linear-gradient(135deg, #0284c7, #0369a1);' : ''}">${btnText}</a>
+        </div>
+      `;
+    }).join('');
+
+    attachPricingButtons();
+  }
+
+  function syncPrivacyPricingTable(pkgs) {
+    const tbody = document.getElementById('privacy-packages-table-body');
+    if (!tbody || !Array.isArray(pkgs) || pkgs.length === 0) return;
+
+    const activeList = pkgs.filter(p => p.isActive !== false);
+    if (activeList.length === 0) return;
+
+    tbody.innerHTML = activeList.map((p, idx) => {
+      const isFree = p.price === 0;
+      const isFeatured = p.badge && (p.badge.includes('Khuyên') || p.badge.includes('Tốt') || p.badge.includes('VIP'));
+      const durationText = p.durationDays >= 9999 ? 'Vĩnh viễn' : `${p.durationDays} ngày`;
+      const priceText = isFree 
+        ? '<span style="color: #16a34a; font-weight: 800; font-size: 1rem;">0đ (Miễn phí)</span>' 
+        : `<strong style="color: #0284c7; font-size: 1.05rem;">${Number(p.price).toLocaleString('vi-VN')}đ</strong>`;
+      
+      let badgeClass = 'badge-pricing-saving';
+      if (isFree) badgeClass = 'badge-pricing-free';
+      else if (isFeatured) badgeClass = 'badge-pricing-featured';
+      else if (p.badge && p.badge.includes('biến')) badgeClass = 'badge-pricing-popular';
+
+      const badgeHtml = p.badge ? `<span class="${badgeClass}">${p.badge}</span>` : '<span style="color: #94a3b8;">—</span>';
+      const descText = p.description || (isFree ? 'Kích hoạt tự động sau khi đăng nhập Google lần đầu. Trải nghiệm 100% tính năng.' : 'Đầy đủ tính năng loa đọc tiền, quản lý thu chi, live stream, hỗ trợ kỹ thuật 24/7.');
+      const rowStyle = isFeatured ? 'background: rgba(2, 132, 199, 0.04); border-left: 3px solid #0284c7;' : '';
+
+      return `
+        <tr style="${rowStyle}">
+          <td style="text-align: center; font-weight: 700; color: ${isFeatured ? '#0284c7' : '#64748b'};">#${idx + 1}</td>
+          <td><strong style="color: #0f172a;">${p.name}</strong> <br><small style="color: #64748b;">Key: ${p.key}</small></td>
+          <td><strong>${durationText}</strong></td>
+          <td>${priceText}</td>
+          <td>${badgeHtml}</td>
+          <td>${descText}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
   function refreshConfigFromAdmin() {
     try {
       const raw = localStorage.getItem('autobank_system_config');
@@ -121,15 +189,7 @@
       fetch(`${API_BASE}/admin/configs`)
         .then(res => res.json())
         .then(data => {
-          if (data && (data.bankAcc || data.hotline)) {
-            applyCfg(data);
-          }
-        })
-        .catch(() => {});
-      fetch(`${API_BASE}/admin/thueapi/config`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.bankAcc) {
+          if (data && (data.bankAcc || data.hotline || data.packages)) {
             applyCfg(data);
           }
         })
@@ -399,18 +459,121 @@
 
     if (pkg.price === 0) {
       bodyEl.innerHTML = `
-        <div class="ab-success-card">
-          <div class="ab-success-icon" style="background: #0f172a; color: #ffffff;">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <div class="ab-success-card" style="text-align: left; padding: 10px 0;">
+          <div style="text-align: center; margin-bottom: 18px;">
+            <div class="ab-success-icon" style="background: #16a34a; color: #ffffff; width: 56px; height: 56px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <h4 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Kích Hoạt Dùng Thử 3 Ngày (0đ)</h4>
+            <p style="color: #64748b; font-size: 0.88rem; margin: 0;">
+              Nhập email để kích hoạt quyền trải nghiệm 72 giờ và đồng bộ tài khoản vào máy chủ hệ thống.
+            </p>
           </div>
-          <h4 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Kích hoạt dùng thử 3 ngày</h4>
-          <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 24px;">
-            Đăng nhập tài khoản Google trên ứng dụng Android để nhận ngay 3 ngày trải nghiệm không giới hạn tính năng đọc thông báo biến động số dư.
-          </p>
-          <a href="https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn" class="main-btn btn-hover" style="display: block; width: 100%; border-radius: 12px; padding: 14px; background: #0f172a;">Tải ứng dụng trên Google Play</a>
+
+          <form id="form-activate-trial" style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Địa chỉ Email Google / Đăng nhập <span style="color: #ef4444;">*</span></label>
+              <input type="email" id="trial-email" required placeholder="vidu@gmail.com" style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 0.92rem; outline: none; box-sizing: border-box;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Tên của bạn hoặc Tên Cửa Hàng / Quán</label>
+              <input type="text" id="trial-name" placeholder="Ví dụ: Cửa hàng Tạp Hóa ABC" style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 0.92rem; outline: none; box-sizing: border-box;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Số điện thoại liên hệ / Zalo</label>
+              <input type="tel" id="trial-phone" placeholder="Ví dụ: 0869226687" style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 0.92rem; outline: none; box-sizing: border-box;" />
+            </div>
+
+            <div id="trial-error-msg" style="display: none; padding: 10px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 0.85rem;"></div>
+
+            <button type="submit" id="btn-submit-trial" style="margin-top: 6px; width: 100%; padding: 13px; border-radius: 12px; background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; font-weight: 800; font-size: 0.95rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);">
+              <span>⚡ KÍCH HOẠT DÙNG THỬ 3 NGÀY NGAY</span>
+            </button>
+          </form>
         </div>
       `;
       modal.classList.add('is-open');
+
+      const trialForm = document.getElementById('form-activate-trial');
+      if (trialForm) {
+        trialForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const emailInput = document.getElementById('trial-email');
+          const nameInput = document.getElementById('trial-name');
+          const phoneInput = document.getElementById('trial-phone');
+          const submitBtn = document.getElementById('btn-submit-trial');
+          const errBox = document.getElementById('trial-error-msg');
+
+          const emailVal = (emailInput.value || '').trim();
+          const nameVal = (nameInput.value || '').trim() || emailVal.split('@')[0];
+          const phoneVal = (phoneInput.value || '').trim();
+
+          if (!emailVal || !emailVal.includes('@')) {
+            errBox.textContent = 'Vui lòng nhập định dạng email hợp lệ!';
+            errBox.style.display = 'block';
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span>Đang kích hoạt vào hệ thống...</span>';
+          errBox.style.display = 'none';
+
+          try {
+            const res = await fetch(`${API_BASE}/admin/users`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: nameVal,
+                email: emailVal,
+                phone: phoneVal,
+                shopName: nameVal,
+                packagePlan: 'Dùng thử 3 ngày',
+                hasUsedTrial: true,
+                status: 'ACTIVE',
+                device: 'Website Đăng Ký',
+                version: '1.2.0',
+                expiresAt: new Date(Date.now() + 3 * 86400000).toISOString(),
+              }),
+            });
+
+            if (res.ok) {
+              bodyEl.innerHTML = `
+                <div class="ab-success-card" style="text-align: center; padding: 24px 10px;">
+                  <div class="ab-success-icon" style="background: #16a34a; color: #ffffff; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <h4 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Kích Hoạt Thành Công!</h4>
+                  <p style="color: #15803d; font-size: 0.95rem; font-weight: 600; margin-bottom: 8px;">
+                    Tài khoản <strong>${emailVal}</strong> đã được lưu vào hệ thống và kích hoạt 3 ngày dùng thử miễn phí.
+                  </p>
+                  <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 20px;">
+                    Hãy mở App AutoBank trên điện thoại của bạn và đăng nhập đúng email này để sử dụng ngay lập tức!
+                  </p>
+                  <div style="display: flex; gap: 10px; flex-direction: column;">
+                    <a href="https://docthongbaobank.com/downloads/AutoBank.apk" class="ab-btn-app" style="width: 100%; padding: 13px; border-radius: 12px; font-weight: 800; text-decoration: none; box-sizing: border-box;">
+                      📥 Tải Bản Cài Đặt APK Trực Tiếp
+                    </a>
+                    <button type="button" class="ab-btn-test" style="width: 100%; padding: 11px; border-radius: 12px; font-weight: 700;" onclick="document.getElementById('autobank-payment-modal').classList.remove('is-open')">
+                      Đóng cửa sổ
+                    </button>
+                  </div>
+                </div>
+              `;
+            } else {
+              const errData = await res.json().catch(() => ({}));
+              errBox.textContent = errData.message || 'Không thể kích hoạt tài khoản. Vui lòng thử lại sau.';
+              errBox.style.display = 'block';
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<span>⚡ KÍCH HOẠT DÙNG THỬ 3 NGÀY NGAY</span>';
+            }
+          } catch (err) {
+            errBox.textContent = 'Lỗi kết nối máy chủ API: ' + (err.message || 'Lỗi mạng');
+            errBox.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>⚡ KÍCH HOẠT DÙNG THỬ 3 NGÀY NGAY</span>';
+          }
+        };
+      }
       return;
     }
 
@@ -487,7 +650,7 @@
         </div>
 
         <div class="ab-action-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <a href="https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn" class="ab-btn-test" target="_blank" rel="noopener" style="text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; color: #0284c7;">
+          <a href="https://play.google.com/store/apps/details?id=com.docthongbaobank.app" class="ab-btn-test" target="_blank" rel="noopener" style="text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; color: #0284c7;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Tải App CH Play
           </a>
@@ -621,6 +784,41 @@
     };
   } catch (_) {}
 
+  // Smart Deep Linking handler: Opens App with selected package or redirects to CH Play
+  function handlePackageClick(pkgKey) {
+    const chplayUrl = 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app';
+    let plan = (pkgKey || '1year').trim();
+    if (plan === '1m') plan = '1month';
+    if (plan === '1y') plan = '1year';
+    if (plan === '3m') plan = '3month';
+    if (plan === '6m') plan = '6month';
+    if (plan === '9m') plan = '9month';
+
+    const deepLink = `autobank://register?package=${encodeURIComponent(plan)}`;
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      const startTime = Date.now();
+      window.location.href = deepLink;
+
+      // Nếu sau 1.5s chưa rời màn hình trình duyệt (chưa cài app), tự chuyển sang CH Play
+      setTimeout(() => {
+        if (!document.hidden && (Date.now() - startTime < 3000)) {
+          window.location.href = chplayUrl;
+        }
+      }, 1500);
+      return;
+    }
+
+    // Trên Desktop: Thử kích hoạt link và sau đó mở modal thanh toán VietQR
+    window.location.href = deepLink;
+    setTimeout(() => {
+      if (!document.hidden) {
+        openModal(plan);
+      }
+    }, 1000);
+  }
+
   // Bind to pricing buttons
   function attachPricingButtons() {
     const pricingButtons = document.querySelectorAll('#pricing .price-btn, #pricing a[data-package]');
@@ -631,13 +829,14 @@
         e.preventDefault();
         const pkgKey = btn.getAttribute('data-package');
         const defaultKeys = ['trial', '1month', '3month', '6month', '9month', '1year'];
-        openModal(pkgKey || defaultKeys[index] || '1year');
+        handlePackageClick(pkgKey || defaultKeys[index] || '1year');
       });
     });
   }
 
+  window.handlePackageClick = handlePackageClick;
   window.attachPricingButtons = attachPricingButtons;
-  window.autobankPaymentModal = { open: openModal, attachPricingButtons };
+  window.autobankPaymentModal = { open: openModal, attachPricingButtons, handlePackageClick };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', attachPricingButtons);

@@ -1,9 +1,55 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, OnModuleInit, Logger } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MailService } from '../mail/mail.service.js';
 
 @Injectable()
-export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+export class AdminService implements OnModuleInit {
+  private readonly logger = new Logger(AdminService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
+
+  async onModuleInit() {
+    try {
+      // Tự động kiểm tra và khởi tạo mã giảm giá NGUOIMOI tân thủ 10%
+      await this.prisma.discountCoupon.upsert({
+        where: { code: 'NGUOIMOI' },
+        update: {
+          description: 'Ưu đãi thành viên mới: Giảm 10% trong vòng 3 ngày dùng thử',
+          discountPercent: 10,
+          discountAmount: 0,
+          minPrice: 0,
+          targetAudience: 'NEW_3DAYS',
+          autoApply: true,
+          isActive: true,
+        },
+        create: {
+          code: 'NGUOIMOI',
+          description: 'Ưu đãi thành viên mới: Giảm 10% trong vòng 3 ngày dùng thử',
+          discountPercent: 10,
+          discountAmount: 0,
+          minPrice: 0,
+          targetAudience: 'NEW_3DAYS',
+          autoApply: true,
+          isActive: true,
+        },
+      });
+      this.logger.log('✓ Đã đồng bộ mã giảm giá NGUOIMOI (-10% cho thành viên mới 3 ngày).');
+    } catch (e: any) {
+      this.logger.warn(`Không thể nạp mã NGUOIMOI tự động: ${e.message}`);
+    }
+
+    // Tự động quét gửi mail nhắc nhở sắp hết hạn dùng thử định kỳ mỗi 60 phút
+    setInterval(() => {
+      this.sendTrialExpiryReminders().catch((err) => {
+        this.logger.error(`Lỗi khi quét gửi email dùng thử: ${err.message}`);
+      });
+    }, 60 * 60 * 1000);
+  }
 
   async getConfig() {
     const config = await this.prisma.systemConfig.findUnique({
@@ -11,14 +57,51 @@ export class AdminService {
     });
     if (!config) return null;
     let parsedPackages = [];
+    let parsedAffiliate = null;
+    let ratingUrl = config.chplayLink || 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app';
+    let liveWebPin = '889922';
+    let videoGuideNewbie = '';
+    let videoGuideSmooth = '';
+    let videoGuideAffiliate = '';
+    let videoGuideHistory = '';
+    let videoGuideVoice = '';
+
     if (config.packagesJson) {
       try {
-        parsedPackages = JSON.parse(config.packagesJson);
+        const parsed = JSON.parse(config.packagesJson);
+        if (Array.isArray(parsed)) {
+          parsedPackages = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          parsedPackages = parsed.packages || [];
+          parsedAffiliate = parsed.affiliateRewards || null;
+          if (parsed.ratingUrl) ratingUrl = parsed.ratingUrl;
+          if (parsed.liveWebPin) liveWebPin = parsed.liveWebPin;
+          if (parsed.videoGuideNewbie) videoGuideNewbie = parsed.videoGuideNewbie;
+          if (parsed.videoGuideSmooth) videoGuideSmooth = parsed.videoGuideSmooth;
+          if (parsed.videoGuideAffiliate) videoGuideAffiliate = parsed.videoGuideAffiliate;
+          if (parsed.videoGuideHistory) videoGuideHistory = parsed.videoGuideHistory;
+          if (parsed.videoGuideVoice) videoGuideVoice = parsed.videoGuideVoice;
+        }
       } catch (_) {}
     }
+
     return {
       ...config,
       packages: parsedPackages,
+      affiliateRewards: parsedAffiliate || [
+        { name: 'Gói 1 Tháng', duration: '30 ngày', reward: 10000, desc: 'Nhận 10.000₫/lượt' },
+        { name: 'Gói 3 Tháng', duration: '90 ngày', reward: 25000, desc: 'Nhận 25.000₫/lượt' },
+        { name: 'Gói 6 Tháng', duration: '180 ngày', reward: 45000, desc: 'Nhận 45.000₫/lượt' },
+        { name: 'Gói 1 Năm (VIP)', duration: '365 ngày', reward: 75000, desc: 'Nhận 75.000₫/lượt' },
+        { name: 'Gói Vĩnh Viễn Trọn Đời', duration: 'Trọn đời', reward: 120000, desc: 'Nhận 120.000₫/lượt' },
+      ],
+      ratingUrl,
+      liveWebPin,
+      videoGuideNewbie: videoGuideNewbie || config.youtubeLink || 'https://www.youtube.com/watch?v=kYJqD9bZ_fQ',
+      videoGuideSmooth: videoGuideSmooth || 'https://www.youtube.com/watch?v=kYJqD9bZ_fQ',
+      videoGuideAffiliate: videoGuideAffiliate || 'https://www.youtube.com/watch?v=kYJqD9bZ_fQ',
+      videoGuideHistory: videoGuideHistory || 'https://www.youtube.com/watch?v=kYJqD9bZ_fQ',
+      videoGuideVoice: videoGuideVoice || 'https://www.youtube.com/watch?v=kYJqD9bZ_fQ',
     };
   }
 
@@ -45,14 +128,72 @@ export class AdminService {
         }
       }
     }
-    if (dto.packages !== undefined) {
-      data.packagesJson = typeof dto.packages === 'string' ? dto.packages : JSON.stringify(dto.packages);
+
+    if (
+      dto.packages !== undefined ||
+      dto.affiliateRewards !== undefined ||
+      dto.ratingUrl !== undefined ||
+      dto.liveWebPin !== undefined ||
+      dto.videoGuideNewbie !== undefined ||
+      dto.videoGuideSmooth !== undefined ||
+      dto.videoGuideAffiliate !== undefined ||
+      dto.videoGuideHistory !== undefined ||
+      dto.videoGuideVoice !== undefined
+    ) {
+      const existingConfig = await this.prisma.systemConfig.findUnique({ where: { id: 'default' } });
+      let currentPackages = [];
+      let currentAffiliate = null;
+      let currentRating = dto.ratingUrl || dto.chplayLink;
+      let currentLivePin = dto.liveWebPin;
+      let currentVideoNewbie = dto.videoGuideNewbie;
+      let currentVideoSmooth = dto.videoGuideSmooth;
+      let currentVideoAffiliate = dto.videoGuideAffiliate;
+      let currentVideoHistory = dto.videoGuideHistory;
+      let currentVideoVoice = dto.videoGuideVoice;
+
+      if (existingConfig?.packagesJson) {
+        try {
+          const parsed = JSON.parse(existingConfig.packagesJson);
+          if (Array.isArray(parsed)) {
+            currentPackages = parsed;
+          } else if (parsed && typeof parsed === 'object') {
+            currentPackages = parsed.packages || [];
+            currentAffiliate = parsed.affiliateRewards || null;
+            if (!currentRating) currentRating = parsed.ratingUrl;
+            if (!currentLivePin) currentLivePin = parsed.liveWebPin;
+            if (currentVideoNewbie === undefined) currentVideoNewbie = parsed.videoGuideNewbie;
+            if (currentVideoSmooth === undefined) currentVideoSmooth = parsed.videoGuideSmooth;
+            if (currentVideoAffiliate === undefined) currentVideoAffiliate = parsed.videoGuideAffiliate;
+            if (currentVideoHistory === undefined) currentVideoHistory = parsed.videoGuideHistory;
+            if (currentVideoVoice === undefined) currentVideoVoice = parsed.videoGuideVoice;
+          }
+        } catch (_) {}
+      }
+
+      if (dto.packages !== undefined) {
+        currentPackages = typeof dto.packages === 'string' ? JSON.parse(dto.packages) : dto.packages;
+      }
+      if (dto.affiliateRewards !== undefined) {
+        currentAffiliate = typeof dto.affiliateRewards === 'string' ? JSON.parse(dto.affiliateRewards) : dto.affiliateRewards;
+      }
+
+      data.packagesJson = JSON.stringify({
+        packages: currentPackages,
+        affiliateRewards: currentAffiliate,
+        ratingUrl: currentRating || existingConfig?.chplayLink || 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
+        liveWebPin: currentLivePin || '889922',
+        videoGuideNewbie: currentVideoNewbie || '',
+        videoGuideSmooth: currentVideoSmooth || '',
+        videoGuideAffiliate: currentVideoAffiliate || '',
+        videoGuideHistory: currentVideoHistory || '',
+        videoGuideVoice: currentVideoVoice || '',
+      });
     }
     const defaultCreate = {
       id: 'default',
       brandName: 'Đọc thông báo nhận tiền',
       brandSlogan: 'Tiền vừa sang ~ máy báo vang',
-      chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
+      chplayLink: 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
       youtubeLink: '',
       hotline: '0869226687',
       email: 'tranquocvu3011@gmail.com',
@@ -68,8 +209,8 @@ export class AdminService {
       price9m: 249000,
       price1y: 299000,
       priceLifetime: 499000,
-      serverDomain: 'http://192.168.1.217:3000',
-      webDomain: 'http://192.168.1.217:5173',
+      serverDomain: 'https://api.docthongbaobank.com',
+      webDomain: 'https://docthongbaobank.com',
       apiPort: 3000,
       maintenance: false,
       maintenanceMsg: 'Hệ thống đang bảo trì nâng cấp máy chủ định kỳ. Vui lòng quay lại sau 15 phút.',
@@ -152,7 +293,7 @@ export class AdminService {
           \`deviceId\` = VALUES(\`deviceId\`),
           \`expiresAt\` = VALUES(\`expiresAt\`),
           \`updatedAt\` = NOW()
-      `, user.name, user.email, user.phone || null, user.shopName || null, user.packagePlan || '1 Năm', user.status || 'ACTIVE', user.device || 'Thiết bị di động', user.version || '1.2.0', user.deviceId || null, user.expiresAt ? new Date(user.expiresAt) : null);
+      `, user.name, user.email, user.phone || null, user.shopName || null, user.packagePlan || 'Dùng thử 3 ngày', user.status || 'ACTIVE', user.device || 'Thiết bị di động', user.version || '1.2.0', user.deviceId || null, user.expiresAt ? new Date(user.expiresAt) : null);
     } catch (_) {}
   }
 
@@ -162,20 +303,29 @@ export class AdminService {
 
     let result;
     if (existing) {
-      // Nếu tài khoản đã tồn tại và đang có gói trả phí, giữ nguyên gói cước và hạn dùng từ MySQL
-      const hasPaidPlan = existing.packagePlan && !existing.packagePlan.toLowerCase().includes('dùng thử');
+      // Nếu tài khoản đã tồn tại và đang có gói trả phí thật sự (còn hạn), giữ nguyên trừ khi forceUpdate
+      const hasPaidPlan = existing.packagePlan && 
+        !existing.packagePlan.toLowerCase().includes('dùng thử') && 
+        existing.packagePlan !== 'Chưa kích hoạt gói' &&
+        existing.packagePlan !== 'Chưa đăng ký gói' &&
+        new Date(existing.expiresAt) > new Date();
       const isNewTrialRequest = isTrial && !dto.forceUpdate;
 
-      const targetPackagePlan = (hasPaidPlan && isNewTrialRequest) 
+      let targetPackagePlan = (hasPaidPlan && isNewTrialRequest) 
         ? existing.packagePlan 
-        : (dto.packagePlan || existing.packagePlan);
+        : (dto.packagePlan || existing.packagePlan || 'Dùng thử 3 ngày');
 
-      let targetExpiresAt = (hasPaidPlan && isNewTrialRequest && new Date(existing.expiresAt) > new Date())
+      let targetExpiresAt = (hasPaidPlan && isNewTrialRequest)
         ? existing.expiresAt
         : (dto.expiresAt ? new Date(dto.expiresAt) : existing.expiresAt);
 
       if ((dto.status === 'EXPIRED' || dto.status === 'BLOCKED') && targetExpiresAt >= new Date()) {
         targetExpiresAt = new Date(Date.now() - 86400000);
+      } else if (targetExpiresAt > new Date()) {
+        // Hạn sử dụng còn trong tương lai -> Tự động chuẩn hóa tên gói nếu bị dính chuỗi 'hết hạn'
+        if (targetPackagePlan.includes('hết hạn') || targetPackagePlan === 'Chưa kích hoạt gói' || targetPackagePlan === 'Chưa đăng ký gói') {
+          targetPackagePlan = '1 Tháng';
+        }
       }
 
       result = await this.prisma.appDeviceUser.update({
@@ -242,9 +392,15 @@ export class AdminService {
     if (!user) return null;
     const current = new Date(user.expiresAt) > new Date() ? new Date(user.expiresAt) : new Date();
     current.setDate(current.getDate() + days);
+
+    let resolvedPkg = user.packagePlan;
+    if (!resolvedPkg || resolvedPkg.includes('hết hạn') || resolvedPkg.includes('Chưa')) {
+      resolvedPkg = days >= 365 ? '1 Năm' : (days >= 90 ? '3 Tháng' : '1 Tháng');
+    }
+
     const updated = await this.prisma.appDeviceUser.update({
       where: { id: user.id },
-      data: { expiresAt: current, status: 'ACTIVE' },
+      data: { expiresAt: current, status: 'ACTIVE', packagePlan: resolvedPkg },
     });
     await this.syncToUsersTable(updated);
     return updated;
@@ -541,11 +697,14 @@ export class AdminService {
     return { pin: this.currentLivePin };
   }
 
-  async setLivePin(pin: string) {
+  async setLivePin(pin: string, email?: string) {
     if (!pin || pin.trim().length < 4) {
       throw new BadRequestException('Mã PIN bảo vệ phải có ít nhất 4 ký tự!');
     }
     this.currentLivePin = pin.trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    // 1. Cập nhật system_configs (livePin và liveWebPin)
     try {
       const config = await this.prisma.systemConfig.findUnique({
         where: { id: 'default' },
@@ -557,6 +716,7 @@ export class AdminService {
         } catch (_) {}
       }
       parsed.livePin = this.currentLivePin;
+      parsed.liveWebPin = this.currentLivePin;
       if (config) {
         await this.prisma.systemConfig.update({
           where: { id: 'default' },
@@ -568,7 +728,7 @@ export class AdminService {
             id: 'default',
             brandName: 'Đọc thông báo nhận tiền',
             brandSlogan: 'Tiền vừa sang ~ máy báo vang',
-            chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
+            chplayLink: 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
             packagesJson: JSON.stringify(parsed),
           } as any,
         });
@@ -576,7 +736,41 @@ export class AdminService {
     } catch (e) {
       console.error('Failed to persist livePin to MySQL systemConfig:', e);
     }
-    return { success: true, pin: this.currentLivePin };
+
+    // 2. Nếu có email, cập nhật sharePin trực tiếp vào voiceSettingsJson của tài khoản
+    if (cleanEmail && cleanEmail !== 'anonymous') {
+      try {
+        const rows: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT voiceSettingsJson FROM app_device_users WHERE LOWER(email) = ? LIMIT 1`,
+          cleanEmail,
+        );
+        let userCfg: any = {};
+        if (rows && rows[0]?.voiceSettingsJson) {
+          try {
+            userCfg = JSON.parse(rows[0].voiceSettingsJson);
+          } catch (_) {}
+        }
+        userCfg.sharePin = this.currentLivePin;
+        userCfg.email = cleanEmail;
+        userCfg.updatedAt = new Date().toISOString();
+        const jsonStr = JSON.stringify(userCfg);
+
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE app_device_users SET voiceSettingsJson = ?, updatedAt = NOW() WHERE LOWER(email) = ?`,
+          jsonStr,
+          cleanEmail,
+        );
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE users SET voiceSettingsJson = ?, updatedAt = NOW() WHERE LOWER(email) = ?`,
+          jsonStr,
+          cleanEmail,
+        );
+      } catch (err: any) {
+        console.error('Error updating user sharePin in setLivePin:', err);
+      }
+    }
+
+    return { success: true, pin: this.currentLivePin, email: cleanEmail || undefined };
   }
 
   async verifyLivePin(pin: string, email?: string) {
@@ -584,17 +778,7 @@ export class AdminService {
     const cleanPin = (pin || '').trim();
     if (!cleanPin) return { isValid: false, message: 'Mã PIN không được để trống' };
 
-    // 1. Khớp mã PIN hiện tại trong hệ thống (đã đồng bộ từ điện thoại hoặc cấu hình)
-    if (this.currentLivePin && cleanPin === this.currentLivePin) {
-      return { isValid: true, message: 'Mã PIN chính xác' };
-    }
-
-    // 2. Chấp nhận các mã mặc định phổ biến (889922 từ App Mobile, 606060 từ Web Admin)
-    if (cleanPin === '889922' || cleanPin === '606060') {
-      return { isValid: true, message: 'Mã PIN chính xác' };
-    }
-
-    // 3. Nếu có email tài khoản, kiểm tra mã PIN trong cấu hình của tài khoản đó trong SQL
+    // 1. Nếu có email tài khoản được truyền lên, kiểm tra trực tiếp cấu hình của email đó
     if (email) {
       const cleanEmail = email.trim().toLowerCase();
       try {
@@ -624,25 +808,61 @@ export class AdminService {
       } catch (_) {}
     }
 
-    // 4. Nếu không có email (dùng link chia sẻ sạch /live không đính kèm gmail)
-    // Kiểm tra xem mã PIN này có khớp với bất kỳ tài khoản thiết bị nào đã lưu trong cơ sở dữ liệu không
+    // 2. Tìm kiếm trong CSDL xem mã PIN 6 số này có thuộc về tài khoản thiết bị nào không
     try {
       const matchApp: any[] = await this.prisma.$queryRawUnsafe(
-        `SELECT email FROM app_device_users WHERE voiceSettingsJson LIKE ? LIMIT 1`,
-        `%"sharePin":"${cleanPin}"%`,
+        `SELECT email FROM app_device_users WHERE JSON_UNQUOTE(JSON_EXTRACT(voiceSettingsJson, '$.sharePin')) = ? OR voiceSettingsJson LIKE ? LIMIT 1`,
+        cleanPin,
+        `%"sharePin":%${cleanPin}%`,
       );
-      if (matchApp && matchApp.length > 0) {
+      if (matchApp && matchApp.length > 0 && matchApp[0].email) {
         return { isValid: true, email: matchApp[0].email, message: 'Mã PIN chính xác' };
       }
     } catch (_) {}
 
     try {
       const matchUser: any[] = await this.prisma.$queryRawUnsafe(
-        `SELECT email FROM users WHERE voiceSettingsJson LIKE ? LIMIT 1`,
-        `%"sharePin":"${cleanPin}"%`,
+        `SELECT email FROM users WHERE JSON_UNQUOTE(JSON_EXTRACT(voiceSettingsJson, '$.sharePin')) = ? OR voiceSettingsJson LIKE ? LIMIT 1`,
+        cleanPin,
+        `%"sharePin":%${cleanPin}%`,
       );
-      if (matchUser && matchUser.length > 0) {
+      if (matchUser && matchUser.length > 0 && matchUser[0].email) {
         return { isValid: true, email: matchUser[0].email, message: 'Mã PIN chính xác' };
+      }
+    } catch (_) {}
+
+    // 3. Khớp mã PIN hiện tại trong RAM hệ thống
+    if (this.currentLivePin && cleanPin === this.currentLivePin) {
+      let fallbackEmail = '';
+      try {
+        const latestUser: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT email FROM users ORDER BY updatedAt DESC LIMIT 1`,
+        );
+        if (latestUser && latestUser[0]?.email) fallbackEmail = latestUser[0].email;
+      } catch (_) {}
+      return { isValid: true, email: fallbackEmail, message: 'Mã PIN chính xác' };
+    }
+
+    // 4. Khớp với mã cấu hình packagesJson (livePin hoặc liveWebPin)
+    try {
+      const config = await this.prisma.systemConfig.findUnique({
+        where: { id: 'default' },
+      });
+      if (config && config.packagesJson) {
+        const parsed = JSON.parse(config.packagesJson);
+        if (
+          (parsed.livePin && cleanPin === String(parsed.livePin).trim()) ||
+          (parsed.liveWebPin && cleanPin === String(parsed.liveWebPin).trim())
+        ) {
+          let fallbackEmail = '';
+          try {
+            const latestUser: any[] = await this.prisma.$queryRawUnsafe(
+              `SELECT email FROM users ORDER BY updatedAt DESC LIMIT 1`,
+            );
+            if (latestUser && latestUser[0]?.email) fallbackEmail = latestUser[0].email;
+          } catch (_) {}
+          return { isValid: true, email: fallbackEmail, message: 'Mã PIN chính xác' };
+        }
       }
     } catch (_) {}
 
@@ -839,15 +1059,6 @@ export class AdminService {
       });
     }
 
-    if (user.deviceId && user.deviceId !== deviceId && !forceSwitch) {
-      return {
-        conflict: true,
-        message: `Tài khoản này đang liên kết với thiết bị (${user.device}). Bạn có muốn hủy liên kết trên máy cũ để chuyển sang máy này?`,
-        boundDevice: user.device,
-        user,
-      };
-    }
-
     return this.prisma.appDeviceUser.update({
       where: { email },
       data: {
@@ -941,5 +1152,362 @@ export class AdminService {
       },
     });
   }
+
+  /**
+   * Quét và gửi email thông báo sắp hết hạn dùng thử (còn dưới 24h hoặc vừa hết hạn)
+   * và tặng mã NGUOIMOI giảm 10%
+   */
+  async sendTrialExpiryReminders() {
+    const now = new Date();
+    // Các tài khoản có expiresAt trong khoảng từ -12h đến +24h
+    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const past12h = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+
+    const candidates = await this.prisma.appDeviceUser.findMany({
+      where: {
+        expiresAt: {
+          gte: past12h,
+          lte: in24h,
+        },
+        OR: [
+          { packagePlan: { contains: 'dùng thử' } },
+          { packagePlan: { contains: 'Dùng thử' } },
+          { packagePlan: { contains: 'trial' } },
+          { hasUsedTrial: true },
+        ],
+      },
+    });
+
+    const results = [];
+    for (const user of candidates) {
+      if (!user.email || !user.email.includes('@')) continue;
+      const hoursLeft = (new Date(user.expiresAt).getTime() - now.getTime()) / (1000 * 3600);
+      try {
+        const sent = await this.mailService.sendTrialExpiringEmail(user.email, {
+          hoursLeft: Math.max(1, Math.round(hoursLeft)),
+          expiresAt: new Date(user.expiresAt),
+          couponCode: 'NGUOIMOI',
+          discountPercent: 10,
+        });
+        results.push({ email: user.email, sent, hoursLeft: Math.round(hoursLeft) });
+      } catch (err: any) {
+        results.push({ email: user.email, sent: false, error: err.message });
+      }
+    }
+    return { count: results.length, details: results };
+  }
+
+  // ==========================================
+  // QUẢN LÝ GIỚI THIỆU BẠN BÈ & LỊCH SỬ RÚT TIỀN
+  // ==========================================
+
+  private getAffiliateFilePath(): string {
+    const dataDir = path.resolve(process.cwd(), 'data');
+    if (!fs.existsSync(dataDir)) {
+      try {
+        fs.mkdirSync(dataDir, { recursive: true });
+      } catch (_) {}
+    }
+    return path.join(dataDir, 'affiliate.json');
+  }
+
+  private readAffiliateData(): {
+    withdrawals: any[];
+    referrals: any[];
+    userBalances: Record<string, { available: number; totalEarned: number; invitedCount: number }>;
+  } {
+    const filePath = this.getAffiliateFilePath();
+    if (fs.existsSync(filePath)) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const parsed = JSON.parse(content);
+        return {
+          withdrawals: Array.isArray(parsed.withdrawals) ? parsed.withdrawals : [],
+          referrals: Array.isArray(parsed.referrals) ? parsed.referrals : [],
+          userBalances: parsed.userBalances && typeof parsed.userBalances === 'object' ? parsed.userBalances : {},
+        };
+      } catch (_) {}
+    }
+
+    // Dữ liệu mẫu chuẩn bị sẵn chuyên nghiệp
+    const defaultData = {
+      withdrawals: [
+        {
+          id: 'WD_1730001',
+          referralCode: '688219',
+          userEmail: 'quocvu.merchant@gmail.com',
+          bankName: 'MBBank',
+          accountNumber: '3011200588888',
+          accountHolder: 'TRẦN QUỐC VŨ',
+          amount: 500000,
+          status: 'PENDING',
+          rejectReason: '',
+          date: '23/10/2026 14:30',
+          createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+        },
+        {
+          id: 'WD_1730002',
+          referralCode: '912384',
+          userEmail: 'minhnguyen.coffee@gmail.com',
+          bankName: 'Techcombank',
+          accountNumber: '190382910398',
+          accountHolder: 'NGUYỄN VĂN MINH',
+          amount: 250000,
+          status: 'APPROVED',
+          rejectReason: '',
+          date: '22/10/2026 09:15',
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          processedAt: new Date(Date.now() - 82800000).toISOString(),
+        },
+        {
+          id: 'WD_1730003',
+          referralCode: '349182',
+          userEmail: 'spamanh@gmail.com',
+          bankName: 'Vietcombank',
+          accountNumber: '0071000889912',
+          accountHolder: 'LÊ THỊ ANH',
+          amount: 200000,
+          status: 'REJECTED',
+          rejectReason: 'Sai số tài khoản nhận tiền tại Vietcombank, đã hoàn lại 200.000₫ về số dư',
+          date: '21/10/2026 16:40',
+          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+          processedAt: new Date(Date.now() - 86400000 * 2 + 1800000).toISOString(),
+        },
+      ],
+      referrals: [
+        {
+          id: 'REF_173001',
+          referrerCode: '688219',
+          referrerEmail: 'quocvu.merchant@gmail.com',
+          invitedEmail: 'tiembanh.mai@gmail.com',
+          invitedName: 'Tiệm Bánh Mơ Màng',
+          packageName: '1 Năm (tặng 2T)',
+          commissionAmount: 75000,
+          date: '23/10/2026 11:20',
+          createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+        },
+        {
+          id: 'REF_173002',
+          referrerCode: '912384',
+          referrerEmail: 'minhnguyen.coffee@gmail.com',
+          invitedEmail: 'taphoahuong@gmail.com',
+          invitedName: 'Tạp Hóa Cô Hương',
+          packageName: '6 Tháng',
+          commissionAmount: 45000,
+          date: '22/10/2026 18:05',
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: 'REF_173003',
+          referrerCode: '688219',
+          referrerEmail: 'quocvu.merchant@gmail.com',
+          invitedEmail: 'nhahangbien@gmail.com',
+          invitedName: 'Nhà Hàng Biển Xanh',
+          packageName: 'Gói Vĩnh Viễn Trọn Đời',
+          commissionAmount: 120000,
+          date: '21/10/2026 15:30',
+          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        },
+        {
+          id: 'REF_173004',
+          referrerCode: '773210',
+          referrerEmail: 'hoa.salon@gmail.com',
+          invitedEmail: 'phothin@gmail.com',
+          invitedName: 'Phở Thìn Hà Nội',
+          packageName: '3 Tháng',
+          commissionAmount: 25000,
+          date: '20/10/2026 10:10',
+          createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+        },
+      ],
+      userBalances: {
+        '688219': { available: 195000, totalEarned: 695000, invitedCount: 8 },
+        '912384': { available: 120000, totalEarned: 370000, invitedCount: 5 },
+        '773210': { available: 195000, totalEarned: 195000, invitedCount: 3 },
+      },
+    };
+
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2), 'utf-8');
+    } catch (_) {}
+    return defaultData;
+  }
+
+  private writeAffiliateData(data: any) {
+    try {
+      const filePath = this.getAffiliateFilePath();
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (e: any) {
+      this.logger.error(`Không thể ghi affiliate.json: ${e.message}`);
+    }
+  }
+
+  async getAffiliateOverview() {
+    const data = this.readAffiliateData();
+    const config = await this.getConfig();
+
+    let totalCommissionPaid = 0;
+    let pendingWithdrawalAmount = 0;
+    let pendingCount = 0;
+
+    for (const w of data.withdrawals) {
+      if (w.status === 'APPROVED') {
+        totalCommissionPaid += Number(w.amount || 0);
+      } else if (w.status === 'PENDING' || w.status === 'Chờ duyệt') {
+        pendingWithdrawalAmount += Number(w.amount || 0);
+        pendingCount += 1;
+      }
+    }
+
+    // Tính Top 3 người giới thiệu xuất sắc nhất
+    const referrersMap: Record<string, { code: string; email: string; name: string; count: number; totalEarned: number }> = {};
+    for (const ref of data.referrals) {
+      const key = ref.referrerCode || ref.referrerEmail || 'unknown';
+      if (!referrersMap[key]) {
+        referrersMap[key] = {
+          code: ref.referrerCode || '000000',
+          email: ref.referrerEmail || 'Người dùng',
+          name: ref.referrerEmail ? ref.referrerEmail.split('@')[0] : 'Đại lý',
+          count: 0,
+          totalEarned: 0,
+        };
+      }
+      referrersMap[key].count += 1;
+      referrersMap[key].totalEarned += Number(ref.commissionAmount || 0);
+    }
+
+    // Bổ sung dữ liệu từ userBalances
+    for (const [code, stat] of Object.entries(data.userBalances)) {
+      if (!referrersMap[code]) {
+        referrersMap[code] = {
+          code,
+          email: `user_${code}@autobank.vn`,
+          name: `Đại lý #${code}`,
+          count: stat.invitedCount || 0,
+          totalEarned: stat.totalEarned || 0,
+        };
+      } else {
+        if (stat.totalEarned > referrersMap[code].totalEarned) {
+          referrersMap[code].totalEarned = stat.totalEarned;
+        }
+        if (stat.invitedCount > referrersMap[code].count) {
+          referrersMap[code].count = stat.invitedCount;
+        }
+      }
+    }
+
+    const sortedReferrers = Object.values(referrersMap).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return b.totalEarned - a.totalEarned;
+    });
+
+    const top3 = sortedReferrers.slice(0, 3).map((u, idx) => ({
+      rank: idx + 1,
+      medal: idx === 0 ? '🥇 Vàng' : idx === 1 ? '🥈 Bạc' : '🥉 Đồng',
+      ...u,
+    }));
+
+    return {
+      stats: {
+        totalCommissionPaid,
+        pendingWithdrawalAmount,
+        totalReferralsCount: data.referrals.length,
+        pendingWithdrawalsCount: pendingCount,
+      },
+      top3,
+      withdrawals: data.withdrawals,
+      referrals: data.referrals,
+      affiliateRewards: config?.affiliateRewards || [],
+    };
+  }
+
+  async approveWithdrawal(id: string) {
+    const data = this.readAffiliateData();
+    const item = data.withdrawals.find((w: any) => w.id === id);
+    if (!item) {
+      throw new BadRequestException('Không tìm thấy lệnh rút tiền với ID này.');
+    }
+    item.status = 'APPROVED';
+    item.processedAt = new Date().toISOString();
+    this.writeAffiliateData(data);
+    return { success: true, message: `Đã duyệt thành công lệnh rút tiền #${id}`, item };
+  }
+
+  async rejectWithdrawal(id: string, reason?: string) {
+    const data = this.readAffiliateData();
+    const item = data.withdrawals.find((w: any) => w.id === id);
+    if (!item) {
+      throw new BadRequestException('Không tìm thấy lệnh rút tiền với ID này.');
+    }
+    item.status = 'REJECTED';
+    item.rejectReason = reason || 'Thông tin tài khoản ngân hàng không chính xác';
+    item.processedAt = new Date().toISOString();
+
+    // Hoàn tiền lại số dư cho người dùng
+    const code = item.referralCode;
+    if (code && data.userBalances[code]) {
+      data.userBalances[code].available = (data.userBalances[code].available || 0) + Number(item.amount || 0);
+    }
+
+    this.writeAffiliateData(data);
+    return { success: true, message: `Đã từ chối lệnh rút tiền #${id}. Số dư đã được hoàn trả.`, item };
+  }
+
+  async recordWithdrawalRequest(dto: any) {
+    const data = this.readAffiliateData();
+    const now = new Date();
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const y = now.getFullYear();
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const dateStr = `${d}/${m}/${y} ${h}:${min}`;
+
+    const newWithdrawal = {
+      id: dto.withdrawalId || `WD_${Date.now()}`,
+      referralCode: dto.referralCode || '000000',
+      userEmail: dto.userEmail || dto.email || `user_${dto.referralCode}@autobank.vn`,
+      bankName: dto.bankName || 'Ngân hàng',
+      accountNumber: dto.accountNumber || '',
+      accountHolder: (dto.accountHolder || '').toUpperCase(),
+      amount: Number(dto.amount || 0),
+      status: 'PENDING',
+      rejectReason: '',
+      date: dto.date || dateStr,
+      createdAt: now.toISOString(),
+    };
+
+    data.withdrawals.unshift(newWithdrawal);
+    this.writeAffiliateData(data);
+    return { success: true, message: 'Đã tiếp nhận yêu cầu rút tiền thành công', withdrawal: newWithdrawal };
+  }
+
+  async recordReferralBind(dto: any) {
+    const data = this.readAffiliateData();
+    const refCode = dto.referredByCode;
+    if (refCode && refCode.length === 6) {
+      if (!data.userBalances[refCode]) {
+        data.userBalances[refCode] = { available: 0, totalEarned: 0, invitedCount: 1 };
+      } else {
+        data.userBalances[refCode].invitedCount = (data.userBalances[refCode].invitedCount || 0) + 1;
+      }
+      this.writeAffiliateData(data);
+    }
+    return { success: true };
+  }
+
+  async getAffiliateStats(code?: string, email?: string) {
+    const data = this.readAffiliateData();
+    const key = code || '';
+    const userStat = (key && data.userBalances[key]) ? data.userBalances[key] : { available: 0, totalEarned: 0, invitedCount: 0 };
+    return {
+      availableBalance: userStat.available,
+      totalEarned: userStat.totalEarned,
+      invitedCount: userStat.invitedCount,
+      withdrawals: data.withdrawals.filter((w: any) => w.referralCode === code || (email && w.userEmail === email)),
+      referrals: data.referrals.filter((r: any) => r.referrerCode === code || (email && r.referrerEmail === email)),
+    };
+  }
 }
+
 

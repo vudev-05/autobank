@@ -267,14 +267,32 @@ export class TtsController implements OnModuleInit {
   @Post('user-config')
   async saveUserConfig(@Body() body: any) {
     const email = (body.email || '').trim().toLowerCase();
-    const configData = {
+    let configData = {
       ...body,
       updatedAt: new Date().toISOString(),
     };
-    const jsonStr = JSON.stringify(configData);
 
     if (email && email !== 'anonymous') {
       try {
+        // Lấy cấu hình hiện tại để merge an toàn (không làm mất voice templates khi update sharePin hoặc ngược lại)
+        let existingCfg: any = {};
+        const rows: any[] = await this.prisma.$queryRawUnsafe(
+          `SELECT voiceSettingsJson FROM app_device_users WHERE LOWER(email) = ? LIMIT 1`,
+          email,
+        );
+        if (rows && rows[0]?.voiceSettingsJson) {
+          try {
+            existingCfg = JSON.parse(rows[0].voiceSettingsJson);
+          } catch (_) {}
+        }
+        configData = {
+          ...existingCfg,
+          ...body,
+          email,
+          updatedAt: new Date().toISOString(),
+        };
+        const jsonStr = JSON.stringify(configData);
+
         // Lưu vào MySQL bảng app_device_users
         await this.prisma.$executeRawUnsafe(
           `UPDATE app_device_users SET voiceSettingsJson = ?, updatedAt = NOW() WHERE LOWER(email) = ?`,
@@ -544,6 +562,7 @@ export class TtsController implements OnModuleInit {
         'Content-Length': cached.length.toString(),
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
         'Cache-Control': 'public, max-age=86400',
         'X-Cache': 'HIT',
       });
@@ -558,6 +577,7 @@ export class TtsController implements OnModuleInit {
           'Content-Length': buffer.length.toString(),
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
           'Cache-Control': 'public, max-age=86400',
           'X-Cache': 'MISS',
         });

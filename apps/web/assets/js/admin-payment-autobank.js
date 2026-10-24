@@ -1,6 +1,4 @@
-import { checkAuth, initSidebar, showToast } from './admin-core.js';
-
-const API_URL = 'http://localhost:3000';
+import { checkAuth, initSidebar, showToast, adminFetch, API_BASE } from './admin-core.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!checkAuth()) return;
@@ -28,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const bankName = document.getElementById('thueapi-bankname').value.trim();
 
     try {
-      const res = await fetch(`${API_URL}/admin/thueapi/config`, {
+      const res = await adminFetch(`${API_BASE}/admin/thueapi/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled, apiKey, bankAcc, bankCode, bankName }),
@@ -86,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     box.innerText = 'Đang gửi tín hiệu kiểm tra kết nối tới https://thueapi.pro/...';
 
     try {
-      const res = await fetch(`${API_URL}/admin/thueapi/test`, { method: 'POST' });
+      const res = await adminFetch(`${API_BASE}/admin/thueapi/test`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         box.style.border = '1px solid rgba(16, 185, 129, 0.4)';
@@ -136,7 +134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadConfig() {
   try {
-    const res = await fetch(`${API_URL}/admin/thueapi/config`);
+    const res = await adminFetch(`${API_BASE}/admin/thueapi/config`);
     if (!res.ok) return;
     const data = await res.json();
 
@@ -195,7 +193,7 @@ async function loadConfig() {
 
 async function loadLogs() {
   try {
-    const res = await fetch(`${API_URL}/admin/thueapi/webhooks`);
+    const res = await adminFetch(`${API_BASE}/admin/thueapi/webhooks`);
     if (!res.ok) return;
     const logs = await res.json();
     const tbody = document.getElementById('thueapi-logs-body');

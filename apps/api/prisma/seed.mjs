@@ -18,7 +18,7 @@ async function main() {
     update: {
       brandName: 'Đọc thông báo nhận tiền',
       brandSlogan: 'Tiền vừa sang ~ máy báo vang',
-      chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
+      chplayLink: 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
       youtubeLink: 'https://www.youtube.com/@vudev05',
       hotline: '0869226687',
       email: 'tranquocvu3011@gmail.com',
@@ -45,7 +45,7 @@ async function main() {
       id: 'default',
       brandName: 'Đọc thông báo nhận tiền',
       brandSlogan: 'Tiền vừa sang ~ máy báo vang',
-      chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
+      chplayLink: 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
       youtubeLink: 'https://www.youtube.com/@vudev05',
       hotline: '0869226687',
       email: 'tranquocvu3011@gmail.com',
@@ -74,6 +74,7 @@ async function main() {
   // 1.1 Khởi tạo các mã giảm giá Marketing
   console.log('1.1 Đang nạp mã giảm giá khuyến mãi Marketing...');
   const defaultCoupons = [
+    { code: 'NGUOIMOI', description: 'Ưu đãi thành viên mới: Giảm 10% trong vòng 3 ngày', discountPercent: 10, discountAmount: 0, targetAudience: 'NEW_3DAYS', autoApply: true, isActive: true },
     { code: 'AUTOBANK20', description: 'Giảm 20% toàn bộ gói cước', discountPercent: 20, discountAmount: 0 },
     { code: 'TET2026', description: 'Tri ân khách hàng giảm 30%', discountPercent: 30, discountAmount: 0 },
     { code: 'VIP50K', description: 'Giảm ngay 50.000đ trực tiếp', discountPercent: 0, discountAmount: 50000 },

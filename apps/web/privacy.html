@@ -1,133 +1,944 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html class="no-js" lang="vi">
+
 <head>
   <meta charset="utf-8" />
+  <title>Điều Khoản Sử Dụng & Chính Sách Bảo Mật — Đọc Thông Báo Nhận Tiền</title>
+  <meta name="description"
+    content="Điều khoản sử dụng dịch vụ, chính sách quyền riêng tư bảo mật dữ liệu ngân hàng, quy định livestream và chính sách hoàn tiền của Đọc Thông Báo Nhận Tiền (AutoBank)." />
+  <meta name="keywords"
+    content="điều khoản sử dụng, chính sách bảo mật, privacy policy, terms of service, quy định livestream, bảo mật mã PIN, đọc thông báo nhận tiền, autobank" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chính Sách Quyền Riêng Tư (Privacy Policy) — Đọc Thông Báo Nhận Tiền</title>
-  <meta name="description" content="Chính sách quyền riêng tư và bảo mật thông tin người dùng ứng dụng Đọc Thông Báo Nhận Tiền." />
-  <link rel="shortcut icon" href="assets/images/favicon.png" type="image/png" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://docthongbaobank.com/privacy" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:locale" content="vi_VN" />
+  <meta property="og:url" content="https://docthongbaobank.com/privacy" />
+  <meta property="og:title" content="Điều Khoản Sử Dụng & Chính Sách Bảo Mật — Đọc Thông Báo Nhận Tiền" />
+  <meta property="og:description"
+    content="Niêm yết công khai: Điều khoản dịch vụ, quyền riêng tư, quy định bảo mật livestream mã PIN và chính sách hoàn tiền 100%." />
+  <meta property="og:image" content="https://docthongbaobank.com/og-banner.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://docthongbaobank.com/og-banner.png" />
+
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="stylesheet" href="assets/css/seo-home.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+
   <style>
-    :root {
-      --primary: #0284c7;
-      --text-main: #0f172a;
-      --text-muted: #475569;
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --border: #e2e8f0;
+    .legal-page-shell {
+      background: #f8fafc;
+      padding-top: 24px;
+      padding-bottom: 70px;
+      color: #0f172a;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text-main);
-      line-height: 1.6;
-      padding: 40px 20px;
+
+    .legal-hero {
+      background: linear-gradient(135deg, #0369a1 0%, #0284c7 60%, #0ea5e9 100%);
+      color: #ffffff;
+      padding: 38px 0 44px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(2, 132, 199, 0.2);
     }
-    .container {
-      max-width: 840px;
-      margin: 0 auto;
-      background: var(--card-bg);
-      padding: 40px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+
+    .legal-hero::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18) 0%, transparent 60%);
+      pointer-events: none;
     }
-    .header {
-      border-bottom: 2px solid var(--border);
-      padding-bottom: 24px;
-      margin-bottom: 32px;
+
+    .legal-breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.82);
+      margin-bottom: 12px;
     }
-    .logo-badge {
+
+    .legal-breadcrumbs a {
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .legal-breadcrumbs a:hover {
+      text-decoration: underline;
+    }
+
+    .legal-badge-pill {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      background: #eff6ff;
-      color: var(--primary);
-      padding: 6px 14px;
-      border-radius: 30px;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.82rem;
       font-weight: 700;
-      font-size: 0.85rem;
-      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
-    h1 { font-size: 1.8rem; font-weight: 800; color: #0284c7; margin-bottom: 8px; }
-    .updated-date { font-size: 0.9rem; color: var(--text-muted); }
-    h2 { font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-top: 28px; margin-bottom: 12px; }
-    p, li { font-size: 0.98rem; color: var(--text-muted); margin-bottom: 12px; }
-    ul { padding-left: 24px; margin-bottom: 16px; }
-    .highlight-box {
+
+    .legal-title {
+      font-size: 2.15rem;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .legal-subtitle {
+      font-size: 1.02rem;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 820px;
+      line-height: 1.6;
+    }
+
+    .legal-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 36px 40px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+      margin-bottom: 30px;
+    }
+
+    .toc-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 22px 24px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+      margin-bottom: 24px;
+      position: sticky;
+      top: 96px;
+    }
+
+    .toc-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .toc-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .toc-list a {
+      color: #475569;
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+      line-height: 1.4;
+    }
+
+    .toc-list a:hover {
+      background: #f0f9ff;
+      color: #0284c7;
+      transform: translateX(4px);
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 36px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      scroll-margin-top: 105px;
+    }
+
+    .section-title svg {
+      color: #0284c7;
+      flex-shrink: 0;
+    }
+
+    .legal-p {
+      font-size: 0.98rem;
+      color: #334155;
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+
+    .legal-list {
+      padding-left: 24px;
+      margin-bottom: 18px;
+    }
+
+    .legal-list li {
+      font-size: 0.96rem;
+      color: #334155;
+      line-height: 1.65;
+      margin-bottom: 10px;
+    }
+
+    .highlight-banner-green {
       background: #f0fdf4;
-      border-left: 4px solid #16a34a;
-      padding: 16px 20px;
-      border-radius: 0 12px 12px 0;
+      border: 1px solid #bbf7d0;
+      border-left: 5px solid #16a34a;
+      border-radius: 12px;
+      padding: 18px 22px;
       margin: 20px 0;
     }
-    .highlight-box p { color: #166534; font-weight: 500; margin: 0; }
-    .footer {
-      margin-top: 40px;
-      padding-top: 24px;
-      border-top: 1px solid var(--border);
-      text-align: center;
+
+    .highlight-banner-green strong {
+      color: #15803d;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .highlight-banner-green p {
+      color: #166534;
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .highlight-banner-blue {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 5px solid #0284c7;
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin: 20px 0;
+    }
+
+    .highlight-banner-blue strong {
+      color: #0369a1;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .highlight-banner-blue p {
+      color: #1e40af;
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .legal-table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      margin: 20px 0;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .legal-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      background: #ffffff;
+    }
+
+    .legal-table th, .legal-table td {
+      border: 1px solid #e2e8f0;
+      padding: 13px 16px;
+      text-align: left;
+    }
+
+    .legal-table th {
+      background: #f8fafc;
+      font-weight: 800;
+      color: #0f172a;
       font-size: 0.85rem;
-      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+
+    .legal-table tr:hover {
+      background: #f8fafc;
+    }
+
+    /* Price Badge Pills */
+    .badge-pricing-free {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #166534;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid #bbf7d0;
+    }
+    .badge-pricing-saving {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid #bae6fd;
+    }
+    .badge-pricing-popular {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid #fde68a;
+    }
+    .badge-pricing-featured {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(3, 105, 161, 0.25);
+    }
+    .badge-pricing-vip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+    }
+
+    @media (max-width: 991px) {
+      .legal-card { padding: 24px 20px; }
+      .legal-title { font-size: 1.7rem; }
+      .toc-card { position: static; }
+      .legal-table th, .legal-table td { padding: 10px 12px; font-size: 0.84rem; }
     }
   </style>
 </head>
+
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="logo-badge">🛡️ BẢO VỆ NGƯỜI DÙNG & MINH BẠCH DỮ LIỆU</div>
-      <h1>Chính Sách Quyền Riêng Tư</h1>
-      <div class="updated-date">Ứng dụng: <strong>Đọc Thông Báo Nhận Tiền (AutoBank)</strong> · Cập nhật lần cuối: Ngày 18 tháng 10 năm 2026</div>
+  <a class="seo-skip-link" href="#main-content">Bỏ qua nội dung chính</a>
+
+  <!--====== Modern Glass Header with Water Blue Accents ======-->
+  <header class="seo-header-shell" id="seo-header">
+    <div class="container">
+      <nav class="seo-pillnav" aria-label="Điều hướng chính">
+        <a class="seo-pillnav-brand" href="/" aria-label="Trang chủ Đọc thông báo nhận tiền">
+          <img src="assets/images/favicon.png" alt="Logo Đọc thông báo nhận tiền" width="34" height="34"
+            style="width: 34px; height: 34px; border-radius: 9px; object-fit: cover; flex-shrink: 0; box-shadow: 0 3px 10px rgba(2, 132, 199, 0.28);" />
+          <span class="seo-pillnav-brand-text">Đọc thông báo</span>
+        </a>
+
+        <div class="seo-pillnav-main" id="seo-pillnav-main">
+          <a class="seo-pillnav-link" href="/">Trang chủ</a>
+          <a class="seo-pillnav-link" href="/#voice-demo">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px; vertical-align: -2px;">
+              <path d="M11 5L6 9H2v6h4l5 4V5z" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+            Nghe thử loa
+          </a>
+          <a class="seo-pillnav-link" href="/#features">Tính năng</a>
+          <a class="seo-pillnav-link" href="/#pricing">Bảng giá</a>
+          <a class="seo-pillnav-link" href="/#huong-dan-cai">Hướng dẫn cài</a>
+          <a class="seo-pillnav-link" href="/#danh-sach-ngan-hang">Hỗ trợ 65+ App</a>
+          <a class="seo-pillnav-link active" href="/privacy">Điều khoản &amp; Bảo mật</a>
+          <a class="seo-pillnav-link" href="/live">🔴 Xem Live Stream</a>
+        </div>
+
+        <span class="seo-pillnav-gap" aria-hidden="true"></span>
+
+        <!-- Header Tải App Button CH Play -->
+        <a class="seo-pillnav-link seo-pillnav-link--cta" href="https://play.google.com/store/apps/details?id=com.docthongbaobank.app" target="_blank" rel="noopener" id="header-cta-btn" title="Tải ứng dụng trên CH Play">
+          <span class="seo-pillnav-cta-shine" aria-hidden="true"></span>
+          <span class="seo-pillnav-cta-label" style="display: inline-flex; align-items: center; gap: 4px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Tải App
+          </span>
+        </a>
+
+        <!-- Right-Side 3-bar Sidebar Toggle Button -->
+        <button type="button" class="seo-pillnav-toggle" id="seo-pillnav-toggle" aria-expanded="false"
+          aria-controls="seo-pillnav-drawer" aria-label="Mở menu danh mục" title="Mở menu danh mục">
+          <svg class="seo-ui-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="7" x2="20" y2="7" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="17" x2="20" y2="17" />
+          </svg>
+        </button>
+      </nav>
     </div>
 
-    <div class="highlight-box">
-      <p><strong>Cam kết cốt lõi:</strong> Ứng dụng "Đọc Thông Báo Nhận Tiền" KHÔNG BAO GIỜ yêu cầu bạn đăng nhập tài khoản ngân hàng, KHÔNG yêu cầu mật khẩu ngân hàng, KHÔNG yêu cầu mã OTP, và KHÔNG thực hiện bất kỳ giao dịch chuyển tiền nào. Chúng tôi chỉ lắng nghe thông báo biến động số dư đã hiển thị trên thanh trạng thái điện thoại để phát âm thanh đọc to tại quầy thu ngân.</p>
-    </div>
+    <!-- Right-side Backdrop & Drawer -->
+    <div class="seo-pillnav-backdrop" id="seo-pillnav-backdrop" hidden></div>
+    <aside class="seo-pillnav-drawer" id="seo-pillnav-drawer" aria-hidden="true" aria-label="Menu danh mục ứng dụng">
+      <div class="seo-pillnav-drawer-head">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <img src="assets/images/favicon.png" alt="Logo" width="32" height="32"
+            style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);" />
+          <div>
+            <span class="seo-pillnav-drawer-title"
+              style="color: #0284c7; font-weight: 800; font-size: 0.95rem; display: block; line-height: 1.2;">Đọc thông báo</span>
+            <small style="color: #64748b; font-size: 0.74rem;">Menu danh mục điều hướng</small>
+          </div>
+        </div>
+        <button type="button" class="seo-pillnav-drawer-close" id="seo-pillnav-close" aria-label="Đóng menu">
+          <svg class="seo-ui-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
 
-    <h2>1. Mục Đích Của Ứng Dụng</h2>
-    <p>Ứng dụng <strong>"Đọc Thông Báo Nhận Tiền"</strong> được phát triển nhằm hỗ trợ các chủ cửa hàng, người bán hàng trực tuyến và hộ kinh doanh nhận biết nhanh chóng khách hàng đã chuyển khoản thành công qua loa đọc âm thanh tự động, giảm thiểu rủi ro gian lận ảnh chụp màn hình giả mạo.</p>
+      <nav class="seo-pillnav-drawer-nav" aria-label="Menu danh mục chi tiết">
+        <a class="seo-pillnav-drawer-link" href="/">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"
+            style="vertical-align: -3px; margin-right: 8px; color: #0284c7;">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Trang chủ
+        </a>
+        <a class="seo-pillnav-drawer-link" href="/#voice-demo">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"
+            style="vertical-align: -3px; margin-right: 8px; color: #0284c7;">
+            <path d="M11 5L6 9H2v6h4l5 4V5z" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          </svg>
+          Nghe thử loa đọc tiền
+        </a>
+        <a class="seo-pillnav-drawer-link" href="/#pricing">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"
+            style="vertical-align: -3px; margin-right: 8px; color: #0284c7;">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
+          </svg>
+          Bảng giá dịch vụ
+        </a>
+        <a class="seo-pillnav-drawer-link" href="/live">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"
+            style="vertical-align: -3px; margin-right: 8px; color: #e11d48;">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="3" fill="#e11d48" />
+          </svg>
+          Live Stream Biến Động Số Dư
+        </a>
+        <a class="seo-pillnav-drawer-link active" href="/privacy">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"
+            style="vertical-align: -3px; margin-right: 8px; color: #0284c7;">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          Điều khoản &amp; Chính sách bảo mật
+        </a>
+      </nav>
 
-    <h2>2. Các Quyền Truy Cập Hệ Thống & Giải Trình Sử Dụng (Google Play Policy)</h2>
-    <p>Để thực hiện tính năng đọc thông báo tự động 24/7, ứng dụng yêu cầu người dùng cấp các quyền sau trên thiết bị:</p>
-    <ul>
-      <li><strong>Quyền Lắng Nghe Thông Báo (BIND_NOTIFICATION_LISTENER_SERVICE):</strong>
-        <br/><em>Mục đích cốt lõi:</em> Đọc nội dung thông báo đẩy (Push Notification) từ các ứng dụng ngân hàng và ví điện tử đã được cài đặt trên cùng thiết bị (Vietcombank, MBBank, Techcombank, BIDV, MoMo, ZaloPay...). Ứng dụng chỉ trích xuất số tiền nhận được và tên ngân hàng để phát giọng đọc tiếng Việt. Tuyệt đối không đọc hay thu thập tin nhắn cá nhân, mật khẩu, mã OTP của người dùng.
-      </li>
-      <li><strong>Quyền Bỏ Giới Hạn Tối Ưu Pin (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS):</strong>
-        <br/><em>Mục đích:</em> Cho phép ứng dụng duy trì chế độ chạy nền ("Không hạn chế") để không bị hệ điều hành Android tự động tắt khi màn hình khóa hoặc để qua đêm, đảm bảo loa luôn sẵn sàng đọc khi có khách thanh toán.
-      </li>
-      <li><strong>Quyền Đánh Thức Thiết Bị (WAKE_LOCK):</strong>
-        <br/><em>Mục đích:</em> Kích hoạt bộ xử lý âm thanh trong 2-3 giây để đọc to câu thông báo ngay cả khi điện thoại đang ở chế độ ngủ/tắt màn hình.
-      </li>
-      <li><strong>Quyền Điều Chỉnh Âm Lượng (MODIFY_AUDIO_SETTINGS):</strong>
-        <br/><em>Mục đích:</em> Đảm bảo mức âm lượng đọc loa đủ to và rõ ràng trong môi trường ồn ào tại quầy thanh toán.
-      </li>
-    </ul>
+      <div style="padding: 14px 14px 0;">
+        <a class="seo-pillnav-drawer-cta" href="https://play.google.com/store/apps/details?id=com.docthongbaobank.app" target="_blank" rel="noopener">
+          <span class="seo-pillnav-cta-label" style="display: inline-flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Tải Ứng Dụng Trên CH Play
+          </span>
+        </a>
+      </div>
+    </aside>
+  </header>
 
-    <h2>3. Thu Thập Và Sử Dụng Thông Tin Cá Nhân</h2>
-    <ul>
-      <li><strong>Đăng nhập tài khoản Google:</strong> Ứng dụng sử dụng Google Sign-in để nhận diện địa chỉ email, họ tên hiển thị và ảnh đại diện phục vụ việc kích hoạt gói bản quyền dịch vụ và đồng bộ cài đặt câu đọc giữa các thiết bị của bạn.</li>
-      <li><strong>Không chia sẻ cho bên thứ ba:</strong> Chúng tôi cam kết không bán, không cho thuê và không chia sẻ bất kỳ thông tin nào của người dùng cho bên thứ ba vì mục đích quảng cáo.</li>
-    </ul>
+  <!-- Spacer to prevent fixed header from overlapping hero -->
+  <div class="seo-header-spacer"></div>
 
-    <h2>4. Bảo Mật Thông Tin</h2>
-    <p>Toàn bộ quá trình đồng bộ dữ liệu cài đặt câu đọc và trạng thái đăng ký giữa ứng dụng và máy chủ được mã hóa qua giao thức an toàn HTTPS (SSL/TLS) và chứng thực chữ ký số HMAC-SHA256.</p>
-
-    <h2>5. Quyền Yêu Cầu Xóa Dữ Liệu</h2>
-    <p>Người dùng có toàn quyền yêu cầu xóa tài khoản và toàn bộ dữ liệu lịch sử liên kết bằng cách gửi yêu cầu tới email hỗ trợ của chúng tôi hoặc thao tác Đăng xuất / Hủy liên kết trực tiếp trong ứng dụng.</p>
-
-    <h2>6. Thông Tin Liên Hệ Đơn Vị Phát Triển</h2>
-    <p>Nếu bạn có bất kỳ thắc mắc hoặc góp ý nào về Chính sách quyền riêng tư này, vui lòng liên hệ:</p>
-    <ul>
-      <li><strong>Tên đơn vị:</strong> Đội ngũ Phát triển AutoBank & Đọc Thông Báo Nhận Tiền</li>
-      <li><strong>Hotline hỗ trợ 24/7:</strong> 0869.226.687</li>
-      <li><strong>Email:</strong> tranquocvu3011@gmail.com</li>
-      <li><strong>Website:</strong> <a href="https://docthongbaobank.com" style="color: #0284c7; text-decoration: none;">https://docthongbaobank.com</a></li>
-    </ul>
-
-    <div class="footer">
-      &copy; 2026 AutoBank Platform. Bản quyền thuộc về Đọc Thông Báo Nhận Tiền.
+  <!--====== HERO HEADER ======-->
+  <div class="legal-hero">
+    <div class="container">
+      <div class="legal-breadcrumbs">
+        <a href="/">Trang chủ</a>
+        <span style="opacity: 0.6;">›</span>
+        <span>Pháp lý &amp; Điều khoản</span>
+      </div>
+      <div class="legal-badge-pill">
+        <span>🛡️ MINH BẠCH DỮ LIỆU &amp; BẢO VỆ NGƯỜI DÙNG</span>
+      </div>
+      <h1 class="legal-title">Điều Khoản Sử Dụng &amp; Chính Sách Bảo Mật</h1>
+      <p class="legal-subtitle">
+        Văn bản pháp lý niêm yết công khai quy định quyền và trách nhiệm của khách hàng khi sử dụng phần mềm Đọc Thông Báo Nhận Tiền (AutoBank), cam kết bảo mật thông tin ngân hàng và chính sách hoàn tiền minh bạch.
+      </p>
+      <div style="margin-top: 18px; font-size: 0.88rem; color: rgba(255,255,255,0.85); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span>Hiệu lực: <strong style="color: #fff;">Toàn bộ nền tảng (Android APK, Web &amp; Live Stream)</strong></span>
+        <span style="opacity: 0.5;">·</span>
+        <span>Cập nhật lần cuối: <strong style="color: #38bdf8;">Ngày 18/10/2026</strong></span>
+      </div>
     </div>
   </div>
+
+  <!--====== MAIN CONTENT ======-->
+  <main class="legal-page-shell" id="main-content">
+    <div class="container">
+      <div class="row">
+        <!-- Sidebar Navigation (TOC) -->
+        <div class="col-lg-4 col-md-12">
+          <div class="toc-card">
+            <div class="toc-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              Mục Lục Điều Khoản
+            </div>
+            <ul class="toc-list">
+              <li><a href="#terms">1. Điều khoản dịch vụ chung</a></li>
+              <li><a href="#privacy">2. Chính sách quyền riêng tư &amp; Bảo mật</a></li>
+              <li><a href="#live-policy">3. Quy định sử dụng tính năng Live Stream</a></li>
+              <li><a href="#pricing-refund">4. Gói cước, Dùng thử &amp; Hoàn tiền 100%</a></li>
+              <li><a href="#disclaimer">5. Tuyên bố miễn trừ trách nhiệm</a></li>
+              <li><a href="#public-info">6. Đơn vị chủ quản &amp; Kênh hỗ trợ 24/7</a></li>
+            </ul>
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #f1f5f9;">
+              <a href="https://zalo.me/0869226687" target="_blank" rel="noopener" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; background: #0284c7; color: #fff; border-radius: 10px; font-weight: 700; font-size: 0.9rem; text-decoration: none;">
+                💬 Hỗ trợ Zalo 0869.226.687
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Legal Body -->
+        <div class="col-lg-8 col-md-12">
+          <div class="legal-card">
+
+            <!-- CAM KẾT VÀNG -->
+            <div class="highlight-banner-green">
+              <strong>✨ CAM KẾT VÀNG VỀ AN TOÀN TÀI CHÍNH</strong>
+              <p>Ứng dụng <strong>"Đọc Thông Báo Nhận Tiền"</strong> KHÔNG BAO GIỜ yêu cầu bạn đăng nhập tài khoản ngân hàng, KHÔNG yêu cầu mật khẩu đăng nhập, KHÔNG yêu cầu mã OTP, và TUYỆT ĐỐI KHÔNG can thiệp vào tài khoản ngân hàng của bạn. Chúng tôi chỉ tiếp nhận thông báo biến động số dư đã hiển thị trên thanh thông báo điện thoại để phát âm thanh đọc to tại quầy thu ngân.</p>
+            </div>
+
+            <!-- MỤC 1 -->
+            <h2 class="section-title" id="terms">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              1. Điều Khoản Dịch Vụ Chung (Terms of Service)
+            </h2>
+            <p class="legal-p">
+              Chào mừng bạn đến với nền tảng <strong>Đọc Thông Báo Nhận Tiền (AutoBank)</strong>. Bằng việc tải về ứng dụng, đăng nhập tài khoản Google hoặc truy cập cổng theo dõi biến động số dư qua trang web, bạn xác nhận đã đọc, hiểu và hoàn toàn đồng ý tuân thủ các điều khoản được quy định dưới đây.
+            </p>
+            <ul class="legal-list">
+              <li><strong>Phạm vi dịch vụ:</strong> Ứng dụng cung cấp giải pháp nhận dạng thông báo đẩy (Push Notification) từ các ứng dụng ngân hàng và ví điện tử hợp pháp tại Việt Nam, chuyển đổi số tiền nhận được thành giọng đọc tiếng Việt qua loa điện thoại hoặc loa Bluetooth, đồng thời hỗ trợ thống kê dòng tiền và quản lý chi tiêu.</li>
+              <li><strong>Đối tượng sử dụng:</strong> Chủ cửa hàng, siêu thị mini, quầy thuốc, tạp hóa, tài xế công nghệ, hộ kinh doanh cá thể và bất kỳ cá nhân nào có nhu cầu xác nhận tiền chuyển khoản tự động.</li>
+              <li><strong>Tài khoản &amp; Liên kết thiết bị:</strong> Mỗi tài khoản Google được dùng thử miễn phí 3 ngày với đầy đủ tính năng. Để đảm bảo tính độc quyền và an toàn bảo mật, một tài khoản bản quyền tại một thời điểm được gắn với một thiết bị Android duy nhất. Người dùng có quyền chuyển đổi sang máy mới thông qua tính năng <em>"Hủy liên kết thiết bị cũ"</em> hoặc xác thực mã OTP.</li>
+            </ul>
+
+            <!-- MỤC 2 -->
+            <h2 class="section-title" id="privacy">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              2. Chính Sách Quyền Riêng Tư &amp; Bảo Mật Ngân Hàng
+            </h2>
+            <p class="legal-p">
+              Chúng tôi cam kết tôn trọng tuyệt đối quyền riêng tư của mọi người dùng. Để hệ thống hoạt động chính xác 24/7, ứng dụng yêu cầu cấp một số quyền hệ thống Android theo tiêu chuẩn Google Play Store:
+            </p>
+            <ul class="legal-list">
+              <li>
+                <strong>Quyền Lắng Nghe Thông Báo (BIND_NOTIFICATION_LISTENER_SERVICE):</strong>
+                <br/>Ứng dụng chỉ lọc và xử lý các thông báo từ danh mục 65+ ứng dụng ngân hàng và ví điện tử được người dùng tích chọn (Vietcombank, MBBank, Techcombank, BIDV, MoMo, ZaloPay...). Ứng dụng tuyệt đối <em>không đọc tin nhắn SMS cá nhân, không đọc tin nhắn Zalo/Messenger, và không đọc mã OTP ngân hàng</em>.
+              </li>
+              <li>
+                <strong>Quyền Không Giới Hạn Pin (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS):</strong>
+                <br/>Cần thiết để hệ điều hành Android (đặc biệt là Xiaomi, Oppo, Vivo, Samsung) không tự động tắt dịch vụ chạy nền khi tắt màn hình, đảm bảo loa luôn sẵn sàng đọc khi có khách chuyển khoản.
+              </li>
+              <li>
+                <strong>Quyền Đánh Thức &amp; Âm Thanh (WAKE_LOCK &amp; MODIFY_AUDIO_SETTINGS):</strong>
+                <br/>Kích hoạt loa phát to câu thông báo ngay cả khi điện thoại đang ở chế độ nghỉ khóa màn hình.
+              </li>
+              <li>
+                <strong>Cam kết Không Bán Dữ Liệu:</strong> Toàn bộ dữ liệu cấu hình giọng đọc, lịch sử câu đọc chỉ phục vụ mục đích kiểm soát thu chi của chính bạn và không bao giờ được chia sẻ hay thương mại hóa cho bất kỳ bên thứ ba nào.
+              </li>
+            </ul>
+
+            <!-- MỤC 3 -->
+            <h2 class="section-title" id="live-policy">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="10 8 16 12 10 16 10 8"></polygon>
+              </svg>
+              3. Quy Định Sử Dụng Tính Năng Live Stream &amp; Mã PIN 6 Số
+            </h2>
+            <div class="highlight-banner-blue">
+              <strong>🔒 CƠ CHẾ BẢO MẬT MÃ PIN 6 SỐ DUY NHẤT</strong>
+              <p>Trang theo dõi trực tiếp <em>(https://docthongbaobank.com/live)</em> được bảo vệ bởi lớp mã khóa PIN 6 số do chính chủ tài khoản thiết lập trên app điện thoại. Bất kỳ ai truy cập nếu không có mã PIN hợp lệ sẽ không thể xem biến động hay nghe loa phát.</p>
+            </div>
+            <ul class="legal-list">
+              <li><strong>Trách nhiệm bảo quản mã PIN:</strong> Chủ cửa hàng chịu trách nhiệm chia sẻ mã PIN cho đúng nhân viên thu ngân hoặc người quản lý quầy. Bạn có thể thay đổi mã PIN bất kỳ lúc nào trên ứng dụng điện thoại để ngay lập tức vô hiệu hóa phiên của người khác.</li>
+              <li><strong>Thời hạn hiệu lực phiên 24 Giờ:</strong> Khi nhập đúng mã PIN trên trình duyệt, phiên kết nối được lưu trữ an toàn trong 24 giờ để nhân viên tiện theo dõi suốt ca làm việc mà không cần nhập lại nhiều lần. Sau 24 giờ, hệ thống tự động khóa và yêu cầu xác thực lại.</li>
+              <li><strong>Bảo vệ dữ liệu người chuyển khoản:</strong> Trang Live Stream hỗ trợ tính năng ẩn số tiền hoặc viết tắt thông tin người gửi để đảm bảo quyền riêng tư của khách hàng thanh toán tại quầy khi bạn mở màn hình cho khách xem.</li>
+              <li><strong>Ngắt kết nối khẩn cấp:</strong> Khi ứng dụng điện thoại tắt chế độ chia sẻ live hoặc đổi mã PIN, cổng web sẽ lập tức ngắt truyền tín hiệu trong vòng 5 giây.</li>
+            </ul>
+
+            <!-- MỤC 4 -->
+            <h2 class="section-title" id="pricing-refund">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                <line x1="12" y1="6" x2="12" y2="8"></line>
+                <line x1="12" y1="16" x2="12" y2="18"></line>
+              </svg>
+              4. Bảng Giá Dịch Vụ, Gói Dùng Thử &amp; Chính Sách Hoàn Tiền 100%
+            </h2>
+            <p class="legal-p">
+              Chúng tôi niêm yết công khai toàn bộ biểu phí dịch vụ rõ ràng, không phát sinh bất kỳ khoản phí ẩn nào. Bảng giá được quản lý và đồng bộ 100% giữa hệ thống máy chủ, trang web và ứng dụng di động:
+            </p>
+
+            <div class="legal-table-responsive">
+              <table class="legal-table">
+                <thead>
+                  <tr>
+                    <th style="width: 55px; text-align: center;">STT</th>
+                    <th>Tên Gói Cước</th>
+                    <th>Thời Hạn (Ngày)</th>
+                    <th>Giá Bán (VNĐ)</th>
+                    <th>Huy Hiệu / Nhãn</th>
+                    <th>Chính Sách &amp; Quyền Lợi</th>
+                  </tr>
+                </thead>
+                <tbody id="privacy-packages-table-body">
+                  <tr>
+                    <td colspan="6" style="text-align: center; padding: 30px; color: #64748b;">
+                      <div style="display: inline-flex; align-items: center; gap: 8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                        Đang đồng bộ bảng giá niêm yết mới nhất từ hệ thống...
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <script>
+            (function() {
+              function renderPrivacyTable(packages) {
+                var tbody = document.getElementById('privacy-packages-table-body');
+                if (!tbody || !Array.isArray(packages) || packages.length === 0) return;
+                var activeList = packages.filter(function(p) { return p.isActive !== false; });
+                if (activeList.length === 0) return;
+
+                tbody.innerHTML = activeList.map(function(p, idx) {
+                  var isFree = Number(p.price || 0) === 0;
+                  var isFeatured = p.badge && (p.badge.indexOf('Khuyên') >= 0 || p.badge.indexOf('Tốt') >= 0 || p.badge.indexOf('VIP') >= 0 || p.badge.indexOf('bán chạy') >= 0);
+                  var durationText = Number(p.durationDays || 0) >= 9999 ? 'Vĩnh viễn' : (p.durationDays + ' ngày');
+                  var priceText = isFree 
+                    ? '<span style="color: #16a34a; font-weight: 800; font-size: 1rem;">0đ (Miễn phí)</span>' 
+                    : ('<strong style="color: #0284c7; font-size: 1.05rem;">' + Number(p.price).toLocaleString('vi-VN') + 'đ</strong>');
+                  
+                  var badgeClass = 'badge-pricing-saving';
+                  if (isFree) badgeClass = 'badge-pricing-free';
+                  else if (isFeatured) badgeClass = 'badge-pricing-featured';
+                  else if (p.badge && p.badge.indexOf('biến') >= 0) badgeClass = 'badge-pricing-popular';
+
+                  var badgeHtml = p.badge ? ('<span class="' + badgeClass + '">' + p.badge + '</span>') : '<span style="color: #94a3b8;">—</span>';
+                  var descText = p.description || (isFree ? 'Kích hoạt tự động sau khi đăng nhập Google lần đầu. Trải nghiệm 100% tính năng đọc loa & báo cáo.' : 'Đầy đủ tính năng loa đọc tiền, quản lý thu chi, live stream, hỗ trợ kỹ thuật 24/7.');
+                  var rowStyle = isFeatured ? 'background: rgba(2, 132, 199, 0.04); border-left: 3px solid #0284c7;' : '';
+
+                  return '<tr style="' + rowStyle + '">' +
+                    '<td style="text-align: center; font-weight: 700; color: ' + (isFeatured ? '#0284c7' : '#64748b') + ';">#' + (idx + 1) + '</td>' +
+                    '<td><strong style="color: #0f172a;">' + p.name + '</strong> <br><small style="color: #64748b;">Key: ' + p.key + '</small></td>' +
+                    '<td><strong>' + durationText + '</strong></td>' +
+                    '<td>' + priceText + '</td>' +
+                    '<td>' + badgeHtml + '</td>' +
+                    '<td>' + descText + '</td>' +
+                  '</tr>';
+                }).join('');
+              }
+
+              // Gọi trực tiếp API lấy dữ liệu thực từ MySQL
+              var apiHost = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? 'http://localhost:3000'
+                : 'https://api.docthongbaobank.com';
+
+              fetch(apiHost + '/admin/configs?_t=' + Date.now(), { cache: 'no-store' })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                  if (data && Array.isArray(data.packages) && data.packages.length > 0) {
+                    renderPrivacyTable(data.packages);
+                  }
+                })
+                .catch(function(err) {
+                  console.warn('Lỗi tải danh mục gói cước cho trang chính sách:', err);
+                });
+            })();
+            </script>
+
+            <div class="highlight-banner-green">
+              <strong>💰 CHÍNH SÁCH HOÀN TIỀN 100% TRONG 7 NGÀY</strong>
+              <p>Nếu trong vòng 7 ngày sau khi thanh toán gói cước, ứng dụng gặp lỗi kỹ thuật không tương thích với dòng máy điện thoại Android của bạn mà đội ngũ kỹ thuật không thể khắc phục được qua hỗ trợ từ xa, chúng tôi cam kết hoàn tiền 100% vào tài khoản ngân hàng của bạn nhanh chóng, minh bạch và không phiền hà.</p>
+            </div>
+
+            <!-- MỤC 5 -->
+            <h2 class="section-title" id="disclaimer">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              5. Tuyên Bố Miễn Trừ Trách Nhiệm (Disclaimer)
+            </h2>
+            <ul class="legal-list">
+              <li><strong>Không phải tổ chức tín dụng:</strong> AutoBank là giải pháp phần mềm hỗ trợ quản trị bán hàng và nhận dạng thông báo âm thanh. Chúng tôi không phải là ngân hàng, không phải cổng trung gian thanh toán và không giữ tiền của người dùng.</li>
+              <li><strong>Tốc độ phụ thuộc kết nối Internet:</strong> Ứng dụng đọc thông báo ngay khi nhận được thông báo từ ứng dụng ngân hàng của bạn. Tốc độ nhận thông báo phụ thuộc vào chất lượng mạng Wifi/4G của điện thoại và hệ thống máy chủ của ngân hàng phát hành.</li>
+              <li><strong>Trách nhiệm kiểm tra số dư thực tế:</strong> Với các giao dịch có giá trị đặc biệt lớn, chúng tôi luôn khuyến nghị chủ cửa hàng kiểm tra trực tiếp trong ứng dụng ngân hàng để đảm bảo an toàn tuyệt đối.</li>
+            </ul>
+
+            <!-- MỤC 6 -->
+            <h2 class="section-title" id="public-info">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              6. Thông Tin Đơn Vị Phát Triển &amp; Kênh Hỗ Trợ 24/7
+            </h2>
+            <p class="legal-p">
+              Mọi thắc mắc, yêu cầu trợ giúp kỹ thuật, kích hoạt bản quyền hoặc yêu cầu xóa dữ liệu, vui lòng liên hệ với ban quản trị theo các kênh chính thức sau:
+            </p>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 22px; margin-top: 14px;">
+              <ul style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+                <li>
+                  <strong style="color: #0f172a; display: block; font-size: 0.9rem;">🏢 Đơn vị chủ quản:</strong>
+                  <span style="color: #475569;">Hệ thống Đọc Thông Báo Nhận Tiền (AutoBank)</span>
+                </li>
+                <li>
+                  <strong style="color: #0f172a; display: block; font-size: 0.9rem;">👤 Đại diện phụ trách:</strong>
+                  <span style="color: #475569;">Trần Quốc Vũ</span>
+                </li>
+                <li>
+                  <strong style="color: #0f172a; display: block; font-size: 0.9rem;">📞 Hotline hỗ trợ 24/7:</strong>
+                  <a href="tel:+84869226687" style="color: #0284c7; font-weight: 700; text-decoration: none;">0869.226.687</a>
+                </li>
+                <li>
+                  <strong style="color: #0f172a; display: block; font-size: 0.9rem;">💬 Zalo tư vấn kỹ thuật:</strong>
+                  <a href="https://zalo.me/0869226687" target="_blank" rel="noopener" style="color: #0284c7; font-weight: 700; text-decoration: none;">0869.226.687 (Bấm để chat)</a>
+                </li>
+                <li>
+                  <strong style="color: #0f172a; display: block; font-size: 0.9rem;">✉️ Hộp thư điện tử:</strong>
+                  <a href="mailto:tranquocvu3011@gmail.com" style="color: #0284c7; text-decoration: none;">tranquocvu3011@gmail.com</a>
+                </li>
+                <li>
+                  <strong style="color: #0f172a; display: block; font-size: 0.9rem;">🌐 Website chính thức:</strong>
+                  <a href="https://docthongbaobank.com" style="color: #0284c7; text-decoration: none;">https://docthongbaobank.com</a>
+                </li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!--====== FOOTER PART START ======-->
+  <footer id="footer" class="footer-area bg_cover">
+    <div class="container">
+      <div class="row">
+        <!-- Col 1: Brand & Contact -->
+        <div class="col-xl-3 col-lg-3 col-md-6">
+          <div class="footer-widget">
+            <a href="/" class="mb-25 d-block footer-logo" aria-label="Trang chủ Đọc thông báo nhận tiền">
+              <img src="assets/images/favicon.png" alt="Logo Đọc thông báo nhận tiền" width="56" height="56"
+                style="width: 56px; height: 56px; border-radius: 16px; object-fit: cover; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); border: 1px solid rgba(255,255,255,0.15);" />
+            </a>
+            <p class="mb-25">
+              <strong style="color: #fff; font-size: 1.15rem;">Đọc thông báo nhận tiền</strong> <br>
+              Tiền vừa sang ~ máy báo vang!
+            </p>
+            <ul class="seo-footer-contact mb-25">
+              <li>Hotline/Zalo: <a href="tel:+84869226687">0869226687</a></li>
+              <li>Email: <a href="mailto:tranquocvu3011@gmail.com">tranquocvu3011@gmail.com</a></li>
+            </ul>
+            <ul class="social-links">
+              <li>
+                <a href="https://www.facebook.com/Baochuyentienbanggiongnoi" class="facebook"
+                  aria-label="Facebook Đọc thông báo nhận tiền" rel="noopener noreferrer" target="_blank">
+                  <svg class="seo-ui-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14 8h3V4h-3c-2.8 0-5 2.2-5 5v2H6v4h3v8h4v-8h3.1L17 10h-3V9c0-.6.4-1 1-1z" />
+                  </svg>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.tiktok.com/@locketgoldqvu" class="tiktok"
+                  aria-label="TikTok Đọc thông báo nhận tiền" rel="noopener noreferrer" target="_blank">
+                  <svg class="seo-ui-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16.5 3c.4 2.2 1.8 4 4 4.5v3.4c-1.6 0-3.1-.5-4.4-1.4v6.8c0 3.7-3 6.7-6.7 6.7S3 19.4 3 15.7 6 9 9.7 9c.4 0 .8 0 1.2.1v3.7a3.1 3.1 0 1 0 2.2 3V3h3.6z" />
+                  </svg>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Col 2: Menu nhanh -->
+        <div class="col-xl-2 col-lg-2 col-md-6 col-sm-6">
+          <div class="footer-widget footer-accordion-widget" id="footer-acc-menu">
+            <h4 class="footer-widget-toggle" role="button" tabindex="0" aria-expanded="false">
+              <span>Menu nhanh</span>
+              <svg class="footer-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </h4>
+            <ul class="footer-widget-content">
+              <li><a href="/">Trang chủ</a></li>
+              <li><a href="/#voice-demo">Nghe thử loa</a></li>
+              <li><a href="/#features">Tính năng</a></li>
+              <li><a href="/#pricing">Bảng giá dịch vụ</a></li>
+              <li><a href="/#huong-dan-cai">Hướng dẫn cài đặt</a></li>
+              <li><a href="/live">Live Stream số dư</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Col 3: Ngân hàng hỗ trợ -->
+        <div class="col-xl-2 col-lg-2 col-md-6 col-sm-6">
+          <div class="footer-widget footer-accordion-widget" id="footer-acc-banks">
+            <h4 class="footer-widget-toggle" role="button" tabindex="0" aria-expanded="false">
+              <span>Ngân hàng hỗ trợ</span>
+              <svg class="footer-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </h4>
+            <ul class="footer-widget-content">
+              <li><a href="/#danh-sach-ngan-hang">Vietcombank</a></li>
+              <li><a href="/#danh-sach-ngan-hang">Techcombank</a></li>
+              <li><a href="/#danh-sach-ngan-hang">MBBank</a></li>
+              <li><a href="/#danh-sach-ngan-hang">BIDV, Agribank</a></li>
+              <li><a href="/#danh-sach-ngan-hang">Ví MoMo &amp; ZaloPay</a></li>
+              <li><a href="/#danh-sach-ngan-hang">Tất cả 65+ ngân hàng</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Col 4: Chính sách & Điều khoản -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-6">
+          <div class="footer-widget footer-accordion-widget" id="footer-acc-policies">
+            <h4 class="footer-widget-toggle" role="button" tabindex="0" aria-expanded="false">
+              <span>Chính sách &amp; Điều khoản</span>
+              <svg class="footer-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </h4>
+            <ul class="footer-widget-content">
+              <li><a href="/privacy#terms" style="color: #38bdf8; font-weight: 600;">Điều khoản dịch vụ</a></li>
+              <li><a href="/privacy#privacy" style="color: #38bdf8; font-weight: 600;">Chính sách bảo mật</a></li>
+              <li><a href="/privacy#live-policy">Quy định Live Stream</a></li>
+              <li><a href="/privacy#pricing-refund">Chính sách hoàn tiền</a></li>
+              <li><a href="/privacy#disclaimer">Tuyên bố miễn trừ</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Col 5: Liên hệ hỗ trợ -->
+        <div class="col-xl-2 col-lg-2 col-md-6 col-sm-6">
+          <div class="footer-widget footer-accordion-widget" id="footer-acc-contact">
+            <h4 class="footer-widget-toggle" role="button" tabindex="0" aria-expanded="false">
+              <span>Liên hệ &amp; Niêm yết</span>
+              <svg class="footer-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </h4>
+            <ul class="footer-widget-content">
+              <li><a href="tel:+84869226687">Hotline 0869.226.687</a></li>
+              <li><a href="https://zalo.me/0869226687" target="_blank" rel="noopener">Zalo hỗ trợ trực tuyến</a></li>
+              <li><a href="mailto:tranquocvu3011@gmail.com">tranquocvu3011@gmail.com</a></li>
+              <li><span style="color: #94a3b8; font-size: 0.85rem;">Hỗ trợ cài đặt từ xa qua UltraViewer / Anydesk</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUICK HIGHLIGHT ACTION BAR (ĐẨY LÊN TRÊN COPYRIGHT) -->
+      <div class="footer-quick-bar">
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 18px;">
+          <a href="/privacy" style="display: inline-flex; align-items: center; gap: 8px; color: #38bdf8; font-weight: 600; font-size: 0.9rem; text-decoration: none; padding: 7px 18px; border-radius: 999px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.24);">
+            <span style="font-size: 1.05rem;">🛡️</span>
+            <span>Điều khoản &amp; Chính sách</span>
+          </a>
+          <a href="/live" style="display: inline-flex; align-items: center; gap: 8px; color: #fb7185; font-weight: 600; font-size: 0.9rem; text-decoration: none; padding: 7px 18px; border-radius: 999px; background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.24);">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f43f5e; box-shadow: 0 0 8px #f43f5e;"></span>
+            <span>Live Stream</span>
+          </a>
+          <a href="/#contact" style="display: inline-flex; align-items: center; gap: 8px; color: #34d399; font-weight: 600; font-size: 0.9rem; text-decoration: none; padding: 7px 18px; border-radius: 999px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.24);">
+            <span style="font-size: 1.05rem;">📞</span>
+            <span>Hỗ trợ 24/7</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-cradit" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 18px; margin-top: 18px; text-align: center;">
+        <p class="mb-0" style="color: #94a3b8; font-size: 0.88rem; line-height: 1.6;">
+          © 2026 Hệ thống <strong>Đọc thông báo nhận tiền</strong> · Bản quyền thuộc về <strong style="color: #fff;">Trần Quốc Vũ</strong>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Bundle -->
+  <script type="module" src="assets/js/main.js"></script>
 </body>
+
 </html>

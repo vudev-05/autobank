@@ -38,10 +38,11 @@ class NormalizedTransaction {
           type: type,
           content: content,
           time: transactionTime,
+          orderCode: orderCode,
         );
 
   /// Tạo mã băm duy nhất (Fingerprint) dựa trên ngân hàng, số tài khoản, số tiền,
-  /// nội dung và khung thời gian giao dịch để triệt tiêu việc nhận trùng lặp.
+  /// nội dung, mã đơn và khung thời gian giao dịch để triệt tiêu việc nhận trùng lặp từ Android OS.
   static String generateFingerprint({
     required String bankCode,
     required String accountNumber,
@@ -49,11 +50,13 @@ class NormalizedTransaction {
     required TransactionType type,
     required String content,
     required DateTime time,
+    String? orderCode,
   }) {
-    // Làm tròn thời gian về khung 3 phút (time window)
-    final epochMinutes = time.millisecondsSinceEpoch ~/ (1000 * 60 * 3);
+    // Làm tròn thời gian về khung 15 giây (time window) để chống broadcast duplicate mà không chặn giao dịch liên tiếp
+    final epochSlot = time.millisecondsSinceEpoch ~/ 15000;
     final normalizedContent = content.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-    final rawKey = '$bankCode|$accountNumber|${amount.toInt()}|${type.name}|$normalizedContent|$epochMinutes';
+    final cleanOrder = (orderCode ?? '').trim().toLowerCase();
+    final rawKey = '$bankCode|$accountNumber|${amount.toInt()}|${type.name}|$normalizedContent|$cleanOrder|$epochSlot';
     return sha256.convert(utf8.encode(rawKey)).toString();
   }
 

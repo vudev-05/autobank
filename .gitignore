@@ -21,11 +21,12 @@ build/
 .env.*.local
 apps/api/.env
 
-# ── OS files ──
+# ── OS / Document files ──
 .DS_Store
 .DS_Store?
 Thumbs.db
 Desktop.ini
+*.pdf
 
 # ── Editor / IDE ──
 .vscode/
@@ -78,8 +79,11 @@ apps/api/prisma/*.db-journal
 # ── Android Builds / APK ──
 *.apk
 *.aab
+release_builds/
+check_user_db*.cjs
 
 # ── Deployment & Inspection Scripts with server credentials ──
 scripts/
 start_all.bat
+install_apk_to_phone.bat
 

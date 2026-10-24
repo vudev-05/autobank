@@ -59,6 +59,12 @@
             <span class="admin-nav-badge" id="admin-badge-orders">0</span>
           </a>
 
+          <a href="/admin/affiliate" class="admin-nav-item" data-page="affiliate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            Giới thiệu &amp; Rút tiền
+            <span class="admin-nav-badge" style="background: #10b981;" id="admin-badge-affiliate">VIP</span>
+          </a>
+
           <a href="/admin/payment-autobank" class="admin-nav-item" data-page="payment-autobank">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             Thanh toán AutoBank
@@ -192,13 +198,12 @@
               <div class="admin-form-group">
                 <label>Gói cước</label>
                 <select id="m-user-pkg-input" class="admin-input">
-                  <option value="Dùng thử 3 ngày">Dùng thử 3 ngày</option>
-                  <option value="1 Tháng">1 Tháng</option>
-                  <option value="3 Tháng">3 Tháng</option>
-                  <option value="6 Tháng">6 Tháng</option>
-                  <option value="9 Tháng">9 Tháng</option>
-                  <option value="1 Năm" selected>1 Năm</option>
-                  <option value="Gói Vĩnh Viễn">Gói Vĩnh Viễn</option>
+                  <option value="Dùng thử miễn phí">Dùng thử miễn phí (3 ngày - 0đ)</option>
+                  <option value="1 Tháng">1 Tháng (30 ngày - 29.000đ)</option>
+                  <option value="3 Tháng">3 Tháng (90 ngày - 69.000đ)</option>
+                  <option value="6 Tháng">6 Tháng (180 ngày - 109.000đ)</option>
+                  <option value="1 Năm (tặng 2T)" selected>1 Năm (tặng 2T) (425 ngày - 159.000đ)</option>
+                  <option value="2 Năm (tặng 6T)">2 Năm (tặng 6T) (910 ngày - 219.000đ)</option>
                 </select>
               </div>
             </div>
@@ -225,10 +230,10 @@
             <!-- PHÍM TẮT THIẾT LẬP THỜI HẠN NHANH -->
             <div style="margin-top: 10px; margin-bottom: 6px; padding: 10px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
               <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
-                <span>⚡ Phím tắt thiết lập thời hạn nhanh:</span>
+                <span>⚡ Phím tắt thiết lập thời hạn nhanh (đồng bộ cấu hình Admin):</span>
                 <span id="m-user-preview-note" style="color: #38bdf8; font-style: italic; font-size: 0.72rem;"></span>
               </div>
-              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <div id="quick-pkg-buttons" style="display: flex; gap: 6px; flex-wrap: wrap;">
                 <button type="button" class="admin-btn admin-btn-danger admin-btn-sm" id="btn-quick-expire" style="padding: 4px 8px; font-size: 0.76rem;">
                   🔴 Hết hạn ngay
                 </button>
@@ -236,13 +241,19 @@
                   🟡 Dùng thử 3 ngày
                 </button>
                 <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-quick-1m" style="padding: 4px 8px; font-size: 0.76rem;">
-                  +1 Tháng
+                  +1 Tháng (30 ngày)
+                </button>
+                <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-quick-3m" style="padding: 4px 8px; font-size: 0.76rem;">
+                  +3 Tháng (90 ngày)
+                </button>
+                <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-quick-6m" style="padding: 4px 8px; font-size: 0.76rem;">
+                  +6 Tháng (180 ngày)
                 </button>
                 <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-quick-1y" style="padding: 4px 8px; font-size: 0.76rem;">
-                  +1 Năm
+                  +1 Năm (425 ngày)
                 </button>
-                <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-quick-lifetime" style="padding: 4px 8px; font-size: 0.76rem;">
-                  👑 Vĩnh viễn (10 Năm)
+                <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="btn-quick-2y" style="padding: 4px 8px; font-size: 0.76rem;">
+                  👑 +2 Năm (910 ngày)
                 </button>
               </div>
             </div>
@@ -268,13 +279,13 @@
           </p>
           <div class="admin-form-group">
             <label>Cộng thêm thời hạn sử dụng nhanh</label>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div id="quick-extend-buttons" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
               <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-extend-days="3">+3 Ngày (Dùng thử)</button>
-              <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-extend-days="30">+1 Tháng</button>
-              <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-extend-days="90">+3 Tháng</button>
-              <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-extend-days="180">+6 Tháng</button>
-              <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-extend-days="270">+9 Tháng</button>
-              <button type="button" class="admin-btn admin-btn-primary admin-btn-sm" data-extend-days="365">+1 Năm (365 ngày)</button>
+              <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-extend-days="30">+1 Tháng (30 ngày)</button>
+              <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-extend-days="90">+3 Tháng (90 ngày)</button>
+              <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" data-extend-days="180">+6 Tháng (180 ngày)</button>
+              <button type="button" class="admin-btn admin-btn-primary admin-btn-sm" data-extend-days="425">+1 Năm (425 ngày)</button>
+              <button type="button" class="admin-btn admin-btn-primary admin-btn-sm" data-extend-days="910">👑 +2 Năm (910 ngày)</button>
             </div>
           </div>
         </div>

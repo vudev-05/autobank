@@ -1,0 +1,88 @@
+================================================================================
+                    DANH SÁCH TẤT CẢ CHỨC NĂNG CỦA TOÀN BỘ APK
+================================================================================
+
+1. TỰ ĐỘNG BẮT THÔNG BÁO BIẾN ĐỘNG SỐ DƯ (NOTIFICATION LISTENER)
+- Tự động nhận diện thông báo từ hơn 65+ ngân hàng và ví điện tử tại Việt Nam (Vietcombank, Techcombank, MBBank, ACB, BIDV, Vietinbank, VPBank, TPBank, MSB, HDBank, OCB, VIB, Sacombank, MoMo, ZaloPay, Viettel Money, Cake...).
+- Tự động phân tích (parse) chính xác: Số tiền (+/-), Ngân hàng, Số tài khoản, Tên người chuyển, Nội dung giao dịch, Thời gian.
+- Hoạt động chạy ngầm liên tục 24/7, tự khởi động lại khi khởi động máy.
+
+2. TRỢ LÝ ĐỌC LOA GIỌNG NÓI (TTS - TEXT TO SPEECH)
+- Tự động đọc loa thông báo khi có tiền vào hoặc tiền ra.
+- Đọc bằng giọng Chị Google chuẩn tiếng Việt tự nhiên và hỗ trợ giọng đọc máy.
+- Tùy chỉnh tốc độ đọc (0.5x đến 2.0x).
+- Tùy chỉnh cao độ giọng đọc (Pitch).
+- Tùy chỉnh mẫu câu đọc:
+  + Đọc đầy đủ (Số tiền, ngân hàng, người gửi, nội dung).
+  + Chỉ đọc số tiền ngắn gọn.
+  + Đọc kèm đuôi số tài khoản.
+- Bộ lọc số tiền tối thiểu để đọc (tránh đọc các giao dịch rác dưới mức quy định).
+- Bật/tắt đọc khi có tiền ra (chuyển khoản đi).
+- Chế độ im lặng ban đêm: Cho phép tùy chỉnh khung giờ bắt đầu và kết thúc (không làm phiền khi ngủ).
+- Nút nghe thử giọng đọc mẫu ngay trên giao diện cài đặt.
+
+3. QUẢN LÝ GIAO DỊCH & SỔ THU CHI
+- Xem danh sách lịch sử biến động số dư theo thời gian thực.
+- Phân loại rõ ràng tiền vào (màu xanh +) và tiền ra (màu đỏ -).
+- Bộ lọc giao dịch đa năng:
+  + Lọc theo mốc thời gian: Hôm nay, 7 ngày qua, Tháng này, Tùy chọn ngày.
+  + Lọc theo từng ngân hàng hoặc ví điện tử.
+  + Lọc theo loại dòng tiền: Tất cả, Tiền vào, Tiền ra.
+- Tìm kiếm giao dịch nhanh theo nội dung chuyển khoản, số tiền, tên người gửi.
+- Xem chi tiết từng giao dịch kèm thông báo gốc từ ngân hàng.
+
+4. XUẤT BÁO CÁO TÀI CHÍNH CHUYÊN NGHIỆP
+- Hỗ trợ xuất 3 loại báo cáo chuẩn:
+  + Loại 1: Sổ chi tiết toàn bộ giao dịch (Excel/CSV định dạng chuẩn UTF-8 BOM hiển thị tiếng Việt không lỗi font).
+  + Loại 2: Báo cáo tổng hợp doanh thu trong ngày hôm nay.
+  + Loại 3: Báo cáo phân bổ dòng tiền theo từng ngân hàng trong tháng.
+- Tự động tải file trực tiếp về bộ nhớ máy (Android Downloads) hoặc tải qua trình duyệt.
+- Tùy chọn chia sẻ file báo cáo qua Zalo, Messenger, Email, Telegram.
+
+5. QUẦY THU NGÂN THÔNG MINH (POS CASHIER)
+- Tạo mã VietQR động theo số tiền tùy chỉnh nhận tiền tại quầy.
+- Chế độ thu ngân toàn màn hình dành cho chủ quán, tiệm tạp hóa, nhà hàng.
+- Hiệu ứng đèn chớp xanh toàn màn hình tức thì khi khách hàng chuyển khoản thành công.
+- Tự động phát âm thanh xác nhận tiền về quầy.
+
+6. BẢO MẬT & MÃ PIN AN TOÀN
+- Khóa ứng dụng bằng Mã PIN 4 chữ số bảo mật cao.
+- Yêu cầu nhập mã PIN khi truy cập các mục quan trọng (cài đặt, doanh thu, xuất báo cáo).
+- Đổi mã PIN nhanh chóng, xác thực 2 lớp.
+- Bảo vệ dữ liệu tài chính cá nhân không bị lộ khi người khác mượn điện thoại.
+
+7. TIỆN ÍCH LIVE WEB & NGHE LOA TỪ XA
+- Kết nối đồng bộ dữ liệu giao dịch theo thời gian thực lên giao diện Web Live.
+- Cho phép nhân viên, thu ngân hoặc chủ quán nghe loa và xem tiền về từ xa trên máy tính, máy tính bảng hoặc điện thoại thứ hai.
+- Bảo mật truy cập màn hình Live bằng mã PIN xác thực.
+
+8. THỐNG KÊ & PHÂN TÍCH TÀI CHÍNH (ANALYTICS)
+- Biểu đồ trực quan doanh thu theo ngày, tuần, tháng.
+- Thống kê tỷ trọng nguồn tiền theo từng ngân hàng.
+- Quản lý Quỹ chi tiêu & Hạn mức ngân sách (Budgeting).
+- Nút thêm quỹ mới đơn giản, linh hoạt điều chỉnh hạn mức ngân sách tháng.
+
+9. KIẾM TIỀN & TIẾP THỊ LIÊN KẾT (AFFILIATE)
+- Cung cấp mã giới thiệu riêng cho từng tài khoản.
+- Nhận hoa hồng tự động khi người được giới thiệu kích hoạt bản quyền VIP.
+- Theo dõi danh sách người dùng đã giới thiệu và doanh số.
+- Quản lý số dư hoa hồng khả dụng và gửi yêu cầu rút tiền về tài khoản ngân hàng.
+
+10. BẢN QUYỀN & GÓI CƯỚC VIP (SUBSCRIPTION)
+- Đăng nhập bảo mật một chạm qua tài khoản Google.
+- Hiển thị tình trạng gói cước: Dùng thử (Free Trial), VIP Tháng, VIP Năm, VIP Trọn Đời (Lifetime).
+- Kích hoạt và gia hạn bản quyền nhanh chóng qua mã đơn hàng hoặc quét mã QR.
+- Đồng bộ thông tin bản quyền tự động trên máy chủ.
+
+11. QUẢN LÝ QUYỀN HỆ THỐNG & TỐI ƯU PIN (SYSTEM & PERMISSIONS)
+- Kiểm tra trạng thái cấp quyền Đọc thông báo (Notification Access).
+- Kiểm tra trạng thái cấp quyền Bỏ qua tối ưu hóa pin (chạy ngầm không bị hệ điều hành tắt).
+- Kiểm tra trạng thái cấp quyền Hiển thị trên ứng dụng khác (Overlay).
+- Tự động nhận diện chính xác nếu quyền bị tắt và dẫn trực tiếp vào màn hình Cài đặt máy thật để người dùng bật lại.
+- Lưu trữ lịch sử trạng thái thông báo, chống trùng lặp thông báo.
+
+12. TRUNG TÂM TRỢ GIÚP & HỖ TRỢ KHÁCH HÀNG
+- Tích hợp video hướng dẫn cài đặt và cấp quyền từng bước trực tiếp trên app.
+- Kênh liên hệ hỗ trợ kỹ thuật nhanh qua Zalo và Hotline.
+- Cam kết bảo mật: Ứng dụng xử lý dữ liệu trực tiếp trên thiết bị, tuyệt đối không yêu cầu và không lưu trữ mật khẩu ngân hàng, mã OTP hay mã PIN thẻ ngân hàng.
+================================================================================

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/tts/tts_service.dart';
+import '../../../../core/widgets/app_video_guide_modal.dart';
 import '../../../../core/widgets/bank_directory_widget.dart';
 import '../../../../core/widgets/google_logo.dart';
 import '../../../system/presentation/providers/system_config_provider.dart';
@@ -43,19 +44,31 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
     );
   }
 
-  void _handleGoogleSignIn(BuildContext context) async {
-    final auth = context.read<GoogleAuthProvider>();
-    if (auth.isLoading) return;
+  Future<void> _handleGoogleSignIn(BuildContext ctx) async {
+    final auth = ctx.read<GoogleAuthProvider>();
     final success = await auth.signInWithRealGoogle();
-    if (!success && auth.errorMessage != null && context.mounted) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red.shade700,
-          duration: const Duration(seconds: 6),
-          content: Text(auth.errorMessage!),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    if (!mounted) return;
+    if (!success) {
+      final err = auth.errorMessage;
+      if (err != null &&
+          err.isNotEmpty &&
+          !err.contains('hủy') &&
+          !err.contains('cancelled') &&
+          !err.contains('popup_closed')) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(err, style: const TextStyle(fontSize: 12))),
+              ],
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -105,7 +118,7 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
               ),
             ),
 
-            // 10. THANH NÚT BẤM CỐ ĐỊNH Ở ĐÁY (STICKY BOTTOM ACTION BAR)
+            // 10. THANH NÚT BẤM CỐ ĐỊNH Ở ĐÁY (STICKY BOTTOM ACTION BAR) - 100% ĐĂNG NHẬP BẰNG GOOGLE
             Positioned(
               left: 0,
               right: 0,
@@ -125,38 +138,37 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                 ),
                 child: SafeArea(
                   top: false,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0284C7),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            elevation: 3,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          icon: auth.isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const GoogleLogo(size: 20),
-                          label: Text(
-                            auth.isLoading ? 'ĐANG KẾT NỐI GOOGLE...' : 'ĐĂNG NHẬP BẰNG GOOGLE',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          onPressed: auth.isLoading ? null : () => _handleGoogleSignIn(context),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF0F172A),
+                        elevation: 3,
+                        side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                    ],
+                      icon: auth.isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0284C7)),
+                            )
+                          : const GoogleLogo(size: 22),
+                      label: Text(
+                        auth.isLoading ? 'ĐANG KẾT NỐI GOOGLE...' : 'ĐĂNG NHẬP BẰNG GOOGLE',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.2,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      onPressed: auth.isLoading ? null : () => _handleGoogleSignIn(context),
+                    ),
                   ),
                 ),
               ),
@@ -169,6 +181,7 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
 
   // 1. THANH ĐIỀU HƯỚNG WEB PILL HEADER
   Widget _buildWebPillHeader(BuildContext context, SystemConfigProvider sysConfig) {
+    final auth = context.watch<GoogleAuthProvider>();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -256,19 +269,20 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
               ],
             ),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0284C7),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () => _handleGoogleSignIn(context),
-            child: const Text(
-              'Đăng nhập',
+            icon: const GoogleLogo(size: 16),
+            label: const Text(
+              'Đăng nhập Google',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
+            onPressed: auth.isLoading ? null : () => _handleGoogleSignIn(context),
           ),
         ],
       ),
@@ -277,6 +291,7 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
 
   // 2. HERO BANNER CHÍNH
   Widget _buildWebHeroSection(BuildContext context, SystemConfigProvider sysConfig) {
+    final auth = context.watch<GoogleAuthProvider>();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       padding: const EdgeInsets.all(22),
@@ -347,28 +362,69 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
           ),
           const SizedBox(height: 20),
 
-          // NÚT CTA CHÍNH TRÊN HERO - TƯƠNG PHẢN CAO SÁNG RÕ
+          // NÚT CTA CHÍNH TRÊN HERO - 100% ĐĂNG NHẬP BẰNG GOOGLE (KHÔNG CÓ MŨI TÊN THỪA)
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF0284C7),
+                foregroundColor: const Color(0xFF0F172A),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 4,
               ),
-              icon: const Icon(Icons.login_rounded, size: 20, color: Color(0xFF0284C7)),
-              label: const Text(
-                'ĐĂNG NHẬP VÀO SỬ DỤNG',
-                style: TextStyle(
-                  fontSize: 14,
+              icon: auth.isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0284C7)),
+                    )
+                  : const GoogleLogo(size: 22),
+              label: Text(
+                auth.isLoading ? 'ĐANG KẾT NỐI GOOGLE...' : 'ĐĂNG NHẬP BẰNG GOOGLE',
+                style: const TextStyle(
+                  fontSize: 15,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF0284C7),
+                  color: Color(0xFF0F172A),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              onPressed: auth.isLoading ? null : () => _handleGoogleSignIn(context),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+          // NÚT XEM VIDEO HƯỚNG DẪN TRỰC TIẾP TRONG APP (TRỎ YOUTUBE ADMIN CẤU HÌNH)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white70, width: 1.2),
+                backgroundColor: Colors.white.withValues(alpha: 0.12),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: const Icon(Icons.play_circle_fill_rounded, color: Color(0xFFEF4444), size: 22),
+              label: const Text(
+                'XEM VIDEO HƯỚNG DẪN NHANH',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
                   letterSpacing: 0.3,
                 ),
               ),
-              onPressed: () => _handleGoogleSignIn(context),
+              onPressed: () {
+                AppVideoGuideModal.showDirect(
+                  context,
+                  title: 'Hướng Dẫn Sử Dụng AutoBank',
+                  subtitle: 'Video ngắn hướng dẫn làm quen và thao tác sử dụng mượt mà',
+                  videoUrl: sysConfig.videoGuideNewbie,
+                  badgeText: 'Video Hướng Dẫn',
+                  dismissButtonText: 'Đóng Video',
+                );
+              },
             ),
           ),
 
@@ -794,18 +850,19 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                 const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF0284C7),
+                      foregroundColor: const Color(0xFF0F172A),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: () => _handleGoogleSignIn(context),
-                    child: const Text(
-                      'Đăng nhập để sở hữu Gói VIP',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                    icon: const GoogleLogo(size: 18),
+                    label: const Text(
+                      'Đăng nhập Google để nhận Gói VIP',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                     ),
+                    onPressed: () => _handleGoogleSignIn(context),
                   ),
                 ),
               ],
@@ -865,9 +922,9 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
   // 8. HƯỚNG DẪN 3 BƯỚC BẮT ĐẦU CỰC DỄ
   Widget _buildHowItWorksSection() {
     final steps = [
-      {'num': '1', 'title': 'Đăng nhập Google', 'desc': 'Ấn nút Đăng nhập vào sử dụng và chọn tài khoản Google của bạn.'},
-      {'num': '2', 'title': 'Bật Quyền đọc thông báo', 'desc': 'Gạt công tắc cấp quyền 1 lần duy nhất để app nghe thông báo tiền về.'},
-      {'num': '3', 'title': 'Để điện thoại tại quầy', 'desc': 'Khách chuyển khoản quét mã QR là loa phát thanh tự động đọc ngay!'},
+      {'num': '1', 'title': 'Đăng nhập Google', 'desc': 'Đăng nhập an toàn 100% bằng tài khoản Google chỉ với 1 chạm nhanh chóng.'},
+      {'num': '2', 'title': 'Nhập Tên quán & Chọn gói', 'desc': 'Điền tên cửa hàng và số điện thoại, kích hoạt dùng thử 3 ngày 72h hoặc gói bản quyền.'},
+      {'num': '3', 'title': 'Bật loa báo tiền tự động', 'desc': 'Bật loa đọc thông báo, nghe lời chào mừng và sẵn sàng phát loa khi nhận tiền.'},
     ];
 
     return Container(
@@ -932,6 +989,47 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
               ),
             );
           }),
+
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: () {
+              final sysConfig = context.read<SystemConfigProvider>();
+              AppVideoGuideModal.showDirect(
+                context,
+                title: 'Hướng Dẫn Sử Dụng AutoBank',
+                subtitle: 'Xem video trực tiếp trong app để thao tác nhanh và chuẩn nhất',
+                videoUrl: sysConfig.videoGuideNewbie,
+                badgeText: 'Video Minh Họa',
+                dismissButtonText: 'Đóng',
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F9FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBAE6FD)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.smart_display_rounded, color: Color(0xFFEF4444), size: 22),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Bấm để xem video hướng dẫn chi tiết từng bước',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0369A1),
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF0284C7)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

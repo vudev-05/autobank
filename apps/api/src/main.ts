@@ -10,6 +10,7 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: false, // Để linh hoạt nhúng và tích hợp với Web/Mobile
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
 

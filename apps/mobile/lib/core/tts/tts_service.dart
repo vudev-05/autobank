@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../config/app_config.dart';
-import '../../features/notification_listener/presentation/notification_service.dart';
 import 'tts_audio_player.dart';
 
 class TtsService {
@@ -57,6 +55,23 @@ class TtsService {
       scheduleEndHour = prefs.getInt('autobank_tts_schedule_end_hour') ?? 22;
       scheduleEndMinute = prefs.getInt('autobank_tts_schedule_end_minute') ?? 0;
       isRepeatTwiceEnabled = prefs.getBool('autobank_tts_repeat_twice') ?? false;
+
+      // Đọc và khôi phục chính xác tốc độ, cao độ, âm lượng từ cài đặt người dùng
+      if (prefs.containsKey('autobank_tts_speech_rate')) {
+        _speechRate = prefs.getDouble('autobank_tts_speech_rate') ?? _speechRate;
+      }
+      if (prefs.containsKey('autobank_tts_pitch')) {
+        _pitch = prefs.getDouble('autobank_tts_pitch') ?? _pitch;
+      }
+      if (prefs.containsKey('autobank_tts_volume')) {
+        _volume = prefs.getDouble('autobank_tts_volume') ?? _volume;
+      }
+      if (prefs.containsKey('autobank_tts_credit_enabled')) {
+        isCreditReadEnabled = prefs.getBool('autobank_tts_credit_enabled') ?? true;
+      }
+      if (prefs.containsKey('autobank_tts_debit_enabled')) {
+        isDebitReadEnabled = prefs.getBool('autobank_tts_debit_enabled') ?? true;
+      }
     } catch (_) {}
   }
 
@@ -113,19 +128,54 @@ class TtsService {
         }
       } catch (_) {}
       await loadScheduleSettings();
-      try {
-        await _flutterTts.setLanguage('vi-VN');
-      } catch (_) {}
-      try {
-        await _flutterTts.awaitSpeakCompletion(true);
-      } catch (_) {}
-      try {
-        await _discoverVoices();
-        _pickVoiceForPreset(_currentVoiceId);
-        await _applyAcoustics();
-      } catch (_) {}
+
+      if (!kIsWeb) {
+        // 1. Cài đặt ngôn ngữ Tiếng Việt chuẩn
+        try {
+          await _flutterTts.setLanguage('vi-VN');
+        } catch (_) {
+          try {
+            await _flutterTts.setLanguage('vi');
+          } catch (_) {}
+        }
+
+        // 2. Dò tìm và ưu tiên Google Speech Services nếu hỗ trợ Tiếng Việt
+        try {
+          final engines = await _flutterTts.getEngines;
+          if (engines is List && engines.contains('com.google.android.tts')) {
+            await _flutterTts.setEngine('com.google.android.tts');
+            final isViAvailable = await _flutterTts.isLanguageAvailable('vi-VN');
+            if (isViAvailable != 1 && isViAvailable != true) {
+              debugPrint('[TTS] com.google.android.tts chưa tải gói vi-VN, khôi phục engine mặc định');
+              await _flutterTts.getDefaultEngine;
+            } else {
+              debugPrint('[TTS] Đã kích hoạt engine Google Text-to-Speech chuẩn');
+            }
+          }
+        } catch (e) {
+          debugPrint('[TTS] Engine setup notice: $e');
+        }
+
+        // 3. Queue mode = QUEUE_FLUSH (0) để ngắt âm cũ và phát ngay khi có thông báo mới
+        try {
+          await _flutterTts.setQueueMode(0);
+        } catch (_) {}
+
+        // 4. Tuyệt đối dùng awaitSpeakCompletion(false) để không bị khóa cứng luồng Dart
+        try {
+          await _flutterTts.awaitSpeakCompletion(false);
+        } catch (_) {}
+
+        try {
+          await _discoverVoices();
+          _pickVoiceForPreset(_currentVoiceId);
+          await _applyAcoustics();
+        } catch (_) {}
+      }
       _isInitialized = true;
-    } catch (_) {} finally {
+    } catch (e) {
+      debugPrint('[TTS] init error: $e');
+    } finally {
       _isInitializing = false;
     }
   }
@@ -156,13 +206,17 @@ class TtsService {
   void _pickVoiceForPreset(String presetId) {
     if (_availableViVoices.isEmpty) return;
 
-    // Tìm gói Chị Google (vi-VN, vic, female, google)
+    // Khóa cứng tìm gói Chị Google Nữ (loại bỏ triệt để giọng nam)
     final googleVoice = _availableViVoices.firstWhere(
       (v) {
         final n = v['name']!.toLowerCase();
+        if (n.contains('male') || n.contains('nam')) return false;
         return n.contains('google') || n.contains('vic') || n.contains('female') || n.contains('vi-vn');
       },
-      orElse: () => _availableViVoices.first,
+      orElse: () => _availableViVoices.firstWhere(
+        (v) => !v['name']!.toLowerCase().contains('nam') && !v['name']!.toLowerCase().contains('male'),
+        orElse: () => _availableViVoices.first,
+      ),
     );
     _selectedNativeVoice = googleVoice;
   }
@@ -173,26 +227,32 @@ class TtsService {
     await init();
     _pickVoiceForPreset('chi-google');
 
-    _pitch = pitch ?? 1.0; // 100% Chuẩn Chị Google gốc
-    _speechRate = rate ?? 0.90;
+    _pitch = pitch ?? _pitch;
+    _speechRate = rate ?? _speechRate;
 
     await _applyAcoustics();
   }
 
   Future<void> _applyAcoustics() async {
+    if (kIsWeb) return;
     try {
       await _flutterTts.setLanguage('vi-VN');
       if (_selectedNativeVoice != null) {
-        await _flutterTts.setVoice(_selectedNativeVoice!);
+        try {
+          await _flutterTts.setVoice(_selectedNativeVoice!);
+        } catch (_) {}
       }
-      // Áp dụng tốc độ và cao độ rõ nét, tương phản âm thanh mạnh mẽ
-      await _flutterTts.setSpeechRate(_speechRate.clamp(0.4, 2.0));
+      // Trên Android, flutter_tts chuẩn hóa 0.5 là tốc độ tự nhiên chuẩn 1.0x
+      final androidRate = (_speechRate * 0.55).clamp(0.35, 0.85);
+      await _flutterTts.setSpeechRate(androidRate);
       await _flutterTts.setPitch(_pitch.clamp(0.5, 2.0));
       await _flutterTts.setVolume(_volume.clamp(0.1, 1.0));
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[TTS] _applyAcoustics error: $e');
+    }
   }
 
-  /// Cập nhật ngay lập tức các thông số kỹ thuật phát âm
+  /// Cập nhật ngay lập tức các thông số kỹ thuật phát âm và lưu bền vững
   Future<void> updateAcoustics({
     double? rate,
     double? pitch,
@@ -201,9 +261,14 @@ class TtsService {
     if (rate != null) _speechRate = rate;
     if (pitch != null) _pitch = pitch;
     if (volume != null) _volume = volume;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('autobank_tts_speech_rate', _speechRate);
+      await prefs.setDouble('autobank_tts_pitch', _pitch);
+      await prefs.setDouble('autobank_tts_volume', _volume);
+    } catch (_) {}
     await _applyAcoustics();
   }
-
 
   /// Phát âm thanh thử nghiệm phản hồi ngay lập tức với thông số vừa chỉnh (không lưu đè vào câu thông báo ngân hàng)
   Future<void> speakTestFeedback(String sentence, {void Function()? onFinished}) async {
@@ -213,6 +278,22 @@ class TtsService {
   // Bật/tắt đọc riêng biệt cho 2 loại: Nhận tiền (Credit) và Chuyển đi (Debit)
   bool isCreditReadEnabled = true;
   bool isDebitReadEnabled = true;
+
+  Future<void> setCreditEnabled(bool value) async {
+    isCreditReadEnabled = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('autobank_tts_credit_enabled', value);
+    } catch (_) {}
+  }
+
+  Future<void> setDebitEnabled(bool value) async {
+    isDebitReadEnabled = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('autobank_tts_debit_enabled', value);
+    } catch (_) {}
+  }
 
   /// Callback tạo câu đọc chuẩn theo Form kịch bản cấu hình người dùng (Nhận tiền)
   String Function({required String amountWords, String? bankName, String? shopOrOrder})? globalSentenceBuilder;
@@ -265,7 +346,7 @@ class TtsService {
     }
 
     _lastBankTransactionSentence = sentence;
-    await speakSentence(sentence, onFinished: onFinished, isBankTransaction: true);
+    await speakSentence(sentence, onFinished: onFinished, isBankTransaction: true, bypassChecks: bypassChecks);
   }
 
   /// Phát âm thanh thông báo trừ tiền (tiền ra / chi tiêu) theo đúng Form cấu hình chuyển đi
@@ -331,13 +412,7 @@ class TtsService {
     // 1. Thử phát audio Chị Google chuẩn 100% qua web player (cho môi trường Web/Chrome)
     try {
       PlatformAudioPlayer.stop();
-      final rateDiff = ((_speechRate - 1.0) * 100).toInt();
-      final rateParam = '${rateDiff >= 0 ? "+$rateDiff" : "$rateDiff"}%';
-      final pitchDiff = ((_pitch - 1.0) * 100).toInt();
-      final pitchParam = '${pitchDiff >= 0 ? "+$pitchDiff" : "$pitchDiff"}Hz';
-      final volDiff = ((_volume - 1.0) * 100).toInt();
-      final volParam = '${volDiff >= 0 ? "+$volDiff" : "$volDiff"}%';
-      final audioUrl = '${AppConfig.apiBaseUrl}/tts?voice=$_currentVoiceId&text=${Uri.encodeComponent(cleanSentence)}&rate=${Uri.encodeComponent(rateParam)}&pitch=${Uri.encodeComponent(pitchParam)}&volume=${Uri.encodeComponent(volParam)}';
+      final audioUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=vi&q=${Uri.encodeComponent(cleanSentence)}';
       bool hasRepeated = false;
       final playedOnWeb = await PlatformAudioPlayer.playAudio(
         audioUrl,
@@ -381,22 +456,26 @@ class TtsService {
     // 2. Fallback qua FlutterTts (Android máy thật com.google.android.tts)
     await init();
     try {
-      // Đảm bảo kích âm lượng loa điện thoại lên mức tối đa để nghe rõ
-      await NotificationService.ensureMaxVolume();
       await _flutterTts.stop();
       await _applyAcoustics();
 
-      final repeatTimes = isRepeatTwiceEnabled ? 2 : 1;
+      final repeatTimes = (isRepeatTwiceEnabled && isBankTransaction) ? 2 : 1;
       for (int i = 0; i < repeatTimes; i++) {
-        if (!isEnabled) break;
+        if (!isEnabled && !bypassChecks) break;
         if (i > 0) {
-          await Future.delayed(const Duration(milliseconds: 700));
-          if (!isEnabled) break;
+          final delayMs = (cleanSentence.length * 85).clamp(2500, 6000);
+          await Future.delayed(Duration(milliseconds: delayMs));
+          if (!isEnabled && !bypassChecks) break;
         }
-        await _flutterTts.speak(sentence);
+        await _flutterTts.speak(cleanSentence).timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => 0,
+        );
+        debugPrint('[TTS Android] speak called | sentence: $cleanSentence');
       }
       onFinished?.call();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[TTS Android] speak error: $e');
       onFinished?.call();
     }
   }

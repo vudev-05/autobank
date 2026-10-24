@@ -27,7 +27,9 @@ export function initBankDirectory() {
   let currentCategory = BANK_CATEGORIES.ALL;
   let currentQuery = '';
 
-  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+  const API_BASE = (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+    ? 'https://api.docthongbaobank.com'
+    : (import.meta.env.VITE_API_BASE || 'http://localhost:3000');
   fetch(`${API_BASE}/admin/banks`)
     .then(res => res.json())
     .then(list => {
@@ -234,7 +236,7 @@ export function initBankDirectory() {
         </div>
       </div>
 
-      <a href="https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn" class="main-btn btn-hover" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-align: center; border-radius: 12px; padding: 14px; font-weight: 700; background: #0f172a; color: #fff;">
+      <a href="https://play.google.com/store/apps/details?id=com.docthongbaobank.app" class="main-btn btn-hover" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-align: center; border-radius: 12px; padding: 14px; font-weight: 700; background: #0f172a; color: #fff;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Tải App "Đọc Thông Báo Nhận Tiền" trên Google Play
       </a>

@@ -4,12 +4,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Đọc Thông Báo Nhận Tiền • Loa Phát Biến Động Số Dư Trực Tiếp</title>
-  <link rel="shortcut icon" href="assets/images/favicon.png" type="image/png" />
+  <title>Đọc Thông Báo Nhận Tiền • Loa Phát Biến Động Số Dư Trực Tiếp (Live Stream 24/7)</title>
+  <meta name="description"
+    content="Cổng theo dõi biến động số dư và phát âm thanh đọc tiền trực tiếp (Live Stream) 24/7 của Đọc Thông Báo Nhận Tiền (AutoBank). Bảo mật mã PIN 6 số, kết nối loa Bluetooth siêu tốc." />
+  <meta name="keywords"
+    content="live stream số dư, biến động số dư trực tiếp, loa báo tiền trực tuyến, đọc thông báo nhận tiền live, mã PIN livestream, autobank live" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://docthongbaobank.com/live" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="vi_VN" />
+  <meta property="og:url" content="https://docthongbaobank.com/live" />
+  <meta property="og:title" content="Đọc Thông Báo Nhận Tiền • Loa Phát Biến Động Số Dư Trực Tiếp 24/7" />
+  <meta property="og:description"
+    content="Theo dõi và phát loa biến động số dư trực tiếp tại quầy thu ngân. Đồng bộ tức thì từ điện thoại Android qua mã PIN 6 số an toàn tuyệt đối." />
+  <meta property="og:image" content="https://docthongbaobank.com/og-banner.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://docthongbaobank.com/og-banner.png" />
+
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Live Stream Biến Động Số Dư — Đọc Thông Báo Nhận Tiền",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "All",
+    "url": "https://docthongbaobank.com/live",
+    "description": "Cổng phát loa biến động số dư trực tuyến bảo mật mã PIN 6 số."
+  }
+  </script>
 
   <style>
     :root {
@@ -1577,10 +1610,699 @@
       .stats-grid {
         grid-template-columns: 1fr;
       }
+    }
 
-      .tx-content-text {
-        max-width: 120px;
+    /* MODERN RESPONSIVE LIVE FOOTER */
+    .live-modern-footer {
+      margin-top: 50px;
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      padding: 36px 16px 42px;
+      color: #64748b;
+      font-size: 0.85rem;
+      width: 100%;
+      box-shadow: 0 -2px 16px rgba(15, 23, 42, 0.03);
+    }
+    .live-footer-container {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+    .live-footer-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 7px 20px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-size: 0.82rem;
+      font-weight: 600;
+      max-width: 100%;
+      line-height: 1.4;
+      box-shadow: 0 1px 2px rgba(16, 185, 129, 0.05);
+    }
+    .live-footer-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      flex-shrink: 0;
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+    .live-footer-links-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 840px;
+    }
+    .live-footer-link-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 16px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      color: #334155;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .live-footer-link-card:hover {
+      background: #ffffff;
+      border-color: #0284c7;
+      color: #0284c7;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.12);
+    }
+    .live-footer-link-card.highlight-cyan {
+      color: #0369a1;
+      border-color: #bae6fd;
+      background: #f0f9ff;
+    }
+    .live-footer-link-card.highlight-cyan:hover {
+      background: #ffffff;
+      border-color: #0284c7;
+      color: #0284c7;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.15);
+    }
+    .live-footer-link-card.highlight-green {
+      color: #047857;
+      border-color: #a7f3d0;
+      background: #f0fdf4;
+    }
+    .live-footer-link-card.highlight-green:hover {
+      background: #ffffff;
+      border-color: #10b981;
+      color: #059669;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+    }
+    .live-footer-link-icon {
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .live-footer-credit {
+      padding-top: 6px;
+      font-size: 0.84rem;
+      color: #64748b;
+      line-height: 1.6;
+    }
+    .live-footer-credit strong {
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .live-footer-links-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
       }
+      .live-footer-link-card {
+        padding: 9px 8px;
+        font-size: 0.78rem;
+        gap: 5px;
+      }
+      .live-footer-badge {
+        font-size: 0.75rem;
+        padding: 6px 12px;
+      }
+    }
+    @media (max-width: 380px) {
+      .live-footer-link-card {
+        padding: 8px 4px;
+        font-size: 0.72rem;
+      }
+      .live-footer-link-icon {
+        font-size: 0.85rem;
+      }
+    }
+
+    /* =========================================================================
+       NÂNG CẤP 5 TÍNH NĂNG MỚI: DARK MODE, BIG ALERT, PRIVACY, AUDIO, PRINT
+       ========================================================================= */
+
+    /* 1. DARK THEME STYLES - ĐỒNG BỘ 100% TOÀN DIỆN */
+    body.dark-theme {
+      background: #090e17 !important;
+      color: #e2e8f0 !important;
+    }
+    body.dark-theme .live-navbar {
+      background: rgba(15, 23, 42, 0.96) !important;
+      border-bottom: 1px solid #1e293b !important;
+    }
+    body.dark-theme .brand-title {
+      color: #f8fafc !important;
+    }
+    body.dark-theme .brand-slogan {
+      color: #94a3b8 !important;
+    }
+    body.dark-theme .btn-action,
+    body.dark-theme .btn-feed-tool,
+    body.dark-theme .page-size-select,
+    body.dark-theme .search-input,
+    body.dark-theme .btn-page {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+      color: #f1f5f9 !important;
+    }
+    body.dark-theme .btn-action:hover,
+    body.dark-theme .btn-feed-tool:hover {
+      background: #334155 !important;
+      border-color: #38bdf8 !important;
+      color: #38bdf8 !important;
+    }
+    body.dark-theme .search-icon {
+      color: #94a3b8 !important;
+    }
+    body.dark-theme .search-input:focus,
+    body.dark-theme .page-size-select:focus {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15) !important;
+    }
+    body.dark-theme .audio-control-card {
+      background: #0f172a !important;
+      border-color: #1e293b !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    }
+    body.dark-theme .audio-head {
+      border-bottom-color: #1e293b !important;
+    }
+    body.dark-theme .speaker-auto-badge {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+      color: #e2e8f0 !important;
+    }
+    body.dark-theme .phone-status-badge-row {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+      color: #e2e8f0 !important;
+    }
+    body.dark-theme .meta-chip {
+      background: #0f172a !important;
+      border-color: #334155 !important;
+    }
+    body.dark-theme .meta-chip .chip-label {
+      color: #94a3b8 !important;
+    }
+    body.dark-theme .meta-chip .chip-val {
+      color: #f1f5f9 !important;
+    }
+
+    /* STATS KPI CARDS */
+    body.dark-theme .stat-card {
+      background: #0f172a !important;
+      border-color: #1e293b !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    }
+    body.dark-theme .stat-label {
+      color: #94a3b8 !important;
+    }
+    body.dark-theme .stat-sub {
+      color: #64748b !important;
+    }
+    body.dark-theme .stat-card.incoming {
+      background: linear-gradient(145deg, #06271c 0%, #0c392b 100%) !important;
+      border-color: #065f46 !important;
+    }
+    body.dark-theme .stat-card.outgoing {
+      background: linear-gradient(145deg, #2a0b12 0%, #3f111c 100%) !important;
+      border-color: #881337 !important;
+    }
+    body.dark-theme .stat-card.net {
+      background: linear-gradient(145deg, #082136 0%, #0d2f4d 100%) !important;
+      border-color: #0369a1 !important;
+    }
+
+    /* FEED CARD & TRANSACTION LIST TRONG DARK MODE (ĐỒNG BỘ NỀN TỐI 100%) */
+    body.dark-theme .feed-card {
+      background: #0f172a !important;
+      border-color: #1e293b !important;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+    body.dark-theme .feed-toolbar {
+      background: #131c2e !important;
+      border-bottom-color: #1e293b !important;
+    }
+    body.dark-theme .filter-tabs {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+    }
+    body.dark-theme .filter-tab {
+      color: #94a3b8 !important;
+    }
+    body.dark-theme .filter-tab:hover {
+      color: #f8fafc !important;
+    }
+    body.dark-theme .filter-tab.active {
+      background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4) !important;
+    }
+    body.dark-theme .filter-tab.active.tab-inc {
+      background: linear-gradient(135deg, #10b981, #059669) !important;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4) !important;
+    }
+    body.dark-theme .filter-tab.active.tab-out {
+      background: linear-gradient(135deg, #f43f5e, #e11d48) !important;
+      box-shadow: 0 2px 8px rgba(244, 63, 94, 0.4) !important;
+    }
+    body.dark-theme .tx-feed-list {
+      background: #0f172a !important;
+    }
+    body.dark-theme .tx-item {
+      background: #131c2e !important;
+      border-color: #1e293b !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+    }
+    body.dark-theme .tx-item:hover {
+      background: #1a263d !important;
+      border-color: #0284c7 !important;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2) !important;
+    }
+    body.dark-theme .tx-content-text {
+      color: #f1f5f9 !important;
+    }
+    body.dark-theme .tx-time-text {
+      color: #94a3b8 !important;
+    }
+    body.dark-theme .bank-pill {
+      background: #0c4a6e !important;
+      color: #38bdf8 !important;
+      border-color: #0284c7 !important;
+    }
+    body.dark-theme .pagination-bar {
+      background: #131c2e !important;
+      border-top-color: #1e293b !important;
+    }
+    body.dark-theme .page-info {
+      color: #94a3b8 !important;
+    }
+    body.dark-theme .btn-page {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+      color: #cbd5e1 !important;
+    }
+    body.dark-theme .btn-page.active {
+      background: #0284c7 !important;
+      border-color: #0284c7 !important;
+      color: #ffffff !important;
+    }
+    body.dark-theme .live-modern-footer {
+      background: #090e17 !important;
+      border-top-color: #1e293b !important;
+      color: #94a3b8 !important;
+    }
+    body.dark-theme .live-footer-badge {
+      background: rgba(16, 185, 129, 0.12) !important;
+      border-color: rgba(16, 185, 129, 0.3) !important;
+      color: #34d399 !important;
+    }
+    body.dark-theme .live-footer-link-card {
+      background: #131c2e !important;
+      border-color: #1e293b !important;
+      color: #e2e8f0 !important;
+    }
+    body.dark-theme .live-footer-link-card:hover {
+      background: #1a263d !important;
+      border-color: #38bdf8 !important;
+      color: #38bdf8 !important;
+    }
+    body.dark-theme .live-footer-credit strong {
+      color: #f8fafc !important;
+    }
+
+    /* 2. PRIVACY / LIVESTREAM MODE - CHỈ CHE SỐ TIỀN THỐNG KÊ Ở TRÊN, KHÔNG CHE LỊCH SỬ */
+    body.privacy-mode .stat-value {
+      filter: blur(8px);
+      user-select: none;
+      transition: filter 0.2s ease;
+    }
+    body.privacy-mode .stat-value:hover {
+      filter: none;
+    }
+
+    /* 3. BIG SCREEN TRANSACTION ALERT POPUP */
+    .big-alert-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: bigAlertFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes bigAlertFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .big-alert-card {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      background: linear-gradient(165deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 28px;
+      padding: 32px 36px 28px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+      border: 2px solid #10b981;
+      text-align: center;
+      animation: bigAlertPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+    }
+    body.dark-theme .big-alert-card {
+      background: linear-gradient(165deg, #0f172a 0%, #1e293b 100%);
+      border-color: #059669;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(16, 185, 129, 0.2);
+    }
+    @keyframes bigAlertPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .big-alert-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(100, 116, 139, 0.12);
+      color: #64748b;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .big-alert-close:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      transform: rotate(90deg);
+    }
+    .big-alert-head {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .big-alert-bank-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      background: #0284c7;
+      color: #ffffff;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+    }
+    .big-alert-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid #10b981;
+      color: #059669;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+    .big-alert-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse-dot 1.5s infinite;
+    }
+    .big-alert-amount-wrap {
+      margin: 10px 0 16px;
+    }
+    .big-alert-amount {
+      font-size: 3.8rem;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      color: #059669;
+      text-shadow: 0 4px 20px rgba(16, 185, 129, 0.35);
+      display: inline-block;
+      line-height: 1.1;
+      font-family: inherit;
+    }
+    body.dark-theme .big-alert-amount {
+      color: #34d399;
+      text-shadow: 0 0 30px rgba(52, 211, 153, 0.5);
+    }
+    .big-alert-content {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+      word-break: break-word;
+      line-height: 1.4;
+      padding: 0 10px;
+    }
+    body.dark-theme .big-alert-content {
+      color: #f1f5f9;
+    }
+    .big-alert-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+    body.dark-theme .big-alert-meta {
+      color: #94a3b8;
+    }
+    .big-alert-progress-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(100, 116, 139, 0.15);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .big-alert-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      width: 100%;
+      border-radius: 999px;
+      transition: width 0.1s linear;
+    }
+    .big-alert-footer-note {
+      font-size: 0.78rem;
+      color: #94a3b8;
+    }
+
+    /* 4. AUDIO CONTROLS DROPDOWN & FEED TOOLS */
+    .audio-dropdown-wrap {
+      position: relative;
+    }
+    .audio-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 320px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      box-shadow: 0 20px 40px -8px rgba(15, 23, 42, 0.22);
+      padding: 18px 20px;
+      z-index: 10000;
+      display: none;
+      animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-align: left;
+    }
+    body.dark-theme .audio-dropdown {
+      background: #1e293b;
+      border-color: #334155;
+      box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.6);
+      color: #f1f5f9;
+    }
+    .audio-dropdown.active {
+      display: block;
+    }
+    .audio-dropdown-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    body.dark-theme .audio-dropdown-title {
+      color: #f8fafc;
+      border-bottom-color: #334155;
+    }
+    .audio-field-row {
+      margin-bottom: 14px;
+    }
+    .audio-field-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    body.dark-theme .audio-field-label {
+      color: #94a3b8;
+    }
+    .volume-slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .volume-slider {
+      flex: 1;
+      height: 6px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      accent-color: #0284c7;
+      cursor: pointer;
+    }
+    body.dark-theme .volume-slider {
+      background: #334155;
+      accent-color: #38bdf8;
+    }
+    .btn-mute-toggle {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    body.dark-theme .btn-mute-toggle {
+      background: #334155;
+      border-color: #475569;
+      color: #f1f5f9;
+    }
+    .btn-mute-toggle.muted {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #dc2626;
+    }
+    .sound-select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #1e293b;
+      cursor: pointer;
+    }
+    body.dark-theme .sound-select {
+      background: #0f172a;
+      border-color: #334155;
+      color: #f8fafc;
+    }
+    .btn-test-alert {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+      transition: all 0.2s;
+    }
+    .btn-test-alert:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+    }
+
+    .btn-feed-tool {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .btn-feed-tool:hover {
+      background: #f8fafc;
+      border-color: #0284c7;
+      color: #0284c7;
+      transform: translateY(-1px);
+    }
+    .btn-feed-tool.btn-excel:hover {
+      border-color: #10b981;
+      color: #059669;
+    }
+
+    /* 5. PRINT STYLES FOR SHIFT REPORT */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printShiftArea, #printShiftArea * {
+        visibility: visible !important;
+      }
+      #printShiftArea {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 24px !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        display: block !important;
+      }
+    }
+    .print-only {
+      display: none;
     }
   </style>
 </head>
@@ -1604,6 +2326,62 @@
         <div class="pulse-dot"></div>
         <span class="pill-text-full" id="pillTextFull">KẾT NỐI REALTIME 24/7</span>
         <span class="pill-text-short" id="pillTextShort">24/7</span>
+      </div>
+
+      <!-- Dark / Light Theme Toggle -->
+      <button type="button" class="btn-action" id="btnToggleTheme" title="Chuyển đổi giao diện Sáng / Tối">
+        <span id="themeIcon" style="display:inline-flex;align-items:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </span>
+        <span class="btn-action-text" id="themeText">Giao diện</span>
+      </button>
+
+      <!-- Fullscreen POS Toggle -->
+      <button type="button" class="btn-action" id="btnToggleFullscreen" title="Bật / Tắt Toàn Màn Hình (Chế độ Kiosk Thu Ngân)">
+        <span id="fullscreenIcon" style="display:inline-flex;align-items:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </span>
+        <span class="btn-action-text">Toàn Màn Hình</span>
+      </button>
+
+      <!-- Privacy Livestream Toggle -->
+      <button type="button" class="btn-action" id="btnTogglePrivacy" title="Che / Hiện số tiền tổng (Chế độ Livestream & Riêng tư)">
+        <span id="privacyIcon" style="display:inline-flex;align-items:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </span>
+        <span class="btn-action-text" id="privacyText">Che Số Tiền</span>
+      </button>
+
+      <!-- Audio & Volume Controls Dropdown -->
+      <div class="audio-dropdown-wrap">
+        <button type="button" class="btn-action" id="btnAudioDropdownToggle" title="Điều khiển âm lượng loa phát">
+          <span id="audioStatusIcon" style="display:inline-flex;align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </span>
+          <span class="btn-action-text">Âm Lượng</span>
+        </button>
+        <div class="audio-dropdown" id="audioDropdown">
+          <div class="audio-dropdown-title">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              Âm Lượng Loa
+            </span>
+            <button type="button" class="btn-mute-toggle" id="btnQuickMute">Tắt tiếng</button>
+          </div>
+          <div class="audio-field-row" style="margin-bottom: 18px;">
+            <div class="audio-field-label">
+              <span>Mức âm lượng</span>
+              <span id="volumePercent" style="font-weight: 800;">100%</span>
+            </div>
+            <div class="volume-slider-wrap">
+              <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100" />
+            </div>
+          </div>
+          <button type="button" class="btn-test-alert" id="btnTestSoundAlert">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            <span>Thử Loa &amp; Pop-up Tiền Về</span>
+          </button>
+        </div>
       </div>
 
       <button type="button" class="btn-action" id="btnShareLink" title="Sao chép link chia sẻ nghe loa">
@@ -1650,7 +2428,10 @@
 
       <div style="display: flex; align-items: center; justify-content: center; margin: -6px 0 16px;">
         <button type="button" id="btnTogglePinVisibility" style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); color: #0284c7; cursor: pointer; font-size: 0.8rem; font-weight: 700; padding: 6px 14px; border-radius: 99px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
-          <span id="pinVisibilityIcon">👁️</span> <span id="pinVisibilityText">Hiện mã số</span>
+          <span id="pinVisibilityIcon" style="display:inline-flex;align-items:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+          <span id="pinVisibilityText">Hiện mã số</span>
         </button>
       </div>
 
@@ -1659,6 +2440,9 @@
       <div style="margin-top: 14px; font-size: 0.76rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span>Phiên bảo mật có hiệu lực <strong>24 giờ</strong> trên thiết bị này</span>
+      </div>
+      <div style="margin-top: 10px; font-size: 0.75rem; color: #64748b; text-align: center;">
+        Bằng việc mở khóa, bạn đồng ý với <a href="/privacy#live-policy" target="_blank" style="color: #0284c7; font-weight: 600; text-decoration: underline;">Quy định Live Stream &amp; Bảo mật</a>
       </div>
     </div>
   </div>
@@ -1755,6 +2539,22 @@
       </div>
     </div>
 
+    <!-- BANNER YÊU CẦU CẤP QUYỀN ÂM THANH TRÌNH DUYỆT -->
+    <div id="audioPermissionBanner" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 16px 22px; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.35); border: 1px solid rgba(255,255,255,0.2);">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.22); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">
+          🔊
+        </div>
+        <div>
+          <div style="font-weight: 800; font-size: 1.05rem; letter-spacing: -0.2px;">Chạm vào đây để Cấp Quyền Âm Thanh & Bật Loa Tự Động</div>
+          <div style="font-size: 0.85rem; opacity: 0.95; margin-top: 2px;">Trình duyệt máy tính/điện thoại yêu cầu xác nhận 1 lần chạm để loa phát thông báo tiền về 24/7</div>
+        </div>
+      </div>
+      <button id="btnGrantAudioPermission" style="background: #ffffff; color: #0284c7; border: none; padding: 12px 24px; border-radius: 999px; font-weight: 800; font-size: 0.92rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+        <span>⚡ Bật Loa & Thử Ngay</span>
+      </button>
+    </div>
+
     <!-- 1. AUDIO CONTROLLER & WEB SPEECH -->
     <div class="audio-control-card">
       <div class="audio-head">
@@ -1807,14 +2607,6 @@
         </div>
 
         <div class="phone-meta-chips" id="phoneMetaChips">
-          <div class="meta-chip">
-            <span class="chip-label">Thiết Bị Gốc:</span>
-            <strong id="metaDeviceName" class="chip-val">Samsung Galaxy (Android 14)</strong>
-          </div>
-          <div class="meta-chip">
-            <span class="chip-label">Mức Pin Máy:</span>
-            <strong id="metaBattery" class="chip-val">--%</strong>
-          </div>
           <div class="meta-chip">
             <span class="chip-label">Màn Hình Chờ:</span>
             <strong id="metaScreenStatus" class="chip-val" style="color: #0284c7;">Luôn sáng (Trực 24/24)</strong>
@@ -1920,6 +2712,12 @@
               placeholder="Tìm ngân hàng, số tiền, nội dung..." />
           </div>
 
+          <!-- Date filter selector: Tất cả / Hôm nay -->
+          <select id="dateFilterSelect" class="page-size-select" title="Lọc theo ngày">
+            <option value="all" selected>Tất cả ngày</option>
+            <option value="today">Hôm nay (từ 0h)</option>
+          </select>
+
           <!-- Page size selector: 5, 10, 25, 50 -->
           <select id="pageSizeSelect" class="page-size-select" title="Số lượng hiển thị trên 1 trang">
             <option value="5">5 giao dịch / trang</option>
@@ -1928,6 +2726,26 @@
             <option value="50">50 giao dịch / trang</option>
             <option value="100">100 giao dịch / trang</option>
           </select>
+
+          <!-- Export Excel / CSV -->
+          <button type="button" class="btn-feed-tool btn-excel" id="btnExportExcel" title="Tải file Excel / CSV danh sách giao dịch">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Xuất Excel</span>
+          </button>
+
+          <!-- Print Shift Report -->
+          <button type="button" class="btn-feed-tool" id="btnPrintShiftReport" title="In phiếu báo cáo ca thu ngân">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            <span>In Báo Cáo</span>
+          </button>
         </div>
       </div>
 
@@ -1957,6 +2775,151 @@
     </div>
   </main>
 
+  <!--====== LIVE FOOTER & TERMS BAR ======-->
+  <footer class="live-modern-footer">
+    <div class="live-footer-container">
+      <!-- Status Badge -->
+      <div class="live-footer-badge">
+        <span class="live-footer-dot"></span>
+        <span>Hệ thống Đọc Thông Báo Nhận Tiền Live Stream · Bảo mật mã PIN 24/7</span>
+      </div>
+
+      <!-- Evenly Distributed Navigation Grid -->
+      <div class="live-footer-links-grid">
+        <a href="/" target="_blank" class="live-footer-link-card">
+          <span class="live-footer-link-icon" style="display:inline-flex;align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </span>
+          <span class="live-footer-link-text">Trang chủ</span>
+        </a>
+        <a href="/privacy#live-policy" target="_blank" class="live-footer-link-card highlight-cyan">
+          <span class="live-footer-link-icon" style="display:inline-flex;align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          <span class="live-footer-link-text">Điều khoản Live</span>
+        </a>
+        <a href="/privacy" target="_blank" class="live-footer-link-card">
+          <span class="live-footer-link-icon" style="display:inline-flex;align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <span class="live-footer-link-text">Chính sách bảo mật</span>
+        </a>
+        <a href="https://zalo.me/0869226687" target="_blank" rel="noopener" class="live-footer-link-card highlight-green">
+          <span class="live-footer-link-icon" style="display:inline-flex;align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <span class="live-footer-link-text">Zalo hỗ trợ 24/7</span>
+        </a>
+      </div>
+
+      <!-- Copyright / Author Signature -->
+      <div class="live-footer-credit">
+        <p>© 2026 Hệ thống <strong>Đọc thông báo nhận tiền</strong> · Bản quyền thuộc về <strong style="color: #0f172a;">Trần Quốc Vũ</strong></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- BIG TRANSACTION POPUP ALERT (THÔNG BÁO TIỀN VỀ SIÊU TO CHO THU NGÂN / POS) -->
+  <div id="bigAlertOverlay" class="big-alert-overlay" style="display: none;">
+    <div class="big-alert-card" id="bigAlertCard">
+      <button type="button" class="big-alert-close" id="btnBigAlertClose" title="Đóng (Esc)">✕</button>
+      
+      <div class="big-alert-head">
+        <div class="big-alert-bank-badge" id="bigAlertBankBadge">
+          <span id="bigAlertBankCode">MBBANK</span>
+        </div>
+        <div class="big-alert-type-badge" id="bigAlertTypeBadge">
+          <span class="big-alert-pulse-dot"></span>
+          <span id="bigAlertTypeText">TIỀN VỀ THÀNH CÔNG (+)</span>
+        </div>
+      </div>
+
+      <div class="big-alert-amount-wrap">
+        <span class="big-alert-amount" id="bigAlertAmount">+149.000đ</span>
+      </div>
+
+      <div class="big-alert-body">
+        <div class="big-alert-content" id="bigAlertContent">
+          nguyenthanhkieu15082004 luxury1
+        </div>
+        <div class="big-alert-meta">
+          <span id="bigAlertTime">11:40:00 23/10/2026</span>
+          <span>•</span>
+          <span style="color: #059669; font-weight: 700;">✓ Hệ thống xác thực 24/7</span>
+        </div>
+      </div>
+
+      <!-- Countdown progress bar -->
+      <div class="big-alert-progress-bg">
+        <div class="big-alert-progress-bar" id="bigAlertProgressBar"></div>
+      </div>
+      <div class="big-alert-footer-note">
+        <span>Tự động đóng sau <strong id="bigAlertCountdown">8</strong>s • Bấm bất kỳ đâu để đóng</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- IN BÁO CÁO CA BÁN HÀNG (PRINT SHIFT RECEIPT) -->
+  <div id="printShiftArea" class="print-only">
+    <div style="max-width: 600px; margin: 0 auto; font-family: sans-serif; color: #000; padding: 20px;">
+      <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 15px;">
+        <h2 style="margin: 0; font-size: 1.5rem; text-transform: uppercase;">Báo Cáo Doanh Thu Ca Bán Hàng</h2>
+        <div style="font-size: 0.9rem; margin-top: 4px;">Hệ Thống Đọc Thông Báo Nhận Tiền AutoBank</div>
+        <div style="font-size: 0.85rem; color: #555; margin-top: 2px;" id="printReportTime">In lúc: ...</div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.95rem;">
+        <tr>
+          <td style="padding: 6px 0;"><strong>Tổng tiền nhận vào (+):</strong></td>
+          <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #059669;" id="printCreditTotal">0đ</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0;">Số giao dịch nhận thành công:</td>
+          <td style="padding: 6px 0; text-align: right;" id="printCreditCount">0</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0;"><strong>Tổng tiền chuyển đi (-):</strong></td>
+          <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #dc2626;" id="printDebitTotal">0đ</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0;">Số giao dịch chuyển đi:</td>
+          <td style="padding: 6px 0; text-align: right;" id="printDebitCount">0</td>
+        </tr>
+        <tr style="border-top: 1px solid #000; font-size: 1.05rem;">
+          <td style="padding: 8px 0;"><strong>DÒNG TIỀN RÒNG (NET):</strong></td>
+          <td style="padding: 8px 0; text-align: right; font-weight: bold;" id="printNetTotal">0đ</td>
+        </tr>
+      </table>
+
+      <div style="border-top: 1px dashed #000; padding-top: 12px; margin-bottom: 25px;">
+        <h4 style="margin: 0 0 10px; font-size: 0.95rem; text-transform: uppercase;">Chi Tiết Giao Dịch Trong Ca</h4>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;" id="printTxTable">
+          <thead>
+            <tr style="border-bottom: 1px solid #000; text-align: left;">
+              <th style="padding: 4px;">Ngân hàng</th>
+              <th style="padding: 4px;">Số tiền</th>
+              <th style="padding: 4px;">Thời gian</th>
+              <th style="padding: 4px;">Nội dung</th>
+            </tr>
+          </thead>
+          <tbody id="printTxTableBody">
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 40px; text-align: center; font-size: 0.9rem;">
+        <div>
+          <strong>Người Bàn Giao Ca</strong><br/><br/><br/>
+          (Ký & ghi rõ họ tên)
+        </div>
+        <div>
+          <strong>Người Nhận Bàn Giao</strong><br/><br/><br/>
+          (Ký & ghi rõ họ tên)
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION -->
   <div id="toast" class="toast-box">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5">
@@ -1973,14 +2936,122 @@
     const sessionStartTime = Date.now();
     let isInitialSnapshotLoaded = false;
     let currentFilterType = 'all'; // 'all' | 'credit' | 'debit'
+    let currentDateFilter = 'all'; // 'all' | 'today'
     let currentKeyword = '';
     let currentPage = 1;
     let pageSize = 25;
     let verifiedCode = '';
+    let phoneStatus = { isOnline: false, lastHeartbeat: null };
+    let liveEventSource = null;
+    let liveAudioElement = null;
+    let livePlayToken = 0;
+    let liveRepeatTimer = null;
+    let expiryTimer = null;
+    let isPinVisible = false;
+    let liveVolume = Number(localStorage.getItem('autobank_live_volume') ?? 100) / 100;
+    let isAudioMuted = localStorage.getItem('autobank_live_muted') === '1';
+    let isPrivacyMode = localStorage.getItem('autobank_live_privacy') === '1';
+    let currentTheme = localStorage.getItem('autobank_live_theme') || 'light';
+    let bigAlertTimer = null;
+    let bigAlertInterval = null;
 
-    // Check code parameter in URL (?code=606060)
+    const LIVE_API_BASE = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+      ? `${window.location.origin}/api`
+      : 'http://localhost:3000';
+
+    const STORAGE_KEY_UNLOCKED_AT = 'autobank_live_pin_unlocked_at';
+    const STORAGE_KEY_PIN = 'autobank_live_pin_code';
+    const STORAGE_KEY_CACHED_TXS = 'autobank_live_cached_txs_v2';
+    const EXPIRE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 giờ
+
     const urlParams = new URLSearchParams(window.location.search);
     const codeParam = urlParams.get('code') || '';
+    const targetUserEmail = (urlParams.get('u') || urlParams.get('user') || '').trim().toLowerCase();
+
+    function getTargetEmail() {
+      return (
+        targetUserEmail ||
+        localStorage.getItem('live_matched_email') ||
+        phoneStatus?.lastHeartbeat?.email ||
+        phoneStatus?.lastHeartbeat?.userEmail ||
+        ''
+      );
+    }
+
+    let userTtsConfig = {
+      speechRate: 0.90,
+      pitch: 1.0,
+      volume: 1.0,
+      isCreditEnabled: true,
+      isDebitEnabled: true,
+      voiceId: 'chi-google',
+      credit: {
+        templateId: 'BANK_STANDARD',
+        prefixWord: 'Đã nhận',
+        suffixWord: 'Cảm ơn quý khách!',
+        amountStyle: 'dong',
+        bankStyle: 'tu',
+        shopStyle: 'don',
+        blocksOrder: ['bell', 'prefix', 'amount', 'bank'],
+        enabledBlocks: ['bell', 'prefix', 'amount', 'bank'],
+      },
+      debit: {
+        templateId: 'DEBIT_STANDARD',
+        prefixWord: 'Đã chuyển',
+        suffixWord: 'Giao dịch hoàn tất',
+        amountStyle: 'dong',
+        bankStyle: 'qua',
+        shopStyle: 'don',
+        blocksOrder: ['bell', 'prefix', 'amount', 'bank'],
+        enabledBlocks: ['bell', 'prefix', 'amount', 'bank'],
+      },
+      shareConfig: {
+        shareCredit: true,
+        shareDebit: true,
+        shareSpeech: true,
+        shareShowAmount: true,
+        shareShowContent: true,
+        shareRepeatTwice: false,
+      }
+    };
+
+    // Động cơ gọi API an toàn: Ưu tiên cùng domain /api/... để 100% không bao giờ bị chặn CORS / rớt mạng
+    async function safeApiFetch(endpoint, options = {}) {
+      const urls = [];
+      const cleanEp = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+      if (cleanEp.startsWith('/api/')) {
+        urls.push(cleanEp);
+      } else {
+        urls.push('/api' + cleanEp);
+        urls.push(cleanEp);
+      }
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        urls.push(`https://api.docthongbaobank.com${cleanEp}`);
+      } else {
+        urls.push(`http://localhost:3000${cleanEp}`);
+      }
+
+      for (const u of urls) {
+        try {
+          const res = await fetch(u, options);
+          if (res && res.ok) return res;
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    // KHÔI PHỤC TỨC THÌ BIẾN ĐỘNG SỐ DƯ & TIỀN NONG TỪ BỘ NHỚ TRÌNH DUYỆT (CHỐNG MẤT DỮ LIỆU KHI BẤM F5)
+    function restoreCachedTransactions() {
+      try {
+        const cachedRaw = localStorage.getItem(STORAGE_KEY_CACHED_TXS);
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            handleNewTransactionData(parsed, false); // false = không đọc to lại các giao dịch cũ khi F5
+          }
+        }
+      } catch (_) {}
+    }
 
     // DOM Elements
     const pinModal = document.getElementById('pinModal');
@@ -1996,9 +3067,42 @@
     const txFeedList = document.getElementById('txFeedList');
     const searchInput = document.getElementById('searchInput');
     const pageSizeSelect = document.getElementById('pageSizeSelect');
+    const dateFilterSelect = document.getElementById('dateFilterSelect');
     const pageInfo = document.getElementById('pageInfo');
     const pageButtons = document.getElementById('pageButtons');
     const btnShareLink = document.getElementById('btnShareLink');
+
+    // New Controls DOM Elements
+    const btnToggleTheme = document.getElementById('btnToggleTheme');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+    const btnToggleFullscreen = document.getElementById('btnToggleFullscreen');
+    const fullscreenIcon = document.getElementById('fullscreenIcon');
+    const btnTogglePrivacy = document.getElementById('btnTogglePrivacy');
+    const privacyIcon = document.getElementById('privacyIcon');
+    const privacyText = document.getElementById('privacyText');
+    const btnAudioDropdownToggle = document.getElementById('btnAudioDropdownToggle');
+    const audioDropdown = document.getElementById('audioDropdown');
+    const btnQuickMute = document.getElementById('btnQuickMute');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumePercent = document.getElementById('volumePercent');
+    const btnTestSoundAlert = document.getElementById('btnTestSoundAlert');
+    const audioStatusIcon = document.getElementById('audioStatusIcon');
+    const btnExportExcel = document.getElementById('btnExportExcel');
+    const btnPrintShiftReport = document.getElementById('btnPrintShiftReport');
+
+    // Big Alert DOM Elements
+    const bigAlertOverlay = document.getElementById('bigAlertOverlay');
+    const btnBigAlertClose = document.getElementById('btnBigAlertClose');
+    const bigAlertBankCode = document.getElementById('bigAlertBankCode');
+    const bigAlertBankBadge = document.getElementById('bigAlertBankBadge');
+    const bigAlertTypeText = document.getElementById('bigAlertTypeText');
+    const bigAlertTypeBadge = document.getElementById('bigAlertTypeBadge');
+    const bigAlertAmount = document.getElementById('bigAlertAmount');
+    const bigAlertContent = document.getElementById('bigAlertContent');
+    const bigAlertTime = document.getElementById('bigAlertTime');
+    const bigAlertProgressBar = document.getElementById('bigAlertProgressBar');
+    const bigAlertCountdown = document.getElementById('bigAlertCountdown');
 
     // Chuẩn hóa thanh địa chỉ trình duyệt: Tự động bỏ đuôi .html thành link sạch /live
     if (window.location.pathname.endsWith('.html')) {
@@ -2008,9 +3112,6 @@
         window.history.replaceState(null, '', cleanUrl);
       } catch (_) {}
     }
-
-    // Phone Heartbeat & Online Signal State
-    let phoneStatus = { isOnline: false, lastHeartbeat: null };
 
     // 1. PIN VERIFICATION INITIALIZATION
     const pinInputs = [
@@ -2022,17 +3123,6 @@
       document.getElementById('pin6')
     ];
 
-    const STORAGE_KEY_UNLOCKED_AT = 'autobank_live_pin_unlocked_at';
-    const STORAGE_KEY_PIN = 'autobank_live_pin_code';
-    const EXPIRE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 giờ
-    let expiryTimer = null;
-
-    // Thiết lập sự kiện gõ phím cho 6 ô PIN
-    setupPinInputEvents();
-
-    // Kiểm tra phiên đăng nhập 24h trong localStorage
-    checkAndRestoreSession();
-
     function checkAndRestoreSession() {
       const storedUnlockedAt = localStorage.getItem(STORAGE_KEY_UNLOCKED_AT);
       const storedPin = localStorage.getItem(STORAGE_KEY_PIN);
@@ -2043,9 +3133,14 @@
         if (elapsed < EXPIRE_DURATION_MS) {
           // Phiên vẫn hợp lệ trong vòng 24 giờ!
           const remainingMs = EXPIRE_DURATION_MS - elapsed;
-          const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
-          unlockLivePortal(storedPin || '889922', false);
-          showToast(`Đã khôi phục phiên bảo mật (Còn ${remainingHours}h hiệu lực)`);
+          if (storedPin) {
+            const remainingHours = Math.max(1, Math.ceil(remainingMs / (1000 * 60 * 60)));
+            unlockLivePortal(storedPin, false);
+            showToast(`Đã khôi phục phiên bảo mật (Còn ${remainingHours}h hiệu lực)`);
+          } else {
+            showExpiredNotice();
+            return;
+          }
 
           if (expiryTimer) clearTimeout(expiryTimer);
           expiryTimer = setTimeout(lockPortalDueToExpiration, remainingMs);
@@ -2055,6 +3150,20 @@
           localStorage.removeItem(STORAGE_KEY_UNLOCKED_AT);
           showExpiredNotice();
         }
+      }
+
+      // Nếu có mã code trên URL (?code=297683 hoặc ?pin=297683)
+      const directCode = (urlParams.get('code') || urlParams.get('pin') || '').trim();
+      if (directCode && directCode.length === 6) {
+        pinModal.style.display = 'flex';
+        const digits = directCode.split('');
+        for (let i = 0; i < digits.length && i < 6; i++) {
+          pinInputs[i].value = digits[i];
+        }
+        setTimeout(() => {
+          verifyEnteredPin();
+        }, 200);
+        return;
       }
 
       // Chưa mở khóa hoặc đã hết hạn -> Bắt buộc hiển thị modal nhập mã bảo mật
@@ -2082,8 +3191,6 @@
       showExpiredNotice();
       showToast('Phiên truy cập đã hết hạn sau 24 giờ. Vui lòng nhập lại mã bảo mật!');
     }
-
-    let isPinVisible = false;
 
     function setupPinInputEvents() {
       pinInputs.forEach((input, index) => {
@@ -2240,44 +3347,29 @@
       const errEl = document.getElementById('pinError');
       if (errEl) errEl.style.display = 'none';
 
-      // 1. Kiểm tra nhanh mã chuẩn (889922 từ App điện thoại hoặc 606060)
-      if (code === '889922' || code === '606060') {
-        localStorage.setItem(STORAGE_KEY_UNLOCKED_AT, Date.now().toString());
-        localStorage.setItem(STORAGE_KEY_PIN, code);
-        unlockLivePortal(code, true);
-
-        if (expiryTimer) clearTimeout(expiryTimer);
-        expiryTimer = setTimeout(lockPortalDueToExpiration, EXPIRE_DURATION_MS);
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Mở Loa & Xem Lịch Sử';
-        }
-        return;
-      }
-
-      // 2. Xác thực với Backend (hỗ trợ cả link /live độc lập không cần kèm gmail)
+      // Xác thực mã PIN 6 số với App Local hoặc Backend
       let isValid = false;
       let matchedEmail = '';
       const urlParams = new URLSearchParams(window.location.search);
       const queryEmail = (urlParams.get('u') || urlParams.get('email') || '').trim();
 
-      // Kiểm tra local storage nếu chạy trên cùng trình duyệt
+      // 1. Kiểm tra local storage nếu chạy trên cùng máy/trình duyệt với App
       try {
-        const localFlutterPin = (localStorage.getItem('flutter.share_pin_code') || localStorage.getItem('share_pin_code') || '').replace(/['"]/g, '').trim();
+        const localFlutterPin = (localStorage.getItem('flutter.autobank_live_web_pin_code') || localStorage.getItem('flutter.share_pin_code') || localStorage.getItem('share_pin_code') || '').replace(/['"]/g, '').trim();
         if (localFlutterPin && localFlutterPin === code) {
           isValid = true;
         }
       } catch (_) {}
 
+      // 2. Xác thực với Backend theo đúng tài khoản người dùng
       if (!isValid) {
         const endpoints = [
-          '/admin/verify-live-pin',
           '/api/admin/verify-live-pin',
+          '/admin/verify-live-pin',
+          `${LIVE_API_BASE}/admin/verify-live-pin`,
+          `${LIVE_API_BASE}/api/admin/verify-live-pin`,
           'http://localhost:3000/admin/verify-live-pin',
           'http://localhost:3000/api/admin/verify-live-pin',
-          'http://192.168.1.217:3000/admin/verify-live-pin',
-          'https://docthongbaobank.com/admin/verify-live-pin',
-          'https://docthongbaobank.com/api/admin/verify-live-pin'
         ];
 
         for (const ep of endpoints) {
@@ -2291,7 +3383,7 @@
               const data = await res.json();
               if (data && data.isValid) {
                 isValid = true;
-                matchedEmail = data.email || queryEmail;
+                matchedEmail = data.email || queryEmail || phoneStatus?.lastHeartbeat?.email || phoneStatus?.lastHeartbeat?.userEmail || '';
                 break;
               }
             }
@@ -2317,7 +3409,7 @@
         if (expiryTimer) clearTimeout(expiryTimer);
         expiryTimer = setTimeout(lockPortalDueToExpiration, EXPIRE_DURATION_MS);
       } else {
-        showPinError('Mã bảo mật 6 số không đúng! Vui lòng nhập đúng mã hiển thị trên ứng dụng AutoBank (Mặc định: 889922).');
+        showPinError('Mã bảo mật 6 số không đúng! Vui lòng mở ứng dụng AutoBank trên điện thoại để xem chính xác mã bảo mật 6 số riêng của bạn.');
       }
     }
 
@@ -2334,15 +3426,7 @@
       pinModal.style.display = 'none';
       isAudioActive = true;
 
-      // Kích hoạt ngay audio context và speech synthesis tại sự kiện click
-      try {
-        if (window.speechSynthesis) {
-          window.speechSynthesis.resume();
-          const silentUtter = new SpeechSynthesisUtterance('');
-          silentUtter.volume = 0.01;
-          window.speechSynthesis.speak(silentUtter);
-        }
-      } catch (_) {}
+      grantAudioPermission(false);
 
       if (isNewUnlock) {
         showToast('Xác thực thành công! Loa và lịch sử đã sẵn sàng (Hiệu lực 24 giờ)');
@@ -2350,14 +3434,66 @@
       initLiveStream();
     }
 
+    function grantAudioPermission(showNotice = true) {
+      isAudioActive = true;
+      try {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.resume();
+          const silentUtter = new SpeechSynthesisUtterance('');
+          silentUtter.volume = 0.01;
+          window.speechSynthesis.speak(silentUtter);
+        }
+        if (window.AudioContext || window.webkitAudioContext) {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (ctx.state === 'suspended') ctx.resume();
+        }
+      } catch (_) {}
+
+      const banner = document.getElementById('audioPermissionBanner');
+      if (banner) banner.style.display = 'none';
+
+      if (showNotice) {
+        showToast('🔊 Đã cấp quyền âm thanh thành công! Loa sẵn sàng phát 24/7');
+        speak('Đã cấp quyền âm thanh thành công! Hệ thống sẵn sàng đọc thông báo tiền về.', true);
+      }
+    }
+
+    const btnGrant = document.getElementById('btnGrantAudioPermission');
+    if (btnGrant) {
+      btnGrant.addEventListener('click', (e) => {
+        e.stopPropagation();
+        grantAudioPermission(true);
+      });
+    }
+    const bannerEl = document.getElementById('audioPermissionBanner');
+    if (bannerEl) {
+      bannerEl.addEventListener('click', () => {
+        grantAudioPermission(true);
+      });
+    }
+    window.addEventListener('click', () => grantAudioPermission(false), { once: true });
+    window.addEventListener('touchstart', () => grantAudioPermission(false), { once: true });
+
     // 2. PHONE SIGNAL POLLING & REALTIME SYNC
     async function fetchPhoneStatus() {
       try {
-        const res = await fetch('/admin/phone-status');
-        if (res.ok) {
+        const prevEmail = getTargetEmail();
+        const res = await safeApiFetch('/admin/phone-status');
+        if (res && res.ok) {
           const data = await res.json();
           phoneStatus = data;
           renderPhoneSignalUI();
+
+          const hbEmail = (data?.lastHeartbeat?.email || data?.lastHeartbeat?.userEmail || '').trim().toLowerCase();
+          if (hbEmail) {
+            localStorage.setItem('live_matched_email', hbEmail);
+          }
+
+          const newEmail = getTargetEmail();
+          if (newEmail && newEmail !== prevEmail) {
+            loadUserShareAndVoiceConfig();
+            fetchLiveTransactions();
+          }
         }
       } catch (_) { }
     }
@@ -2384,13 +3520,9 @@
 
         if (phoneStatus.lastHeartbeat) {
           const hb = phoneStatus.lastHeartbeat;
-          const elDevice = document.getElementById('metaDeviceName');
-          const elBat = document.getElementById('metaBattery');
           const elScreen = document.getElementById('metaScreenStatus');
           const elVoice = document.getElementById('metaVoiceName');
 
-          if (elDevice) elDevice.textContent = hb.deviceName || 'Samsung Galaxy (Android 14)';
-          if (elBat) elBat.textContent = (hb.batteryLevel || 98) + '%';
           if (elScreen) elScreen.textContent = hb.keepScreenOn ? 'Luôn sáng (Trực 24/24)' : 'Tự động';
           if (elVoice) elVoice.textContent = 'Tự Động Đọc To';
         }
@@ -2478,7 +3610,7 @@
           speakerStatusLabel.style.color = '#059669';
         }
         if (speakerStatusSub) {
-          speakerStatusSub.textContent = 'Tự động phát âm thanh khi có biến động từ App';
+          speakerStatusSub.textContent = 'Tự động phát âm thanh khi có biến động từ App (Bấm vào đây để thử loa)';
         }
       } else {
         if (speakerAutoBadge) {
@@ -2498,54 +3630,30 @@
       }
     }
 
+    if (speakerAutoBadge) {
+      speakerAutoBadge.style.cursor = 'pointer';
+      speakerAutoBadge.title = 'Bấm để nghe thử loa trình duyệt và kích hoạt âm thanh';
+      speakerAutoBadge.addEventListener('click', () => {
+        isAudioActive = true;
+        if (window.speechSynthesis) {
+          try { window.speechSynthesis.resume(); } catch (_) {}
+        }
+        showToast('🔊 Đang thử phát âm thanh...');
+        speak('Kiểm tra loa tự động thành công! Hệ thống sẵn sàng đọc thông báo tiền về.', true);
+      });
+    }
+
     // =========================================================================
     // ĐỒNG BỘ 100% CẤU HÌNH GIỌNG ĐỌC & QUYỀN CHIA SẺ TỪ ĐIỆN THOẠI CHÍNH
     // =========================================================================
-    const targetUserEmail = (urlParams.get('u') || urlParams.get('user') || '').trim().toLowerCase();
-
-    let userTtsConfig = {
-      speechRate: 0.90,
-      pitch: 1.0,
-      volume: 1.0,
-      isCreditEnabled: true,
-      isDebitEnabled: true,
-      credit: {
-        templateId: 'BANK_STANDARD',
-        prefixWord: 'Đã nhận',
-        suffixWord: 'Cảm ơn quý khách!',
-        amountStyle: 'dong',
-        bankStyle: 'tu',
-        shopStyle: 'don',
-        blocksOrder: ['bell', 'prefix', 'amount', 'bank'],
-        enabledBlocks: ['bell', 'prefix', 'amount', 'bank'],
-      },
-      debit: {
-        templateId: 'DEBIT_STANDARD',
-        prefixWord: 'Đã chuyển',
-        suffixWord: 'Giao dịch hoàn tất',
-        amountStyle: 'dong',
-        bankStyle: 'qua',
-        shopStyle: 'don',
-        blocksOrder: ['bell', 'prefix', 'amount', 'bank'],
-        enabledBlocks: ['bell', 'prefix', 'amount', 'bank'],
-      },
-      shareConfig: {
-        shareCredit: true,
-        shareDebit: true,
-        shareSpeech: true,
-        shareShowAmount: true,
-        shareShowContent: true,
-        shareRepeatTwice: false,
-      }
-    };
 
     // Tải cấu hình giọng đọc & quyền chia sẻ của tài khoản từ MySQL
     async function loadUserShareAndVoiceConfig() {
-      const email = targetUserEmail || phoneStatus?.lastHeartbeat?.email || phoneStatus?.lastHeartbeat?.userEmail || '';
+      const email = getTargetEmail();
       try {
-        const url = email ? `/api/tts/user-config/${encodeURIComponent(email)}` : `/api/tts/user-config`;
-        const res = await fetch(url);
-        if (res.ok) {
+        const ep = email ? `/tts/user-config/${encodeURIComponent(email)}` : `/tts/user-config`;
+        const res = await safeApiFetch(ep);
+        if (res && res.ok) {
           const json = await res.json();
           if (json && json.success && json.data) {
             const d = json.data;
@@ -2560,6 +3668,12 @@
             if (d.shopName) userTtsConfig.shopName = d.shopName;
             if (d.credit && typeof d.credit === 'object') userTtsConfig.credit = { ...userTtsConfig.credit, ...d.credit };
             if (d.debit && typeof d.debit === 'object') userTtsConfig.debit = { ...userTtsConfig.debit, ...d.debit };
+            if (d.prefixWord && (!d.credit || !d.credit.prefixWord)) {
+              userTtsConfig.credit.prefixWord = d.prefixWord;
+            }
+            if (d.suffixWord && (!d.credit || !d.credit.suffixWord)) {
+              userTtsConfig.credit.suffixWord = d.suffixWord;
+            }
             if (d.shareConfig && typeof d.shareConfig === 'object') {
               userTtsConfig.shareConfig = { ...userTtsConfig.shareConfig, ...d.shareConfig };
             }
@@ -2742,12 +3856,14 @@
       };
     }
 
-    // Âm thanh chuông Ting! chuẩn
+    // Âm thanh chuông báo chuẩn của hệ thống (phát theo đúng cài đặt chuông trên điện thoại)
     function playChimeBell() {
+      if (isAudioMuted || liveVolume <= 0) return;
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         const ctx = new AudioContext();
+        const effectiveVol = liveVolume * 0.45;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
@@ -2755,17 +3871,12 @@
         osc.type = 'sine';
         osc.frequency.setValueAtTime(880, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.setValueAtTime(effectiveVol, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
         osc.start();
         osc.stop(ctx.currentTime + 0.35);
       } catch (_) {}
     }
-
-    // Tự động mồi Web Audio khi người dùng tương tác lần đầu
-    let liveAudioElement = null;
-    let livePlayToken = 0;
-    let liveRepeatTimer = null;
 
     function stopLiveAudio() {
       livePlayToken++;
@@ -2774,22 +3885,23 @@
         liveRepeatTimer = null;
       }
       if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+        try { window.speechSynthesis.cancel(); } catch (_) {}
       }
       if (liveAudioElement) {
         try {
           liveAudioElement.pause();
-          liveAudioElement.removeAttribute('src');
-          liveAudioElement.load();
+          liveAudioElement.currentTime = 0;
         } catch (_) {}
       }
       if (audioWave) audioWave.classList.remove('playing');
     }
 
-    // Phát âm thanh tức thì 24/7 với tốc độ và cao độ 100% giống máy chính
+    // Phát âm thanh tức thì 24/7 với 100% giọng Chị Google chuẩn quốc dân giống trên điện thoại
     function speak(text, hasBell = false) {
       if (!isAudioActive) return;
-      if (userTtsConfig.shareConfig?.shareSpeech === false) return; // Chủ máy đã tắt phát loa cho link
+      if (isAudioMuted || liveVolume <= 0) return;
+      const share = userTtsConfig?.shareConfig || {};
+      if (share.shareSpeech === false) return; // Chủ máy đã tắt phát loa cho link
 
       if (hasBell) {
         playChimeBell();
@@ -2799,73 +3911,23 @@
       const currentToken = ++livePlayToken;
       if (audioWave) audioWave.classList.add('playing');
 
-      const shouldRepeat = Boolean(userTtsConfig.isRepeatTwice || userTtsConfig.shareConfig?.shareRepeatTwice);
+      const shouldRepeat = Boolean(userTtsConfig.isRepeatTwice || share.shareRepeatTwice);
+      const voiceId = userTtsConfig.voiceId || 'chi-google';
+      const cleanText = (text || '').trim();
+      if (!cleanText) return;
 
-      // 1. ƯU TIÊN WEB SPEECH API (ĐỘ TRỄ 0MS, TỐC ĐỘ NHANH Y HỆT ĐIỆN THOẠI)
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.lang = 'vi-VN';
-        utter.rate = userTtsConfig.speechRate || 0.90;
-        utter.pitch = userTtsConfig.pitch || 1.0;
-        utter.volume = userTtsConfig.volume || 1.0;
+      // 1. ƯU TIÊN 100% GIỌNG CHỊ GOOGLE CHUẨN TỪ SERVER (Y HỆT ĐIỆN THOẠI)
+      // Sử dụng API endpoint chuẩn same-origin để không bao giờ bị chặn CORS / CORP trên trình duyệt
+      const apiOrigin = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+        ? window.location.origin
+        : 'http://localhost:3000';
+      const ttsUrl = `${apiOrigin}/api/tts?voice=${encodeURIComponent(voiceId)}&text=${encodeURIComponent(cleanText)}`;
 
-        const voices = window.speechSynthesis.getVoices();
-        let matchedVoice = null;
-        if (userTtsConfig.voiceId) {
-          if (userTtsConfig.voiceId.includes('nam') || userTtsConfig.voiceId.toLowerCase().includes('male')) {
-            matchedVoice = voices.find(v => (v.lang && v.lang.startsWith('vi')) && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('nam')));
-          }
-        }
-        if (!matchedVoice) {
-          matchedVoice = voices.find(v => (v.lang && (v.lang === 'vi-VN' || v.lang === 'vi_VN' || v.lang.startsWith('vi'))));
-        }
-        if (matchedVoice) utter.voice = matchedVoice;
+      const audio = new Audio(ttsUrl);
+      liveAudioElement = audio;
+      const baseVol = userTtsConfig.volume != null ? Math.min(1.0, Math.max(0.1, Number(userTtsConfig.volume))) : 1.0;
+      audio.volume = Math.min(1.0, Math.max(0.0, baseVol * liveVolume));
 
-        utter.onend = () => {
-          if (currentToken !== livePlayToken) return;
-          if (audioWave) audioWave.classList.remove('playing');
-
-          if (shouldRepeat) {
-            liveRepeatTimer = setTimeout(() => {
-              if (currentToken !== livePlayToken) return;
-              if (audioWave) audioWave.classList.add('playing');
-              const repeatUtter = new SpeechSynthesisUtterance(text);
-              repeatUtter.lang = 'vi-VN';
-              repeatUtter.rate = userTtsConfig.speechRate || 0.90;
-              repeatUtter.pitch = userTtsConfig.pitch || 1.0;
-              repeatUtter.volume = userTtsConfig.volume || 1.0;
-              if (matchedVoice) repeatUtter.voice = matchedVoice;
-              repeatUtter.onend = () => {
-                if (audioWave) audioWave.classList.remove('playing');
-              };
-              window.speechSynthesis.speak(repeatUtter);
-            }, 600);
-          }
-        };
-
-        utter.onerror = () => {
-          fallbackAudioSpeak(text, currentToken);
-        };
-
-        window.speechSynthesis.speak(utter);
-        return;
-      }
-
-      // 2. FALLBACK AUDIO QUA SERVER TTS
-      fallbackAudioSpeak(text, currentToken);
-    }
-
-    function fallbackAudioSpeak(text, currentToken) {
-      const host = window.location.hostname || 'localhost';
-      const voiceParam = userTtsConfig.voiceId ? `&voiceId=${encodeURIComponent(userTtsConfig.voiceId)}` : '';
-      const rateParam = userTtsConfig.speechRate ? `&speechRate=${userTtsConfig.speechRate}` : '';
-      const pitchParam = userTtsConfig.pitch ? `&pitch=${userTtsConfig.pitch}` : '';
-      const apiUrl = `http://${host}:3000/tts?text=${encodeURIComponent(text)}${voiceParam}${rateParam}${pitchParam}`;
-      const fallbackGoogleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(text)}`;
-
-      if (!liveAudioElement) liveAudioElement = new Audio();
-      const audio = liveAudioElement;
       let hasEnded = false;
 
       audio.onplay = () => {
@@ -2877,7 +3939,6 @@
         hasEnded = true;
         if (audioWave) audioWave.classList.remove('playing');
 
-        const shouldRepeat = Boolean(userTtsConfig.isRepeatTwice || userTtsConfig.shareConfig?.shareRepeatTwice);
         if (shouldRepeat && !audio._isRepeat) {
           liveRepeatTimer = setTimeout(() => {
             if (currentToken !== livePlayToken) return;
@@ -2888,17 +3949,77 @@
         }
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
         if (currentToken !== livePlayToken) return;
-        audio.src = fallbackGoogleUrl;
-        audio.play().catch(() => {
-          if (audioWave) audioWave.classList.remove('playing');
-        });
+        console.warn('[Live] Server TTS Audio lỗi tải:', e);
+        fallbackWebSpeech(cleanText, currentToken, shouldRepeat);
       };
 
       audio._isRepeat = false;
-      audio.src = apiUrl;
-      audio.play().catch(() => {});
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          if (currentToken !== livePlayToken) return;
+          console.warn('[Live] Audio play lỗi:', err);
+          fallbackWebSpeech(cleanText, currentToken, shouldRepeat);
+        });
+      }
+    }
+
+    // Dự phòng Web Speech API - TUYỆT ĐỐI KHÔNG CHỌN GIỌNG NAM (Microsoft Nam)
+    function fallbackWebSpeech(cleanText, currentToken, shouldRepeat) {
+      if (!('speechSynthesis' in window)) {
+        if (audioWave) audioWave.classList.remove('playing');
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(cleanText);
+        utter.lang = 'vi-VN';
+
+        // Lọc nghiêm ngặt chỉ dùng giọng Nữ hoặc Chị Google
+        const voices = window.speechSynthesis.getVoices() || [];
+        const viVoices = voices.filter(v => (v.lang || '').toLowerCase().startsWith('vi'));
+        const femaleVoice = viVoices.find(v => {
+          const name = (v.name || '').toLowerCase();
+          return !name.includes('nam') && !name.includes('male') && (name.includes('google') || name.includes('hoaimy') || name.includes('female') || name.includes('nữ') || name.includes('an'));
+        }) || viVoices.find(v => {
+          const name = (v.name || '').toLowerCase();
+          return !name.includes('nam') && !name.includes('male');
+        });
+
+        if (femaleVoice) {
+          utter.voice = femaleVoice;
+        } else {
+          // Nếu hệ thống chỉ có độc nhất giọng Nam (mặc định Windows Microsoft Nam) -> Không đọc giọng con trai
+          console.warn('[Live] Hệ thống máy tính không có giọng nữ vi-VN, từ chối đọc giọng nam mặc định');
+          if (audioWave) audioWave.classList.remove('playing');
+          return;
+        }
+
+        utter.rate = userTtsConfig.speechRate || 0.90;
+        utter.pitch = userTtsConfig.pitch || 1.0;
+        utter.volume = isAudioMuted ? 0 : Math.min(1.0, Math.max(0.0, (userTtsConfig.volume || 1.0) * liveVolume));
+        utter.onend = () => {
+          if (currentToken !== livePlayToken) return;
+          if (audioWave) audioWave.classList.remove('playing');
+          if (shouldRepeat) {
+            liveRepeatTimer = setTimeout(() => {
+              if (currentToken !== livePlayToken) return;
+              const repeatUtter = new SpeechSynthesisUtterance(cleanText);
+              repeatUtter.lang = 'vi-VN';
+              if (femaleVoice) repeatUtter.voice = femaleVoice;
+              repeatUtter.rate = utter.rate;
+              repeatUtter.pitch = utter.pitch;
+              repeatUtter.volume = utter.volume;
+              window.speechSynthesis.speak(repeatUtter);
+            }, 600);
+          }
+        };
+        window.speechSynthesis.speak(utter);
+      } catch (_) {
+        if (audioWave) audioWave.classList.remove('playing');
+      }
     }
 
     // 5. SHARE LINK BUTTON
@@ -2934,7 +4055,59 @@
       renderFeedList();
     });
 
+    if (dateFilterSelect) {
+      dateFilterSelect.addEventListener('change', (e) => {
+        currentDateFilter = e.target.value;
+        currentPage = 1;
+        renderFeedList();
+      });
+    }
+
     // 7. LIVE DATA POLLING & STREAM
+
+    function connectLiveSseStream() {
+      if (liveEventSource) {
+        try { liveEventSource.close(); } catch (_) {}
+        liveEventSource = null;
+      }
+
+      const email = getTargetEmail();
+      const codeOrEmail = email || verifiedCode || localStorage.getItem(STORAGE_KEY_PIN) || 'all';
+      const sseOrigin = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+        ? `${window.location.origin}/api`
+        : 'http://localhost:3000';
+      const sseUrl = `${sseOrigin}/transactions/live/stream/${encodeURIComponent(codeOrEmail)}`;
+
+      try {
+        liveEventSource = new EventSource(sseUrl);
+
+        liveEventSource.onmessage = (event) => {
+          try {
+            if (!event.data) return;
+            const tx = JSON.parse(event.data);
+            if (tx && (tx.id || tx.amount)) {
+              console.log('[LIVE SSE Realtime] Nhận biến động mới tức thì:', tx);
+              tx._fromStream = true;
+              handleNewTransactionData([tx, ...transactions], true);
+            }
+          } catch (e) {
+            console.warn('[LIVE SSE Error]', e);
+          }
+        };
+
+        liveEventSource.onerror = () => {
+          if (liveEventSource) {
+            try { liveEventSource.close(); } catch (_) {}
+            liveEventSource = null;
+          }
+          // Tự động kết nối lại sau 4 giây khi ngắt kết nối
+          setTimeout(() => {
+            if (isAudioActive) connectLiveSseStream();
+          }, 4000);
+        };
+      } catch (_) {}
+    }
+
     function initLiveStream() {
       // 1. Tải cấu hình giọng đọc & quyền chia sẻ của tài khoản ngay lập tức
       loadUserShareAndVoiceConfig();
@@ -2947,6 +4120,9 @@
       // 3. Tải danh sách giao dịch 24/7 theo tài khoản
       fetchLiveTransactions();
       setInterval(fetchLiveTransactions, 2500);
+
+      // 4. Kênh Server-Sent Events (SSE) phát loa thời gian thực 0ms độ trễ
+      connectLiveSseStream();
 
       // Lắng nghe broadcast nội bộ giữa các tab
       try {
@@ -2961,25 +4137,53 @@
 
     async function fetchLiveTransactions() {
       try {
-        const email = targetUserEmail || phoneStatus.lastHeartbeat?.userEmail || phoneStatus.lastHeartbeat?.email || '';
+        const email = getTargetEmail();
         const queryParam = email ? `?limit=200&userEmail=${encodeURIComponent(email)}` : `?limit=200`;
-        let res = await fetch(`/api/transactions${queryParam}`);
-        if (!res.ok) {
-          res = await fetch(`/transactions${queryParam}`);
-        }
-        if (!res.ok) return;
+        const res = await safeApiFetch(`/transactions${queryParam}`);
+        if (!res || !res.ok) return;
         const data = await res.json();
         if (!Array.isArray(data)) return;
 
-        handleNewTransactionData(data);
+        handleNewTransactionData(data, true);
       } catch (_) { }
     }
 
-    function handleNewTransactionData(newList) {
+    function getVietnamDateStr(dateInput) {
+      if (!dateInput) return '';
+      const d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(d);
+    }
+
+    // Kiểm tra xem giao dịch có thuộc về ngày hôm nay theo giờ Việt Nam (Từ 00:00:00 đến 23:59:59)
+    // Toàn bộ số tiền / KPI thống kê tự động RESET về 0đ vào đúng 0h sáng mỗi ngày!
+    function isTodayTransaction(tx) {
+      const txTimeStr = tx.createdAt || tx.transactionTime || tx.date;
+      if (!txTimeStr) return false;
+      const txDateStr = getVietnamDateStr(txTimeStr);
+      const todayDateStr = getVietnamDateStr(new Date());
+      return Boolean(txDateStr && txDateStr === todayDateStr);
+    }
+
+    function handleNewTransactionData(newList, allowSpeak = true) {
       let incomingTotal = 0;
       let incomingCount = 0;
       let outgoingTotal = 0;
       let outgoingCount = 0;
+
+      const share = userTtsConfig?.shareConfig || {
+        shareCredit: true,
+        shareDebit: true,
+        shareSpeech: true,
+        shareShowAmount: true,
+        shareShowContent: true,
+        shareRepeatTwice: false,
+      };
 
       // Lọc theo quyền chia sẻ được chủ máy thiết lập
       const filteredList = [];
@@ -2989,23 +4193,26 @@
         const type = (tx.type || 'credit').toLowerCase();
 
         // 1. Kiểm tra quyền chia sẻ Tiền Vào (Credit)
-        if (type !== 'debit' && userTtsConfig.shareConfig.shareCredit === false) {
+        if (type !== 'debit' && share.shareCredit === false) {
           return; // Chủ máy đã tắt chia sẻ tiền vào
         }
 
         // 2. Kiểm tra quyền chia sẻ Tiền Ra (Debit)
-        if (type === 'debit' && userTtsConfig.shareConfig.shareDebit === false) {
+        if (type === 'debit' && share.shareDebit === false) {
           return; // Chủ máy đã tắt chia sẻ tiền ra
         }
 
         filteredList.push(tx);
 
-        if (type === 'debit') {
-          outgoingTotal += amt;
-          outgoingCount++;
-        } else {
-          incomingTotal += amt;
-          incomingCount++;
+        // DOANH THU KPI CHỈ TÍNH CHUẨN XÁC THEO NGÀY HÔM NAY (TỰ ĐỘNG RESET VỀ 0Đ VÀO ĐÚNG 12H ĐÊM)
+        if (isTodayTransaction(tx)) {
+          if (type === 'debit') {
+            outgoingTotal += amt;
+            outgoingCount++;
+          } else {
+            incomingTotal += amt;
+            incomingCount++;
+          }
         }
 
         // Quản lý trạng thái giao dịch
@@ -3014,26 +4221,27 @@
         knownTxIds.add(txKey);
 
         // CHỈ PHÁT ÂM THANH CHO CÁC GIAO DỊCH MỚI PHÁT SINH THỰC SỰ TRONG PHIÊN HIỆN TẠI (REALTIME)
-        // TUYỆT ĐỐI KHÔNG ĐỌC CÁC GIAO DỊCH ĐÃ CŨ
-        if (!isKnown && isInitialSnapshotLoaded) {
+        // KHI MẠNG NGHẼN RỒI CÓ LẠI: VẪN ĐỌC ĐẦY ĐỦ CÁC GIAO DỊCH DỒN VỀ TRONG VÒNG 4 GIỜ GẦN NHẤT
+        if (allowSpeak && !isKnown && isInitialSnapshotLoaded) {
           const txTimeStr = tx.transactionTime || tx.createdAt || tx.date;
           const txTime = txTimeStr ? new Date(txTimeStr).getTime() : 0;
           const now = Date.now();
 
-          // Điều kiện giao dịch mới chuẩn xác:
-          // 1. Thời gian phát sinh phải sau hoặc xấp xỉ lúc mở trang live (cho phép lệch tối đa 15 giây cho độ trễ mạng)
-          // 2. Không được quá 90 giây so với hiện tại
-          const isFresh = txTime > 0 && (txTime >= sessionStartTime - 15000) && ((now - txTime) <= 90000);
+          // Chấp nhận: Giao dịch realtime từ stream SSE hoặc giao dịch mới dồn về trong 4 giờ qua
+          const isFresh = tx._fromStream === true || (txTime > 0 && Math.abs(now - txTime) <= (4 * 3600 * 1000));
 
           if (!isFresh) {
-            console.log(`[LIVE Mute] Bỏ qua thông báo giao dịch cũ: ${txKey} (${txTimeStr || 'không rõ thời gian'})`);
+            console.log(`[LIVE Mute] Bỏ qua thông báo giao dịch cũ quá 4 giờ: ${txKey}`);
           } else {
             tx._isNewFlash = true;
+
+            // 🌟 1. HIỂN THỊ POP-UP "THÔNG BÁO TIỀN VỀ SIÊU TO" CHO THU NGÂN / POS
+            showBigTransactionAlert(tx);
 
             // Kiểm tra khung giờ hoạt động (schedule) cài đặt trong app
             if (!isWithinActiveHours(userTtsConfig.schedule)) {
               console.log('[LIVE] Ngoài khung giờ hoạt động đọc thông báo cài đặt trên App. Giữ im lặng.');
-            } else if (userTtsConfig.shareConfig?.shareSpeech !== false) {
+            } else if (share.shareSpeech !== false) {
               if (type === 'debit' && userTtsConfig.isDebitEnabled !== false) {
                 const built = buildLiveSentence(tx);
                 speak(built.sentence, built.hasBell);
@@ -3052,33 +4260,48 @@
 
       transactions = filteredList;
 
-      // Update KPI Cards
-      document.getElementById('statCreditTotal').textContent = userTtsConfig.shareConfig.shareShowAmount === false ? '***.***đ' : formatVND(incomingTotal);
-      document.getElementById('statCreditCount').textContent = `${incomingCount} giao dịch nhận thành công`;
+      // Lưu tức thì vào localStorage để khi F5 không bao giờ bị mất biến động số dư
+      try {
+        if (filteredList.length > 0) {
+          localStorage.setItem(STORAGE_KEY_CACHED_TXS, JSON.stringify(filteredList.slice(0, 200)));
+        }
+      } catch (_) {}
 
-      document.getElementById('statDebitTotal').textContent = userTtsConfig.shareConfig.shareShowAmount === false ? '***.***đ' : formatVND(outgoingTotal);
-      document.getElementById('statDebitCount').textContent = `${outgoingCount} giao dịch chuyển đi / thanh toán`;
+      // Update KPI Cards (Tính chuẩn xác cho ngày hôm nay, tự động reset lúc 0h sáng)
+      document.getElementById('statCreditTotal').textContent = share.shareShowAmount === false ? '***.***đ' : formatVND(incomingTotal);
+      document.getElementById('statCreditCount').textContent = `${incomingCount} giao dịch nhận hôm nay (từ 0h)`;
+
+      document.getElementById('statDebitTotal').textContent = share.shareShowAmount === false ? '***.***đ' : formatVND(outgoingTotal);
+      document.getElementById('statDebitCount').textContent = `${outgoingCount} giao dịch chuyển hôm nay (từ 0h)`;
 
       const net = incomingTotal - outgoingTotal;
-      document.getElementById('statNetTotal').textContent = userTtsConfig.shareConfig.shareShowAmount === false ? '***.***đ' : ((net >= 0 ? '+' : '') + formatVND(net));
-
-      // Update Tab Badges
-      document.getElementById('badgeCountAll').textContent = transactions.length;
-      document.getElementById('badgeCountCredit').textContent = incomingCount;
-      document.getElementById('badgeCountDebit').textContent = outgoingCount;
+      document.getElementById('statNetTotal').textContent = share.shareShowAmount === false ? '***.***đ' : ((net >= 0 ? '+' : '') + formatVND(net));
 
       renderFeedList();
     }
 
     // 6. RENDER FEED WITH PAGINATION
     function renderFeedList() {
+      // 0. Lọc theo ngày (Tất cả lịch sử hoặc Chỉ hôm nay từ 0h)
+      let list = transactions;
+      if (currentDateFilter === 'today') {
+        list = list.filter(t => isTodayTransaction(t));
+      }
+
+      // Cập nhật số đếm trên các Tab Filter chính xác 100% theo danh sách
+      const countAll = list.length;
+      const countCredit = list.filter(t => (t.type || 'credit').toLowerCase() !== 'debit').length;
+      const countDebit = list.filter(t => (t.type || 'credit').toLowerCase() === 'debit').length;
+      document.getElementById('badgeCountAll').textContent = countAll;
+      document.getElementById('badgeCountCredit').textContent = countCredit;
+      document.getElementById('badgeCountDebit').textContent = countDebit;
+
       // 1. Filter by tab
-      let list = transactions.filter(t => {
-        const type = (t.type || 'credit').toLowerCase();
-        if (currentFilterType === 'credit') return type !== 'debit';
-        if (currentFilterType === 'debit') return type === 'debit';
-        return true;
-      });
+      if (currentFilterType === 'credit') {
+        list = list.filter(t => (t.type || 'credit').toLowerCase() !== 'debit');
+      } else if (currentFilterType === 'debit') {
+        list = list.filter(t => (t.type || 'credit').toLowerCase() === 'debit');
+      }
 
       // 2. Filter by search keyword
       if (currentKeyword) {
@@ -3108,8 +4331,9 @@
           </div>
         `;
       } else {
-        const hideAmt = userTtsConfig.shareConfig.shareShowAmount === false;
-        const hideCnt = userTtsConfig.shareConfig.shareShowContent === false;
+        const share = userTtsConfig?.shareConfig || {};
+        const hideAmt = share.shareShowAmount === false;
+        const hideCnt = share.shareShowContent === false;
 
         txFeedList.innerHTML = pagedList.map(tx => {
           const isDebit = (tx.type || '').toLowerCase() === 'debit';
@@ -3117,7 +4341,7 @@
           const bank = tx.bankCode || 'NGÂN HÀNG';
           const rawContent = tx.content || tx.rawContent || 'Biến động số dư tự động';
           const content = hideCnt ? 'Chi tiết giao dịch được bảo mật bởi chủ máy' : rawContent;
-          const time = formatTime(tx.transactionTime || tx.createdAt);
+          const time = formatTime(tx.createdAt || tx.transactionTime);
           const flashClass = tx._isNewFlash ? 'new-flash' : '';
           const displayAmtText = hideAmt ? '***.***đ' : ((isDebit ? '-' : '+') + formatVND(amt));
 
@@ -3208,9 +4432,19 @@
     function formatTime(val) {
       if (!val) return 'Vừa xong';
       try {
-        const d = new Date(val);
+        const d = (val instanceof Date) ? val : new Date(val);
         if (!isNaN(d.getTime())) {
-          return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + d.toLocaleDateString('vi-VN');
+          const time = d.toLocaleTimeString('vi-VN', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          const date = d.toLocaleDateString('vi-VN', {
+            timeZone: 'Asia/Ho_Chi_Minh'
+          });
+          return `${time} ${date}`;
         }
       } catch (_) { }
       return String(val);
@@ -3225,6 +4459,394 @@
         toast.style.display = 'none';
       }, 3000);
     }
+
+    // =========================================================================
+    // 🌟 TRIỂN KHAI 5 TÍNH NĂNG NÂNG CẤP CHUYÊN NGHIỆP CHO LIVE PORTAL
+    // =========================================================================
+
+    // 1. POP-UP THÔNG BÁO TIỀN VỀ SIÊU TO (BIG SCREEN ALERT CHO THU NGÂN / POS)
+    function showBigTransactionAlert(tx) {
+      if (!tx || !bigAlertOverlay) return;
+
+      const isDebit = (tx.type || 'credit').toLowerCase() === 'debit';
+      const amt = Math.abs(Number(tx.amount) || 0);
+      const bank = tx.bankCode || 'NGÂN HÀNG';
+      const rawContent = tx.content || tx.rawContent || 'Biến động số dư tự động';
+      const content = userTtsConfig?.shareConfig?.shareShowContent === false ? 'Chi tiết giao dịch được bảo mật' : rawContent;
+      const time = formatTime(tx.createdAt || tx.transactionTime);
+      const displayAmt = userTtsConfig?.shareConfig?.shareShowAmount === false ? '***.***đ' : ((isDebit ? '-' : '+') + formatVND(amt));
+
+      if (bigAlertBankCode) bigAlertBankCode.textContent = bank;
+      if (bigAlertTypeBadge) {
+        bigAlertTypeBadge.className = 'big-alert-type-badge ' + (isDebit ? 'debit' : 'credit');
+      }
+      if (bigAlertTypeText) {
+        bigAlertTypeText.textContent = isDebit ? 'CHUYỂN TIỀN ĐI (-)' : 'TIỀN VỀ THÀNH CÔNG (+)';
+      }
+      if (bigAlertAmount) {
+        bigAlertAmount.textContent = displayAmt;
+        bigAlertAmount.style.color = isDebit ? 'var(--rose)' : '';
+      }
+      if (bigAlertContent) {
+        bigAlertContent.textContent = content;
+      }
+      if (bigAlertTime) {
+        bigAlertTime.textContent = time;
+      }
+
+      // Reset timer & Progress bar 8 giây
+      if (bigAlertTimer) clearTimeout(bigAlertTimer);
+      if (bigAlertInterval) clearInterval(bigAlertInterval);
+
+      const totalDuration = 8000;
+      let remaining = totalDuration;
+      if (bigAlertProgressBar) bigAlertProgressBar.style.width = '100%';
+      if (bigAlertCountdown) bigAlertCountdown.textContent = '8';
+
+      bigAlertOverlay.style.display = 'flex';
+
+      const intervalStep = 100;
+      bigAlertInterval = setInterval(() => {
+        remaining -= intervalStep;
+        if (remaining <= 0) {
+          clearInterval(bigAlertInterval);
+          bigAlertInterval = null;
+        } else {
+          const pct = Math.max(0, (remaining / totalDuration) * 100);
+          if (bigAlertProgressBar) bigAlertProgressBar.style.width = `${pct}%`;
+          if (bigAlertCountdown) bigAlertCountdown.textContent = Math.ceil(remaining / 1000);
+        }
+      }, intervalStep);
+
+      bigAlertTimer = setTimeout(() => {
+        hideBigAlert();
+      }, totalDuration);
+    }
+
+    function hideBigAlert() {
+      if (bigAlertTimer) {
+        clearTimeout(bigAlertTimer);
+        bigAlertTimer = null;
+      }
+      if (bigAlertInterval) {
+        clearInterval(bigAlertInterval);
+        bigAlertInterval = null;
+      }
+      if (bigAlertOverlay) {
+        bigAlertOverlay.style.display = 'none';
+      }
+    }
+
+    // 2. CHẾ ĐỘ GIAO DIỆN SÁNG / TỐI (DARK MODE)
+    function applyTheme(theme) {
+      currentTheme = theme;
+      localStorage.setItem('autobank_live_theme', theme);
+      if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+        if (themeIcon) {
+          themeIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+        }
+      } else {
+        document.body.classList.remove('dark-theme');
+        if (themeIcon) {
+          themeIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+        }
+      }
+      if (themeText) themeText.textContent = 'Giao diện';
+    }
+
+    // 3. CHẾ ĐỘ TOÀN MÀN HÌNH (KIOSK / FULLSCREEN POS)
+    function updateFullscreenUI() {
+      if (fullscreenIcon) {
+        if (document.fullscreenElement) {
+          fullscreenIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6 7 7M4 10h6m0 0V4m0 6L3 3m17 7h-6m0 0V4m0 6 7-7"/></svg>`;
+        } else {
+          fullscreenIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
+        }
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        const el = document.documentElement;
+        const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+        if (rfs) {
+          rfs.call(el).then(() => {
+            updateFullscreenUI();
+          }).catch((err) => {
+            console.warn('Không thể mở toàn màn hình:', err);
+            showToast('Nhấn F11 trên bàn phím để mở toàn màn hình');
+          });
+        }
+      } else {
+        const efs = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+        if (efs) {
+          efs.call(document).then(() => {
+            updateFullscreenUI();
+          }).catch(() => {});
+        }
+      }
+    }
+
+    document.addEventListener('fullscreenchange', updateFullscreenUI);
+
+    // 4. CHẾ ĐỘ LIVESTREAM (PRIVACY MODE - CHỈ CHE SỐ TIỀN TỔNG Ở TRÊN)
+    function setPrivacyMode(enabled) {
+      isPrivacyMode = enabled;
+      localStorage.setItem('autobank_live_privacy', enabled ? '1' : '0');
+      document.body.classList.toggle('privacy-mode', enabled);
+      if (privacyIcon) {
+        if (enabled) {
+          privacyIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+        } else {
+          privacyIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+        }
+      }
+      if (privacyText) privacyText.textContent = enabled ? 'Đang Che' : 'Che Số Tiền';
+      showToast(enabled ? 'Đã bật Che số tiền ở trên' : 'Đã hiện lại số tiền');
+    }
+
+    // 5. ĐIỀU KHIỂN ÂM LƯỢNG & BỘ LOA TRỰC TIẾP
+    function updateVolumeUI() {
+      const pct = Math.round(liveVolume * 100);
+      if (volumeSlider) volumeSlider.value = isAudioMuted ? 0 : pct;
+      if (volumePercent) volumePercent.textContent = isAudioMuted ? 'Tắt tiếng' : `${pct}%`;
+      if (btnQuickMute) {
+        btnQuickMute.textContent = isAudioMuted ? 'Bật tiếng' : 'Tắt tiếng';
+        btnQuickMute.classList.toggle('muted', isAudioMuted);
+      }
+      if (audioStatusIcon) {
+        if (isAudioMuted || liveVolume === 0) {
+          audioStatusIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+        } else if (liveVolume < 0.5) {
+          audioStatusIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+        } else {
+          audioStatusIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+        }
+      }
+    }
+
+    // 6. XUẤT BÁO CÁO EXCEL / CSV ĐỐI SOÁT
+    function exportTransactionsCsv() {
+      if (!transactions || transactions.length === 0) {
+        showToast('Chưa có dữ liệu giao dịch để xuất báo cáo!');
+        return;
+      }
+
+      let exportList = [...transactions];
+      if (currentDateFilter === 'today') {
+        exportList = exportList.filter(tx => isTodayTransaction(tx));
+      }
+      if (currentFilterType === 'credit') {
+        exportList = exportList.filter(tx => (tx.type || 'credit').toLowerCase() !== 'debit');
+      } else if (currentFilterType === 'debit') {
+        exportList = exportList.filter(tx => (tx.type || 'credit').toLowerCase() === 'debit');
+      }
+
+      if (exportList.length === 0) {
+        showToast('Không có giao dịch nào phù hợp với bộ lọc hiện tại');
+        return;
+      }
+
+      // UTF-8 BOM \uFEFF cho Microsoft Excel mở không bị lỗi font tiếng Việt
+      let csvContent = '\uFEFF';
+      csvContent += 'Mã giao dịch,Ngân hàng,Loại giao dịch,Số tiền (VND),Thời gian,Nội dung chi tiết\n';
+
+      exportList.forEach((tx, idx) => {
+        const id = `"${(tx.id || tx.fingerprint || 'TX' + (idx + 1)).toString().replace(/"/g, '""')}"`;
+        const bank = `"${(tx.bankCode || 'NGÂN HÀNG').replace(/"/g, '""')}"`;
+        const isDebit = (tx.type || 'credit').toLowerCase() === 'debit';
+        const typeStr = isDebit ? '"CHUYỂN ĐI (-)"' : '"NHẬN VÀO (+)"';
+        const amt = isDebit ? -Math.abs(Number(tx.amount) || 0) : Math.abs(Number(tx.amount) || 0);
+        const time = `"${formatTime(tx.createdAt || tx.transactionTime).replace(/"/g, '""')}"`;
+        const content = `"${(tx.content || tx.rawContent || '').replace(/"/g, '""')}"`;
+        csvContent += `${id},${bank},${typeStr},${amt},${time},${content}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const nowStr = new Date().toISOString().slice(0, 10);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Bao_Cao_Giao_Dich_${nowStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast(`Đã xuất ${exportList.length} giao dịch ra file Excel (.CSV)!`);
+    }
+
+    // 7. IN BÁO CÁO CA BÁN HÀNG TỨC THÌ (PRINT SHIFT REPORT)
+    function printShiftReport() {
+      const shiftList = transactions.filter(tx => isTodayTransaction(tx));
+      const printReportTime = document.getElementById('printReportTime');
+      const printCreditTotal = document.getElementById('printCreditTotal');
+      const printCreditCount = document.getElementById('printCreditCount');
+      const printDebitTotal = document.getElementById('printDebitTotal');
+      const printDebitCount = document.getElementById('printDebitCount');
+      const printNetTotal = document.getElementById('printNetTotal');
+      const printTxTableBody = document.getElementById('printTxTableBody');
+
+      let credSum = 0, credCnt = 0;
+      let debSum = 0, debCnt = 0;
+
+      let rowsHtml = '';
+      shiftList.forEach(tx => {
+        const amt = Math.abs(Number(tx.amount) || 0);
+        const isDebit = (tx.type || 'credit').toLowerCase() === 'debit';
+        if (isDebit) {
+          debSum += amt;
+          debCnt++;
+        } else {
+          credSum += amt;
+          credCnt++;
+        }
+        rowsHtml += `
+          <tr style="border-bottom: 1px dotted #ccc;">
+            <td style="padding: 4px;">${tx.bankCode || 'NH'}</td>
+            <td style="padding: 4px; font-weight: bold; color: ${isDebit ? '#dc2626' : '#059669'};">
+              ${isDebit ? '-' : '+'}${formatVND(amt)}
+            </td>
+            <td style="padding: 4px;">${formatTime(tx.createdAt || tx.transactionTime)}</td>
+            <td style="padding: 4px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${tx.content || tx.rawContent || '-'}
+            </td>
+          </tr>
+        `;
+      });
+
+      if (printReportTime) printReportTime.textContent = `In lúc: ${formatTime(new Date())}`;
+      if (printCreditTotal) printCreditTotal.textContent = '+' + formatVND(credSum);
+      if (printCreditCount) printCreditCount.textContent = `${credCnt} giao dịch`;
+      if (printDebitTotal) printDebitTotal.textContent = '-' + formatVND(debSum);
+      if (printDebitCount) printDebitCount.textContent = `${debCnt} giao dịch`;
+      const net = credSum - debSum;
+      if (printNetTotal) {
+        printNetTotal.textContent = (net >= 0 ? '+' : '') + formatVND(net);
+        printNetTotal.style.color = net >= 0 ? '#059669' : '#dc2626';
+      }
+      if (printTxTableBody) {
+        printTxTableBody.innerHTML = rowsHtml || '<tr><td colspan="4" style="text-align: center; padding: 10px;">Chưa có giao dịch nào trong ca hôm nay</td></tr>';
+      }
+
+      window.print();
+    }
+
+    // 8. KHỞI TẠO TẤT CẢ SỰ KIỆN GIAO DIỆN & TÍNH NĂNG MỚI
+    function initNewFeatures() {
+      // Áp dụng Theme
+      applyTheme(currentTheme);
+      if (btnToggleTheme) {
+        btnToggleTheme.addEventListener('click', () => {
+          applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+      }
+
+      // Toàn màn hình POS
+      if (btnToggleFullscreen) {
+        btnToggleFullscreen.addEventListener('click', toggleFullscreen);
+      }
+
+      // Chế độ Livestream (Privacy)
+      if (isPrivacyMode) {
+        document.body.classList.add('privacy-mode');
+        if (privacyIcon) {
+          privacyIcon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+        }
+        if (privacyText) privacyText.textContent = 'Đang Che';
+      }
+      if (btnTogglePrivacy) {
+        btnTogglePrivacy.addEventListener('click', () => {
+          setPrivacyMode(!isPrivacyMode);
+        });
+      }
+
+      // Dropdown chỉnh âm thanh
+      if (btnAudioDropdownToggle && audioDropdown) {
+        btnAudioDropdownToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          audioDropdown.classList.toggle('active');
+        });
+        document.addEventListener('click', (e) => {
+          if (!audioDropdown.contains(e.target) && e.target !== btnAudioDropdownToggle) {
+            audioDropdown.classList.remove('active');
+          }
+        });
+      }
+
+      // Nút tắt tiếng nhanh (Mute)
+      if (btnQuickMute) {
+        btnQuickMute.addEventListener('click', () => {
+          isAudioMuted = !isAudioMuted;
+          localStorage.setItem('autobank_live_muted', isAudioMuted ? '1' : '0');
+          if (isAudioMuted) stopLiveAudio();
+          updateVolumeUI();
+          showToast(isAudioMuted ? 'Đã tắt tiếng loa web' : 'Đã bật tiếng loa web');
+        });
+      }
+
+      // Thanh trượt âm lượng (0% - 100%)
+      if (volumeSlider) {
+        volumeSlider.addEventListener('input', (e) => {
+          const val = Number(e.target.value);
+          liveVolume = val / 100;
+          if (isAudioMuted && val > 0) {
+            isAudioMuted = false;
+            localStorage.setItem('autobank_live_muted', '0');
+          }
+          localStorage.setItem('autobank_live_volume', String(val));
+          updateVolumeUI();
+        });
+      }
+
+      // Nút thử loa & Pop-up (đọc chuẩn 100% theo câu chữ & chuông cài trên điện thoại)
+      if (btnTestSoundAlert) {
+        btnTestSoundAlert.addEventListener('click', () => {
+          grantAudioPermission(false);
+          const sampleTx = {
+            bankCode: 'VIETCOMBANK',
+            amount: 149000,
+            type: 'credit',
+            content: 'NGUYEN VAN A chuyen tien cafe',
+            createdAt: new Date()
+          };
+          showBigTransactionAlert(sampleTx);
+          const built = buildLiveSentence(sampleTx);
+          speak(built.sentence, built.hasBell);
+        });
+      }
+
+      // Đóng Pop-up thông báo to
+      if (btnBigAlertClose) {
+        btnBigAlertClose.addEventListener('click', hideBigAlert);
+      }
+      if (bigAlertOverlay) {
+        bigAlertOverlay.addEventListener('click', (e) => {
+          if (e.target === bigAlertOverlay) hideBigAlert();
+        });
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideBigAlert();
+      });
+
+      // Xuất Excel & In báo cáo
+      if (btnExportExcel) {
+        btnExportExcel.addEventListener('click', exportTransactionsCsv);
+      }
+      if (btnPrintShiftReport) {
+        btnPrintShiftReport.addEventListener('click', printShiftReport);
+      }
+
+      updateVolumeUI();
+    }
+
+    // =========================================================================
+    // KHỞI ĐỘNG VÀ KHÔI PHỤC PHIÊN BẢO MẬT & DỮ LIỆU
+    // =========================================================================
+    initNewFeatures();
+    setupPinInputEvents();
+    restoreCachedTransactions();
+    checkAndRestoreSession();
   </script>
 </body>
 

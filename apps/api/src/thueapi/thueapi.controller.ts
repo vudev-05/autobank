@@ -1,13 +1,16 @@
-import { Controller, Post, Get, Body, Headers } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, UseGuards } from '@nestjs/common';
 import { ThueApiService, ThueApiWebhookDto } from './thueapi.service.js';
+import { AdminGuard, Public } from '../admin/admin.guard.js';
 
 @Controller()
+@UseGuards(AdminGuard)
 export class ThueApiController {
   constructor(private readonly thueApiService: ThueApiService) {}
 
   /**
-   * Endpoint tiếp nhận Webhook biến động số dư từ ThueApi.Pro
+   * Endpoint tiếp nhận Webhook biến động số dư từ ThueApi.Pro (Công khai cho nhà cung cấp gửi về)
    */
+  @Public()
   @Post('webhooks/thueapi')
   async receiveWebhook(
     @Body() payload: ThueApiWebhookDto,

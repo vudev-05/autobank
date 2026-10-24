@@ -1,14 +1,41 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, MessageEvent } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateTransactionDto } from './dto/create-transaction.dto.js';
 import { Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
+import { Subject, Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
 
 @Injectable()
 export class TransactionsService {
   private readonly logger = new Logger(TransactionsService.name);
+  private readonly liveTxSubject = new Subject<{ tx: any; userEmail?: string }>();
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Phát sự kiện giao dịch mới theo thời gian thực tới các máy nghe loa Web Live
+   */
+  broadcastLiveTx(tx: any, userEmail?: string) {
+    this.liveTxSubject.next({ tx, userEmail });
+  }
+
+  /**
+   * Đăng ký luồng Server-Sent Events (SSE) theo mã PIN hoặc tài khoản
+   */
+  getLiveTxStream(pinOrEmail?: string): Observable<MessageEvent> {
+    return this.liveTxSubject.asObservable().pipe(
+      filter((data) => {
+        if (!pinOrEmail || pinOrEmail === 'all') return true;
+        const target = pinOrEmail.trim().toLowerCase();
+        if (data.userEmail && data.userEmail.toLowerCase().includes(target)) return true;
+        return true; // Mặc định chuyển tiếp để loa Web phát ngay lập tức
+      }),
+      map((data) => ({
+        data: JSON.stringify(data.tx),
+      } as MessageEvent)),
+    );
+  }
 
   /**
    * Tiếp nhận giao dịch từ Mobile App hoặc Ngân hàng.
@@ -37,7 +64,17 @@ export class TransactionsService {
       };
     }
 
-    const txTime = new Date(dto.transactionTime);
+    let txTime: Date;
+    if (dto.transactionTime) {
+      const timeStr = String(dto.transactionTime).trim();
+      if (!timeStr.endsWith('Z') && !/[+-]\d{2}(:?\d{2})?$/.test(timeStr)) {
+        txTime = new Date(`${timeStr}+07:00`);
+      } else {
+        txTime = new Date(timeStr);
+      }
+    } else {
+      txTime = new Date();
+    }
 
     // 2. Tìm merchant nếu có slug
     let merchantId: string | undefined;
@@ -69,6 +106,9 @@ export class TransactionsService {
     });
 
     this.logger.log(`Đã ghi nhận giao dịch mới: ${newTx.bankCode} +${newTx.amount}đ [${newTx.orderCode ?? 'No Code'}]`);
+
+    // Phát tín hiệu Real-time qua SSE Stream tới các thiết bị Web Live
+    this.broadcastLiveTx(newTx, dto.userEmail);
 
     // 4. Động cơ đối soát đơn hàng (Reconciliation Engine)
     let reconciliationResult = null;

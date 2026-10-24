@@ -160,6 +160,7 @@ class _SimulationSheetState extends State<SimulationSheet> {
                   bankCode: _selectedBank,
                   title: title,
                   body: body,
+                  isDemo: false,
                 );
 
                 if (context.mounted) {

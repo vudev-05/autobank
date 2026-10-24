@@ -5,7 +5,9 @@
  */
 
 export function initLiveSync() {
-  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+  const API_BASE = (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+    ? 'https://api.docthongbaobank.com'
+    : (import.meta.env.VITE_API_BASE || 'http://localhost:3000');
 
   function parsePrice(val, defaultVal) {
     if (typeof val === 'number' && !isNaN(val)) return val;
@@ -219,7 +221,7 @@ export function initLiveSync() {
     }
 
     // 4. CH PLAY (GOOGLE PLAY STORE)
-    const playUrl = cfg.chplayLink || cfg.googlePlayUrl || 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn';
+    const playUrl = cfg.chplayLink || cfg.googlePlayUrl || 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app';
     if (playUrl) {
       document.querySelectorAll('a[href*="play.google.com"], #header-cta-btn, #drawer-cta-btn').forEach(a => {
         a.href = playUrl;

@@ -477,9 +477,9 @@ export function initVoiceSimulator() {
     if (audioCache.has(text)) {
       return audioCache.get(text);
     }
-    const apiBase = (typeof window !== 'undefined' && window.location.port === '5173')
+    const apiBase = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
       ? 'http://localhost:3000'
-      : (window.location.origin || 'http://localhost:3000');
+      : 'https://api.docthongbaobank.com';
     const audioUrl = `${apiBase}/tts?voice=chi-google&text=${encodeURIComponent(text)}`;
     const aud = new Audio(audioUrl);
     aud.preload = 'auto';

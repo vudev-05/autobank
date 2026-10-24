@@ -3,4 +3,7 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
+# Sitemaps
 Sitemap: https://docthongbaobank.com/sitemap.xml
+Sitemap: https://docthongbaobank.com/sitemap-articles.xml
+Sitemap: https://docthongbaobank.com/sitemap-main.xml

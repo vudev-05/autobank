@@ -1,8 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../notification_listener/presentation/notification_service.dart';
-import '../../../../core/tts/tts_service.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/security/app_pin_security_service.dart';
+import '../../../../core/security/app_pin_dialog.dart';
+import '../../../../core/security/app_lock_screen_overlay.dart';
+import '../../../../core/widgets/app_permission_dialog.dart';
+import '../../../../core/widgets/app_in_app_rating_dialog.dart';
+import '../../../../core/widgets/app_video_guide_modal.dart';
 import '../../analytics/presentation/pages/analytics_page.dart';
 import '../../auth/presentation/providers/google_auth_provider.dart';
 import '../../home/presentation/pages/home_app_page.dart';
@@ -25,16 +32,104 @@ class MainNavigationWrapper extends StatefulWidget {
   State<MainNavigationWrapper> createState() => _MainNavigationWrapperState();
 }
 
-class _MainNavigationWrapperState extends State<MainNavigationWrapper> with SingleTickerProviderStateMixin {
+class _MainNavigationWrapperState extends State<MainNavigationWrapper> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  static const MethodChannel _deepLinkChannel = MethodChannel('vn.autobank.mobile/deeplink');
   int _currentIndex = 0;
+  String? _subscriptionInitialPackage;
   late AnimationController _strobeController;
   late Animation<double> _strobeAnimation;
   VoidCallback? _syncAccountListener;
   GoogleAuthProvider? _googleAuth;
+  Timer? _inactivityTimer;
+  Timer? _alertAutoDismissTimer;
+
+  void _resetInactivityTimer() {
+    if (!mounted) return;
+    try {
+      final txProvider = context.read<TransactionProvider>();
+      if (txProvider.isDimmedScreenActive) {
+        txProvider.setDimmedScreenActive(false);
+        NotificationService.setScreenBrightness(-1.0);
+      }
+      _inactivityTimer?.cancel();
+      // Trang chủ hoạt động bình thường, không làm mờ/tối màn hình
+      // Chỉ khi vào Quầy Thu Ngân hoặc Chạy ngầm mới kích hoạt chế độ tiết kiệm pin
+    } catch (_) {}
+  }
+
+  void _initDeepLinkHandling() {
+    _deepLinkChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onDeepLink') {
+        final rawUri = call.arguments as String?;
+        if (rawUri != null && rawUri.isNotEmpty) {
+          _processDeepLinkUri(rawUri);
+        }
+      }
+    });
+
+    _deepLinkChannel.invokeMethod<String>('getInitialDeepLink').then((rawUri) {
+      if (rawUri != null && rawUri.isNotEmpty) {
+        _processDeepLinkUri(rawUri);
+      }
+    }).catchError((_) {});
+  }
+
+  void _processDeepLinkUri(String rawUri) {
+    try {
+      final uri = Uri.tryParse(rawUri);
+      if (uri == null) return;
+
+      // Hỗ trợ autobank://register?package=1y hoặc autobank://subscribe?plan=1month
+      final pkgParam = uri.queryParameters['package'] ?? 
+                       uri.queryParameters['plan'] ?? 
+                       uri.queryParameters['pkg'] ??
+                       (uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null);
+
+      if (pkgParam != null && pkgParam.isNotEmpty) {
+        String normalized = pkgParam.trim().toLowerCase();
+        if (normalized == '1month' || normalized == '1thang') normalized = '1m';
+        if (normalized == '3month' || normalized == '3thang') normalized = '3m';
+        if (normalized == '6month' || normalized == '6thang') normalized = '6m';
+        if (normalized == '9month' || normalized == '9thang') normalized = '9m';
+        if (normalized == '1year' || normalized == '1nam') normalized = '1y';
+        if (normalized == '2year' || normalized == '2nam') normalized = '2y';
+
+        setState(() {
+          _subscriptionInitialPackage = normalized;
+          _currentIndex = 2; // Tự động mở ngay màn hình đăng ký gói
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.flash_on_rounded, color: Colors.amberAccent, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Đã chọn gói từ website! Nhập mã NGUOIMOI để giảm ngay 10%.'),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF0284C7),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Luôn giữ màn hình sáng 24/24, không cho phép tắt màn hình khi app đang mở
+    NotificationService.setKeepScreenOn(true);
+    _resetInactivityTimer();
+    _initDeepLinkHandling();
+
     _strobeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 550),
@@ -75,15 +170,16 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
       googleAuth.addListener(syncAccountContext);
 
       txProvider.onTransactionReceived = (tx) {
+        // Chỉ đọc tiếng qua loa TTS và hiện toàn màn hình, không bắn thêm thông báo lên khay hệ thống
         final isCredit = tx.type.isCredit;
         final amountFormatted = CurrencyFormatter.formatVND(tx.amount);
         notifProvider.postNotification(
-          title: isCredit ? '🔔 +$amountFormatted đ (${tx.bankCode})' : '⚡ -$amountFormatted đ (${tx.bankCode})',
+          title: isCredit ? '🔔 +$amountFormatted đ · ${tx.bankCode}' : '⚡ -$amountFormatted đ · ${tx.bankCode}',
           message: isCredit
               ? 'Đã nhận biến động số dư tiền về từ ${tx.bankCode}: +$amountFormatted đ.'
               : 'Phát hiện biến động trừ tiền/chi tiêu từ ${tx.bankCode}: -$amountFormatted đ.',
           category: NotificationCategory.transaction,
-          showAndroidStatusNotification: true,
+          showAndroidStatusNotification: false,
         );
       };
 
@@ -99,11 +195,80 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
           showAndroidStatusNotification: false,
         );
       };
+
+      _initAppFlow();
     });
+  }
+
+  /// Bắt đầu chuỗi kiểm tra quyền, tín hiệu và video hướng dẫn sau khi app đã được mở khóa hợp lệ
+  Future<void> _initAppFlow() async {
+    if (!mounted) return;
+
+    // Nếu đang trong màn hình khóa PIN, dừng lại không mở bất kỳ popup nào đè lên
+    final pinService = AppPinSecurityService();
+    if (pinService.isPinEnabled && pinService.isSessionExpired()) {
+      return;
+    }
+
+    final notifProvider = Provider.of<AppNotificationProvider>(context, listen: false);
+
+    // 1. Kiểm tra cấp quyền ứng dụng
+    await AppPermissionDialog.showIfNeeded(context);
+    if (!mounted) return;
+
+    // 2. Thông báo báo hiệu tín hiệu hoạt động tốt khi bật app
+    notifProvider.postNotification(
+      title: '🟢 Tín hiệu AutoBank hoạt động tốt',
+      message: 'Hệ thống đã sẵn sàng lắng nghe thông báo ngân hàng và đọc tiền tự động 24/7.',
+      category: NotificationCategory.system,
+      showAndroidStatusNotification: false,
+    );
+
+    // 3. Hướng dẫn sử dụng hệ thống cho người mới (hiển thị popup thông báo + Video YouTube trong app + nút Đóng)
+    if (mounted) {
+      final sysConfig = context.read<SystemConfigProvider>();
+      await AppVideoGuideModal.showIfNeeded(
+        context,
+        prefKey: 'has_seen_guide_newbie_v2',
+        title: 'Hướng Dẫn Sử Dụng AutoBank',
+        subtitle: 'Video ngắn hướng dẫn thiết lập hệ thống phát loa và chạy ngầm mượt mà 24/7',
+        videoUrl: sysConfig.videoGuideNewbie,
+        badgeText: 'Dành Cho Người Mới',
+        showNeverShowAgainCheckbox: true,
+        dismissButtonText: 'Đóng',
+      );
+    }
+
+    if (!mounted) return;
+
+    // 4. Kiểm tra đánh giá trên Google Play cho gói dùng thử
+    await AppInAppRatingDialog.checkAndShowRating(context);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final pinService = AppPinSecurityService();
+      if (pinService.isPinEnabled && pinService.isSessionExpired() && mounted) {
+        AppPinSecurityDialogs.showUnlockPinDialog(context);
+      }
+
+      // Khi thoát app ra lâu vào lại: luôn giữ hiển thị ở Trang chủ
+      if (mounted) {
+        setState(() {
+          _currentIndex = 0;
+        });
+        NotificationService.setKeepScreenOn(true);
+        _resetInactivityTimer();
+      }
+    }
   }
 
   @override
   void dispose() {
+    _alertAutoDismissTimer?.cancel();
+    _inactivityTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     if (_syncAccountListener != null && _googleAuth != null) {
       _googleAuth!.removeListener(_syncAccountListener!);
     }
@@ -137,19 +302,82 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
       setState(() {
         _currentIndex = 2;
       });
+      _resetInactivityTimer();
       return;
     }
 
     setState(() {
       _currentIndex = index;
     });
+    _resetInactivityTimer();
+
+    // 1. Khi người dùng vào trang CÂU ĐỌC: Hiện thông báo hướng dẫn tối ưu & cá nhân hóa câu đọc
+    if (index == 1) {
+      final sysConfig = Provider.of<SystemConfigProvider>(context, listen: false);
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (!mounted || _currentIndex != 1) return;
+        AppVideoGuideModal.showIfNeeded(
+          context,
+          prefKey: 'has_seen_guide_voice_page',
+          title: 'Hướng Dẫn Tối Ưu & Cá Nhân Hóa Câu Đọc',
+          subtitle: 'Cách thiết lập thứ tự đọc, gắn tên cửa hàng, rút gọn số tiền và lời cảm ơn riêng',
+          videoUrl: sysConfig.videoGuideVoice,
+          badgeText: 'Tối Ưu & Cá Nhân Hóa',
+          showNeverShowAgainCheckbox: true,
+          dismissButtonText: 'Đóng',
+        );
+      });
+    }
+
+    // 2. Khi người dùng vào trang ĐỌC LẠI / BÁO CÁO: Hiện thông báo hướng dẫn sử dụng trang đọc lại
+    if (index == 3) {
+      final sysConfig = Provider.of<SystemConfigProvider>(context, listen: false);
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (!mounted || _currentIndex != 3) return;
+        AppVideoGuideModal.showIfNeeded(
+          context,
+          prefKey: 'has_seen_guide_history_page',
+          title: 'Hướng Dẫn Sử Dụng Trang Đọc Lại',
+          subtitle: 'Cách tra cứu, nghe lại thông báo nhận tiền và quản lý dòng tiền chi tiết',
+          videoUrl: sysConfig.videoGuideHistory,
+          badgeText: 'Trang Đọc Lại',
+          showNeverShowAgainCheckbox: true,
+          dismissButtonText: 'Đóng',
+        );
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 1. LỚP BẢO MẬT TUYỆT ĐỐI CẤP ROOT: Nếu người dùng đã kích hoạt mã PIN và phiên bảo mật hết hạn/khởi động lại
+    // Hiển thị trực tiếp AppLockScreenOverlay, chặn 100% việc dựng hay lộ bất kỳ giao diện nào bên trong app!
+    final pinService = context.watch<AppPinSecurityService>();
+    if (pinService.isPinEnabled && pinService.isSessionExpired()) {
+      return AppLockScreenOverlay(
+        onUnlocked: () {
+          // Khi mở khóa thành công, kích hoạt chuỗi kiểm tra quyền và hướng dẫn
+          Future.microtask(() => _initAppFlow());
+        },
+      );
+    }
+
     final txProvider = context.watch<TransactionProvider>();
     final activeAlert = txProvider.activeAlertTransaction;
     final isStrobe = txProvider.isLightStrobeActive;
+    final alertDuration = txProvider.alertDisplayDurationSeconds;
+
+    if (activeAlert != null) {
+      _alertAutoDismissTimer ??= Timer(Duration(seconds: alertDuration), () {
+        if (mounted) {
+          txProvider.dismissTransactionAlert();
+          _alertAutoDismissTimer = null;
+        }
+      });
+    } else {
+      _alertAutoDismissTimer?.cancel();
+      _alertAutoDismissTimer = null;
+    }
 
     final pages = [
       HomeAppPage(
@@ -160,13 +388,21 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
       VoiceSettingsPage(
         onNavigateToRegister: () => _navigateToIndex(2),
       ),
-      const RegisterSubscriptionPage(),
+      RegisterSubscriptionPage(
+        key: ValueKey(_subscriptionInitialPackage ?? 'default_sub'),
+        initialPackageKey: _subscriptionInitialPackage,
+        onBackToHome: () => _navigateToIndex(0),
+      ),
       const AnalyticsPage(),
       const SettingsGuidePage(),
     ];
 
-    return Scaffold(
-      body: Stack(
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _resetInactivityTimer(),
+      onPointerMove: (_) => _resetInactivityTimer(),
+      child: Scaffold(
+        body: Stack(
         children: [
           IndexedStack(
             index: _currentIndex,
@@ -211,14 +447,20 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
               onTap: () => NotificationCenterSheet.show(context),
             ),
 
-          // 4. MÀN HÌNH SIÊU TỐI MỜ CHẠY NGẦM TIẾT KIỆM PIN (ULTRA-DIMMED OLED STEALTH SCREEN)
-          if (txProvider.isDimmedScreenActive)
-            _buildUltraDimmedStealthScreen(context, txProvider),
+          // 4. LÀM TỐI MÀN HÌNH SAU 30S TẠI TRANG CHỦ (GIỮ NGUYÊN GIAO DIỆN TRANG CHỦ, KHÔNG HIỆN CHẠY NGẦM)
+          if (txProvider.isDimmedScreenActive && _currentIndex == 0)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _resetInactivityTimer,
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.65),
+                ),
+              ),
+            ),
         ],
       ),
-      bottomNavigationBar: txProvider.isDimmedScreenActive
-          ? null
-          : Container(
+      bottomNavigationBar: Container(
               clipBehavior: Clip.none,
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -235,7 +477,9 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
         ),
         child: SafeArea(
           top: false,
-          child: SizedBox(
+          minimum: const EdgeInsets.only(bottom: 8),
+          child: Container(
+            padding: const EdgeInsets.only(top: 4, bottom: 2),
             height: 62,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -285,8 +529,9 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// NÚT ĐĂNG KÝ TRUNG TÂM (CĂN CHÍNH GIỮA 20%, ICON KIM CƯƠNG VIP CHUYÊN NGHIỆP)
   Widget _buildCenterRegisterNavItem() {
@@ -369,15 +614,15 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
           children: [
             Icon(
               icon,
-              size: 24,
+              size: 22,
               color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
               maxLines: 1,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF64748B),
               ),
@@ -396,7 +641,6 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
   ) {
     final isCredit = tx.type.isCredit;
     final time = tx.transactionTime;
-    final categories = txProvider.expenseCategories;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Positioned.fill(
@@ -506,96 +750,235 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
                       ),
                       const SizedBox(height: 18),
 
-                      // 4. CHỌN NHANH LOẠI TIÊU DÙNG / QUỸ CHI TIÊU
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.category_rounded, size: 16, color: Color(0xFF38BDF8)),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Bấm chọn loại chi tiêu / Quỹ quản lý:',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: categories.map((cat) {
-                                final isSelected = tx.category == cat;
-                                return ChoiceChip(
-                                  label: Text(cat),
-                                  selected: isSelected,
-                                  selectedColor: const Color(0xFF0284C7),
-                                  backgroundColor: isDark ? const Color(0xFF0F172A) : null,
-                                  labelStyle: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected ? Colors.white : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
-                                  ),
-                                  onSelected: (_) {
-                                    txProvider.updateAlertCategory(cat);
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                            if (tx.category != null) ...[
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      // 4. CHỌN NHANH QUỸ: DOANH NGHIỆP VS CÁ NHÂN
+                      Builder(
+                        builder: (context) {
+                          final existingCat = tx.category ?? '';
+                          String selectedScope;
+                          if (existingCat.startsWith('[Cá Nhân]')) {
+                            selectedScope = 'Cá Nhân';
+                          } else if (existingCat.startsWith('[Doanh Nghiệp]')) {
+                            selectedScope = 'Doanh Nghiệp';
+                          } else {
+                            // Tiền nhận (+) -> Mở sẵn Doanh Nghiệp, Tiền trừ (-) -> Mở sẵn Cá Nhân
+                            selectedScope = isCredit ? 'Doanh Nghiệp' : 'Cá Nhân';
+                          }
+
+                          return StatefulBuilder(
+                            builder: (context, setBlockState) {
+                              final bizCats = txProvider.businessBudgets.keys.toList();
+                              final personalCats = txProvider.personalBudgets.keys.toList();
+                              final activeList = selectedScope == 'Doanh Nghiệp' ? bizCats : personalCats;
+
+                              return Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFDCFCE7),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF16A34A)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Đã phân loại vào: "${tx.category}"',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                                    // Tab chuyển đổi Quỹ Doanh Nghiệp vs Cá Nhân
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () => setBlockState(() => selectedScope = 'Doanh Nghiệp'),
+                                            borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: selectedScope == 'Doanh Nghiệp'
+                                                ? const Color(0xFF0284C7)
+                                                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.business_center_rounded, size: 14, color: selectedScope == 'Doanh Nghiệp' ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '🏢 Doanh Nghiệp (${bizCats.length})',
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: selectedScope == 'Doanh Nghiệp' ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () => setBlockState(() => selectedScope = 'Cá Nhân'),
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: selectedScope == 'Cá Nhân'
+                                                ? const Color(0xFFE11D48)
+                                                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.person_rounded, size: 14, color: selectedScope == 'Cá Nhân' ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '👤 Cá Nhân (${personalCats.length})',
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: selectedScope == 'Cá Nhân' ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 10),
+
+                                // Danh sách chip quỹ
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: activeList.map((cat) {
+                                    final fullCat = '[$selectedScope] $cat';
+                                    final isSelected = (tx.category == fullCat) || (tx.category == cat);
+                                    return ChoiceChip(
+                                      label: Text(cat),
+                                      selected: isSelected,
+                                      selectedColor: selectedScope == 'Doanh Nghiệp' ? const Color(0xFF0284C7) : const Color(0xFFE11D48),
+                                      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                                      labelStyle: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: isSelected ? Colors.white : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                                      ),
+                                      onSelected: (_) {
+                                        txProvider.updateAlertCategory(fullCat);
+                                        setBlockState(() {});
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                                if (tx.category != null) ...[
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDCFCE7),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF16A34A)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Đã phân loại vào: "${tx.category}"',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                      const SizedBox(height: 14),
+
+                      // CẤU HÌNH THỜI GIAN ĐÓNG THÔNG BÁO (Mặc định 10s)
+                      StatefulBuilder(
+                        builder: (context, setTimerState) {
+                          final alertDuration = txProvider.alertDisplayDurationSeconds;
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.timer_outlined, color: Color(0xFF0284C7), size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Tự đóng sau ${alertDuration}s:',
+                                    style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              Wrap(
+                                spacing: 4,
+                                children: [5, 10, 15, 30].map((sec) {
+                                  final isCur = alertDuration == sec;
+                                  return InkWell(
+                                    onTap: () {
+                                      txProvider.setAlertDisplayDuration(sec);
+                                      _alertAutoDismissTimer?.cancel();
+                                      _alertAutoDismissTimer = Timer(Duration(seconds: sec), () {
+                                        if (mounted) {
+                                          txProvider.dismissTransactionAlert();
+                                          _alertAutoDismissTimer = null;
+                                        }
+                                      });
+                                      setTimerState(() {});
+                                    },
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isCur ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '${sec}s',
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: isCur ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                               ),
                             ],
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       // 5. NÚT ĐÓNG (KHI BẤM SẼ DỪNG ĐỌC THÔNG BÁO VÀ THÔI)
                       SizedBox(
                         width: double.infinity,
-                        height: 50,
+                        height: 48,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE11D48),
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.volume_off_rounded, color: Colors.white, size: 22),
+                          icon: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
                           label: const Text(
-                            'ĐÓNG',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
+                            'XÁC NHẬN & ĐÓNG',
+                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                           onPressed: () {
+                            _alertAutoDismissTimer?.cancel();
+                            _alertAutoDismissTimer = null;
                             txProvider.dismissAlertAndStopTts();
                           },
                         ),
@@ -604,198 +987,6 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// MÀN HÌNH SIÊU TỐI MỜ CHẠY NGẦM TIẾT KIỆM PIN (ULTRA-DIMMED OLED STEALTH SCREEN)
-  /// Phủ 100% toàn màn hình màu đen OLED #000000, ẩn hoàn toàn bottom navigation,
-  /// các chi tiết chỉ hiện mờ tối tuyệt đối để chống chói và tiết kiệm pin tối đa.
-  Widget _buildUltraDimmedStealthScreen(
-    BuildContext context,
-    TransactionProvider txProvider,
-  ) {
-    void exitDimmed() {
-      txProvider.setDimmedScreenActive(false);
-      NotificationService.setScreenBrightness(-1.0);
-      TtsService().speakTestFeedback('Đã thoát chế độ làm mờ màn hình.');
-    }
-
-    return Positioned.fill(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: exitDimmed,
-        child: Container(
-          color: const Color(0xFF000000), // Đen OLED tuyệt đối 100%
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // 1. Header siêu mờ tối
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF16A34A).withValues(alpha: 0.35),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'TRỰC NGẦM 24/24',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                            color: const Color(0xFF22C55E).withValues(alpha: 0.35),
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: const Color(0xFF475569).withValues(alpha: 0.35),
-                        size: 20,
-                      ),
-                      onPressed: exitDimmed,
-                    ),
-                  ],
-                ),
-
-                // 2. Trung tâm: Biểu tượng & Đồng hồ mờ cực thấp
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF070B14),
-                        border: Border.all(
-                          color: const Color(0xFF1E293B).withValues(alpha: 0.35),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.nights_stay_rounded,
-                        size: 42,
-                        color: const Color(0xFF0284C7).withValues(alpha: 0.35),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    StreamBuilder(
-                      stream: Stream.periodic(const Duration(seconds: 1)),
-                      builder: (context, snapshot) {
-                        final now = DateTime.now();
-                        final timeStr =
-                            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
-                        return Text(
-                          timeStr,
-                          style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w200,
-                            letterSpacing: 2,
-                            color: const Color(0xFF64748B).withValues(alpha: 0.35),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Màn hình đang ở chế độ làm mờ tối đa tiết kiệm pin',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: const Color(0xFF475569).withValues(alpha: 0.35),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF070B14),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFF1E293B).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.account_balance_wallet_rounded,
-                            size: 13,
-                            color: const Color(0xFF16A34A).withValues(alpha: 0.4),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Hôm nay: +${CurrencyFormatter.formatVND(txProvider.todayTotal.toDouble())} (${txProvider.todayCount} đơn)',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF64748B).withValues(alpha: 0.4),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                // 3. Dưới cùng: Nút chạm mở sáng mờ
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: const Color(0xFF1E293B).withValues(alpha: 0.35),
-                        ),
-                        color: const Color(0xFF050505),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.touch_app_rounded,
-                            size: 15,
-                            color: const Color(0xFF475569).withValues(alpha: 0.4),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Chạm vào màn hình để mở sáng',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: const Color(0xFF64748B).withValues(alpha: 0.4),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Loa vẫn phát 100% âm lượng khi có thông báo nhận hoặc trừ tiền từ ngân hàng',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 9.5,
-                        color: const Color(0xFF334155).withValues(alpha: 0.35),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
           ),
         ),

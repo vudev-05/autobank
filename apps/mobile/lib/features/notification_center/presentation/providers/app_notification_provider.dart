@@ -1,14 +1,20 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/tts/tts_service.dart';
 import '../../../notification_listener/presentation/notification_service.dart';
 import '../../domain/models/app_notification_item.dart';
 
 class AppNotificationProvider extends ChangeNotifier {
   final List<AppNotificationItem> _notifications = [];
+  final Set<String> _sentNotificationKeys = {};
   NotificationCategory _selectedCategory = NotificationCategory.all;
   AppNotificationItem? _latestBannerNotification;
   Timer? _bannerDismissTimer;
+
+  static const String _prefKeyNotifs = 'autobank_notification_history_v2';
+  static const String _prefKeySentKeys = 'autobank_sent_notification_keys';
 
   List<AppNotificationItem> get notifications => List.unmodifiable(_notifications);
 
@@ -31,131 +37,88 @@ class AppNotificationProvider extends ChangeNotifier {
   }
 
   AppNotificationProvider() {
-    _initDefaultSystemNotifications();
+    _loadNotificationHistory();
   }
 
-  void _initDefaultSystemNotifications() {
-    final now = DateTime.now();
+  Future<void> _loadNotificationHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sentList = prefs.getStringList(_prefKeySentKeys) ?? [];
+      _sentNotificationKeys.addAll(sentList);
 
-    final defaultItems = [
-      // 1. ƯU ĐÃI HỆ THỐNG (PROMO)
-      AppNotificationItem(
-        id: 'promo_welcome_10',
-        title: '🎁 Ưu Đãi Chào Mừng Tân Thủ: Giảm 10%',
-        message: 'Áp dụng giảm ngay 10% cho toàn bộ các gói cước trong vòng 72 giờ (3 ngày) tính từ lúc tạo tài khoản. Trừ trực tiếp vào giá thanh toán!',
-        timestamp: now.subtract(const Duration(minutes: 5)),
-        category: NotificationCategory.promo,
-        actionType: 'navigate_register',
-        isRead: false,
-      ),
-      AppNotificationItem(
-        id: 'promo_vip_lifetime',
-        title: '⚡ Mở Khóa Gói VIP Vĩnh Viễn',
-        message: 'Nâng cấp gói Vĩnh Viễn để đọc loa không giới hạn, kết nối chia sẻ máy tính PC/iPhone và bảo hành cập nhật trọn đời.',
-        timestamp: now.subtract(const Duration(hours: 1)),
-        category: NotificationCategory.promo,
-        actionType: 'navigate_register',
-        isRead: false,
-      ),
+      final rawData = prefs.getString(_prefKeyNotifs);
+      if (rawData != null && rawData.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(rawData);
+        _notifications.clear();
+        for (var item in list) {
+          try {
+            _notifications.add(AppNotificationItem(
+              id: item['id'] ?? '',
+              title: item['title'] ?? '',
+              message: item['message'] ?? '',
+              timestamp: DateTime.fromMillisecondsSinceEpoch(item['timestamp'] ?? DateTime.now().millisecondsSinceEpoch),
+              category: NotificationCategory.values.firstWhere(
+                (c) => c.name == item['category'],
+                orElse: () => NotificationCategory.system,
+              ),
+              actionType: item['actionType'],
+              isRead: item['isRead'] ?? false,
+            ));
+          } catch (_) {}
+        }
+      } else {
+        // Lần đầu mở app: Chỉ tạo 2 thông báo ưu đãi và chạy ngầm DUY NHẤT 1 LẦN
+        final now = DateTime.now();
+        final initialItems = [
+          AppNotificationItem(
+            id: 'promo_welcome_10',
+            title: '🎁 Ưu Đãi Chào Mừng Tân Thủ: Giảm 10%',
+            message: 'Áp dụng giảm ngay 10% cho toàn bộ các gói cước trong vòng 72 giờ tính từ lúc tạo tài khoản.',
+            timestamp: now.subtract(const Duration(minutes: 5)),
+            category: NotificationCategory.promo,
+            actionType: 'navigate_register',
+            isRead: false,
+          ),
+          AppNotificationItem(
+            id: 'bg_service_active',
+            title: '⚡ Dịch Vụ Chạy Ngầm 24/7 Đang Bật',
+            message: 'Ứng dụng trực nền 24/7, sẵn sàng bắt biến động tài khoản tất cả các ngân hàng.',
+            timestamp: now.subtract(const Duration(minutes: 15)),
+            category: NotificationCategory.background,
+            actionType: 'view_background',
+            isRead: false,
+          ),
+        ];
 
-      // 2. HOẠT ĐỘNG NỀN (BACKGROUND)
-      AppNotificationItem(
-        id: 'bg_service_active',
-        title: '⚡ Dịch Vụ Chạy Ngầm 24/7 Đang Bật',
-        message: 'Ứng dụng đang trực nền 24/7 với dịch vụ Foreground Service, sẵn sàng bắt biến động tài khoản tất cả các ngân hàng.',
-        timestamp: now.subtract(const Duration(minutes: 15)),
-        category: NotificationCategory.background,
-        actionType: 'view_background',
-        isRead: false,
-      ),
-      AppNotificationItem(
-        id: 'bg_stealth_mode',
-        title: '🌙 Chế Độ Tàng Hình Màn Hình Tối OLED',
-        message: 'Tính năng làm mờ màn hình trực quầy thu ngân giúp tiết kiệm 95% pin máy. Loa thông báo vẫn phát to 100% khi có tiền về.',
-        timestamp: now.subtract(const Duration(hours: 2)),
-        category: NotificationCategory.background,
-        actionType: 'view_background',
-        isRead: true,
-      ),
-      AppNotificationItem(
-        id: 'bg_battery_ignore',
-        title: '🔋 Tối Ưu Quản Lý Pin Hệ Thống',
-        message: 'Đã thiết lập Không giới hạn pin (Ignore Battery Optimization), chống hệ điều hành tự động tắt ứng dụng khi tắt màn hình.',
-        timestamp: now.subtract(const Duration(hours: 3)),
-        category: NotificationCategory.background,
-        actionType: 'view_battery',
-        isRead: true,
-      ),
+        for (var item in initialItems) {
+          _sentNotificationKeys.add(item.id);
+          _notifications.add(item);
+        }
+        _saveToStorage();
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[NotificationProvider] Load error: $e');
+    }
+  }
 
-      // 3. THÔNG BÁO HỆ THỐNG (SYSTEM)
-      AppNotificationItem(
-        id: 'sys_sql_sync',
-        title: '🗄️ Đồng Bộ Cơ Sở Dữ Liệu SQL Server',
-        message: 'Kết nối máy chủ cơ sở dữ liệu SQL Server thành công. Trạng thái trực tuyến 24/7, dữ liệu biến động được sao lưu liên tục.',
-        timestamp: now.subtract(const Duration(minutes: 30)),
-        category: NotificationCategory.system,
-        actionType: 'view_system',
-        isRead: false,
-      ),
-      AppNotificationItem(
-        id: 'sys_max_volume',
-        title: '🔊 Kích Hoạt Âm Lượng Loa 100%',
-        message: 'Hệ thống âm lượng đa phương tiện đã được kích hoạt mức tối đa để không bao giờ bỏ sót thông báo khách chuyển khoản.',
-        timestamp: now.subtract(const Duration(hours: 4)),
-        category: NotificationCategory.system,
-        actionType: 'view_voice',
-        isRead: true,
-      ),
-      AppNotificationItem(
-        id: 'sys_voice_config',
-        title: '🎙️ Đã Lưu Cấu Hình Giọng Đọc Chuẩn',
-        message: 'Đã tối ưu hóa mẫu câu đọc ngân hàng: Chuông Ting-Ting + Lời chào + Số tiền + Ngân hàng nhận + Lời cảm ơn.',
-        timestamp: now.subtract(const Duration(hours: 5)),
-        category: NotificationCategory.system,
-        actionType: 'view_voice',
-        isRead: true,
-      ),
-      AppNotificationItem(
-        id: 'sys_health_check',
-        title: '🛡️ Kiểm Tra Tình Trạng Thiết Bị Đạt Chuẩn',
-        message: 'Quyền đọc thông báo, pin ngầm, mạng Internet và loa phát âm đều đạt 100% điều kiện vận hành thu ngân chuyên nghiệp.',
-        timestamp: now.subtract(const Duration(hours: 6)),
-        category: NotificationCategory.system,
-        actionType: 'view_check',
-        isRead: true,
-      ),
+  Future<void> _saveToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_prefKeySentKeys, _sentNotificationKeys.toList());
 
-      // 4. XÁC THỰC & BẢO MẬT (AUTH)
-      AppNotificationItem(
-        id: 'auth_google_login',
-        title: '✅ Xác Thực Tài Khoản Google An Toàn',
-        message: 'Đăng nhập thành công với tài khoản Google. Giấy phép bản quyền và lịch sử giao dịch được bảo mật tuyệt đối.',
-        timestamp: now.subtract(const Duration(minutes: 45)),
-        category: NotificationCategory.auth,
-        actionType: 'view_auth',
-        isRead: false,
-      ),
-      AppNotificationItem(
-        id: 'auth_pin_share',
-        title: '🔑 Xác Thực Mã PIN Kết Nối Đa Màn Hình',
-        message: 'Mã PIN bảo mật chia sẻ trực tiếp tới máy tính thu ngân và iPhone đã được tạo và kích hoạt an toàn.',
-        timestamp: now.subtract(const Duration(hours: 2)),
-        category: NotificationCategory.auth,
-        actionType: 'view_share',
-        isRead: true,
-      ),
-      AppNotificationItem(
-        id: 'auth_listener_perm',
-        title: '🔐 Xác Thực Quyền Đọc Thông Báo Ngân Hàng',
-        message: 'Dịch vụ NotificationListenerService đã được Android cấp quyền truy cập đầy đủ 65+ ngân hàng và ví điện tử.',
-        timestamp: now.subtract(const Duration(hours: 7)),
-        category: NotificationCategory.auth,
-        actionType: 'view_permission',
-        isRead: true,
-      ),
-    ];
+      final data = _notifications.map((n) => {
+        'id': n.id,
+        'title': n.title,
+        'message': n.message,
+        'timestamp': n.timestamp.millisecondsSinceEpoch,
+        'category': n.category.name,
+        'actionType': n.actionType,
+        'isRead': n.isRead,
+      }).toList();
 
-    _notifications.addAll(defaultItems);
+      await prefs.setString(_prefKeyNotifs, jsonEncode(data));
+    } catch (_) {}
   }
 
   void setCategory(NotificationCategory category) {
@@ -167,6 +130,7 @@ class AppNotificationProvider extends ChangeNotifier {
     final index = _notifications.indexWhere((n) => n.id == id);
     if (index != -1 && !_notifications[index].isRead) {
       _notifications[index].isRead = true;
+      _saveToStorage();
       notifyListeners();
     }
   }
@@ -180,30 +144,44 @@ class AppNotificationProvider extends ChangeNotifier {
       }
     }
     if (hasChange) {
+      _saveToStorage();
       notifyListeners();
     }
   }
 
   void removeNotification(String id) {
     _notifications.removeWhere((n) => n.id == id);
+    _saveToStorage();
     notifyListeners();
   }
 
   void clearAll() {
     _notifications.clear();
+    _saveToStorage();
     notifyListeners();
   }
 
-  /// Bắn một thông báo mới vào ứng dụng + hiển thị Banner nổi + phát Android status bar notification + đọc TTS (nếu muốn)
+  /// Bắn một thông báo mới vào ứng dụng ĐÚNG 1 LẦN DUY NHẤT (tránh spam trùng lặp)
   Future<void> postNotification({
     required String title,
     required String message,
     required NotificationCategory category,
+    String? uniqueKey,
     String? actionType,
     Map<String, dynamic>? metadata,
     bool speakTts = false,
     bool showAndroidStatusNotification = true,
   }) async {
+    final key = uniqueKey ?? '${category.name}_$title';
+
+    // Chỉ thông báo đúng 1 lần duy nhất cho mỗi sự kiện hệ thống
+    if (category != NotificationCategory.transaction) {
+      if (_sentNotificationKeys.contains(key)) {
+        return; // Đã thông báo rồi, không lặp lại
+      }
+      _sentNotificationKeys.add(key);
+    }
+
     final newItem = AppNotificationItem(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
       title: title,
@@ -216,12 +194,15 @@ class AppNotificationProvider extends ChangeNotifier {
     );
 
     _notifications.insert(0, newItem);
+    _saveToStorage();
 
     // Kích hoạt In-App Banner nổi
     _showInAppBanner(newItem);
 
-    // Phát Native Android Notification vào khay thông báo điện thoại
-    if (showAndroidStatusNotification) {
+    // Khi có giao dịch nhận tiền: KHÔNG bắn thanh thông báo hệ thống (tránh trùng lặp với app ngân hàng), CHỈ đọc loa TTS và bật sáng màn hình
+    if (category == NotificationCategory.transaction) {
+      NotificationService.wakeUpScreen();
+    } else if (showAndroidStatusNotification) {
       NotificationService.showSystemNotification(
         title: title,
         content: message,

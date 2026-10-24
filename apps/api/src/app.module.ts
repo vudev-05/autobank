@@ -10,10 +10,12 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { TtsModule } from './tts/tts.module.js';
 import { ThueApiModule } from './thueapi/thueapi.module.js';
+import { MailModule } from './mail/mail.module.js';
 
 @Module({
   imports: [
     PrismaModule,
+    MailModule,
     AuthModule,
     MerchantsModule,
     BankConnectionsModule,

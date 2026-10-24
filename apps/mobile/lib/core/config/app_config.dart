@@ -1,13 +1,11 @@
-import 'package:flutter/foundation.dart';
-
 /// Cấu hình tập trung cho toàn bộ ứng dụng AutoBank Mobile
 class AppConfig {
-  /// Địa chỉ IP máy tính Backend trong mạng LAN (IP Wi-Fi hiện tại)
-  static const String serverHost = '192.168.1.217';
+  /// Tên miền máy chủ Backend Cloud
+  static const String serverHost = 'api.docthongbaobank.com';
   static const int apiPort = 3000;
   static const int webPort = 5173;
 
-  /// Tên miền chính thức của hệ thống AutoBank Production
+  /// Tên miền chính thức của hệ thống AutoBank Production Web
   static const String productionApiBaseUrl = 'https://api.docthongbaobank.com';
   static const String productionWebBaseUrl = 'https://docthongbaobank.com';
 
@@ -15,33 +13,42 @@ class AppConfig {
   static String? _dynamicApiBaseUrl;
   static String? _dynamicWebBaseUrl;
 
+  static bool _isLocalDomain(String? domain) {
+    if (domain == null) return true;
+    final d = domain.toLowerCase().trim();
+    return d.contains('localhost') ||
+        d.contains('127.0.0.1') ||
+        d.contains('192.168.') ||
+        d.contains('10.0.2.2') ||
+        d.contains(':3000') ||
+        d.contains(':5173');
+  }
+
   static void updateDomains({String? apiDomain, String? webDomain}) {
-    if (apiDomain != null && apiDomain.trim().isNotEmpty) {
+    // Tuyệt đối không bao giờ cho phép đè IP local/mạng LAN vào ứng dụng APK
+    if (apiDomain != null && apiDomain.trim().isNotEmpty && !_isLocalDomain(apiDomain)) {
       _dynamicApiBaseUrl = apiDomain.trim().replaceAll(RegExp(r'/+$'), '');
     }
-    if (webDomain != null && webDomain.trim().isNotEmpty) {
+    if (webDomain != null && webDomain.trim().isNotEmpty && !_isLocalDomain(webDomain)) {
       _dynamicWebBaseUrl = webDomain.trim().replaceAll(RegExp(r'/+$'), '');
     }
   }
 
-  /// Lấy Base URL của NestJS API tuỳ theo nền tảng đang chạy hoặc tên miền cấu hình động
+  /// Lấy Base URL của NestJS API: 100% kết nối với Web Production (https://api.docthongbaobank.com)
   static String get apiBaseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:$apiPort';
-    }
-    if (_dynamicApiBaseUrl != null && _dynamicApiBaseUrl!.isNotEmpty) {
+    if (_dynamicApiBaseUrl != null &&
+        _dynamicApiBaseUrl!.isNotEmpty &&
+        !_isLocalDomain(_dynamicApiBaseUrl)) {
       return _dynamicApiBaseUrl!;
     }
-    // Mặc định kết nối thẳng tới VPS production chính thức
     return productionApiBaseUrl;
   }
 
-  /// Web URL để tạo link chia sẻ đơn hàng / live sync
+  /// Web URL: 100% kết nối với Web Production (https://docthongbaobank.com)
   static String get webBaseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:$webPort';
-    }
-    if (_dynamicWebBaseUrl != null && _dynamicWebBaseUrl!.isNotEmpty) {
+    if (_dynamicWebBaseUrl != null &&
+        _dynamicWebBaseUrl!.isNotEmpty &&
+        !_isLocalDomain(_dynamicWebBaseUrl)) {
       return _dynamicWebBaseUrl!;
     }
     return productionWebBaseUrl;

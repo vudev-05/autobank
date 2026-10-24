@@ -2,16 +2,161 @@ import { checkAuth, initSidebar, showToast, fetchUsers, saveUserApi, extendUserA
 
 let usersList = [];
 let currentExtendUserEmail = null;
+let adminPackages = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!checkAuth()) return;
   initSidebar('users');
 
+  await loadAdminPackages();
   await reloadUsersList();
   initAddAndEditModals();
   initExtendModal();
   initTableEventDelegation();
 });
+
+async function loadAdminPackages() {
+  try {
+    const raw = localStorage.getItem('autobank_system_config');
+    if (raw) {
+      const cfg = JSON.parse(raw);
+      if (Array.isArray(cfg.packages) && cfg.packages.length > 0) {
+        adminPackages = cfg.packages;
+        populatePackageDropdown(adminPackages);
+      }
+    }
+    const res = await fetch(`${API_BASE}/admin/configs`);
+    if (res.ok) {
+      const cfg = await res.json();
+      if (Array.isArray(cfg.packages) && cfg.packages.length > 0) {
+        adminPackages = cfg.packages;
+        localStorage.setItem('autobank_system_config', JSON.stringify(cfg));
+        populatePackageDropdown(adminPackages);
+      }
+    }
+  } catch (e) {
+    console.warn('Lỗi tải danh sách gói cước Admin:', e);
+  }
+}
+
+function populatePackageDropdown(pkgs) {
+  const pkgEl = document.getElementById('m-user-pkg-input');
+  const quickContainer = document.getElementById('quick-pkg-buttons') || document.querySelector('#admin-user-edit-modal div[style*="flex-wrap: wrap"]');
+  if (!pkgEl || !Array.isArray(pkgs) || pkgs.length === 0) return;
+
+  const activePkgs = pkgs.filter(p => p.isActive !== false);
+  const curVal = pkgEl.value;
+
+  // 1. Nạp danh sách option vào Dropdown Gói Cước
+  pkgEl.innerHTML = activePkgs.map(p => {
+    const isTrial = p.price === 0;
+    const priceText = isTrial ? '0đ' : `${Number(p.price).toLocaleString('vi-VN')}đ`;
+    const badgeText = p.badge ? ` [${p.badge}]` : '';
+    const dayText = p.durationDays >= 9999 ? 'Vĩnh viễn' : `${p.durationDays} ngày`;
+    return `<option value="${p.name}">${p.name}${badgeText} (${dayText} — ${priceText})</option>`;
+  }).join('');
+
+  if (curVal && Array.from(pkgEl.options).some(o => o.value === curVal)) {
+    pkgEl.value = curVal;
+  }
+
+  // 2. Nạp động các phím tắt thời hạn nhanh chuẩn 100% các gói Admin
+  if (quickContainer) {
+    quickContainer.innerHTML = `
+      <button type="button" class="admin-btn admin-btn-danger admin-btn-sm" id="btn-quick-expire" style="padding: 4px 8px; font-size: 0.76rem;">
+        🔴 Hết hạn ngay
+      </button>
+      ${activePkgs.map(p => {
+        const isTrial = p.price === 0;
+        const icon = isTrial ? '🟡' : (p.durationDays >= 365 ? '👑' : '⚡');
+        return `
+          <button type="button" class="admin-btn admin-btn-outline admin-btn-sm btn-quick-pkg"
+                  data-pkg-name="${p.name}" data-days="${p.durationDays}"
+                  style="padding: 4px 8px; font-size: 0.76rem;">
+            ${icon} ${p.name}
+          </button>
+        `;
+      }).join('')}
+    `;
+
+    // Gắn sự kiện cho phím Hết hạn ngay
+    const expBtn = document.getElementById('btn-quick-expire');
+    if (expBtn) {
+      expBtn.onclick = () => {
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const expiresEl = document.getElementById('m-user-expires-input');
+        const statusEl = document.getElementById('m-user-status-input');
+        if (expiresEl) expiresEl.value = yesterday;
+        if (statusEl) statusEl.value = 'EXPIRED';
+        updateModalExpireBadge();
+      };
+    }
+
+    // Gắn sự kiện cho các phím tắt gói động
+    document.querySelectorAll('.btn-quick-pkg').forEach(btn => {
+      btn.onclick = () => {
+        const pkgName = btn.getAttribute('data-pkg-name');
+        const days = parseInt(btn.getAttribute('data-days'), 10) || 30;
+        const expiresEl = document.getElementById('m-user-expires-input');
+        const statusEl = document.getElementById('m-user-status-input');
+
+        const targetDate = new Date();
+        if (days >= 9999) {
+          targetDate.setFullYear(targetDate.getFullYear() + 10);
+        } else {
+          targetDate.setDate(targetDate.getDate() + days);
+        }
+
+        if (expiresEl) expiresEl.value = targetDate.toISOString().split('T')[0];
+        if (pkgEl) {
+          if (!Array.from(pkgEl.options).some(o => o.value === pkgName)) {
+            const opt = document.createElement('option');
+            opt.value = pkgName;
+            opt.textContent = pkgName;
+            pkgEl.appendChild(opt);
+          }
+          pkgEl.value = pkgName;
+        }
+        if (statusEl) statusEl.value = days <= 3 ? 'TRIAL' : 'ACTIVE';
+        updateModalExpireBadge();
+      };
+    });
+  }
+
+  // 3. Nạp động các nút gia hạn hạn dùng nhanh trong Quick Extend Modal
+  const extendContainer = document.getElementById('quick-extend-buttons');
+  if (extendContainer) {
+    extendContainer.innerHTML = activePkgs.map(p => {
+      const isTrial = p.price === 0;
+      const isLong = p.durationDays >= 365;
+      const btnClass = isLong ? 'admin-btn-primary' : 'admin-btn-outline';
+      const icon = isTrial ? '🟡' : (p.durationDays >= 700 ? '👑' : '+');
+      return `
+        <button type="button" class="admin-btn ${btnClass} admin-btn-sm" data-extend-days="${p.durationDays}">
+          ${icon}${p.name} (${p.durationDays} ngày)
+        </button>
+      `;
+    }).join('');
+
+    // Rebind extend click events
+    extendContainer.querySelectorAll('[data-extend-days]').forEach(btn => {
+      btn.onclick = async () => {
+        if (!currentExtendUserEmail) return;
+        const days = parseInt(btn.getAttribute('data-extend-days'), 10);
+        btn.disabled = true;
+        const ok = await extendUserApi(currentExtendUserEmail, days);
+        if (ok) {
+          showToast(`Đã gia hạn thành công thêm ${days} ngày cho ${currentExtendUserEmail}! Đồng bộ MySQL.`);
+          closeExtendModal();
+          await reloadUsersList();
+        } else {
+          showToast('Lỗi khi gia hạn người dùng', 'error');
+        }
+        btn.disabled = false;
+      };
+    });
+  }
+}
 
 async function reloadUsersList() {
   usersList = await fetchUsers();
@@ -189,7 +334,25 @@ function openUserModal(userEmail = null) {
     if (phoneEl) phoneEl.value = u.phone || '';
     document.getElementById('m-user-device-input').value = u.device || 'Android';
     document.getElementById('m-user-version-input').value = u.version || '1.2.0';
-    document.getElementById('m-user-pkg-input').value = u.pkg || u.packagePlan || '1 Năm';
+    const targetPkg = u.pkg || u.packagePlan || '1 Tháng';
+    const pkgSelect = document.getElementById('m-user-pkg-input');
+    if (pkgSelect) {
+      let matched = false;
+      for (const opt of pkgSelect.options) {
+        if (opt.value === targetPkg || opt.value.toLowerCase().includes(targetPkg.toLowerCase()) || targetPkg.toLowerCase().includes(opt.value.toLowerCase())) {
+          pkgSelect.value = opt.value;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        const customOpt = document.createElement('option');
+        customOpt.value = targetPkg;
+        customOpt.textContent = targetPkg;
+        pkgSelect.appendChild(customOpt);
+        pkgSelect.value = targetPkg;
+      }
+    }
     document.getElementById('m-user-expires-input').value = formatDate(u.expires || u.expiresAt);
     document.getElementById('m-user-status-input').value = u.status || 'ACTIVE';
   } else {
@@ -313,7 +476,8 @@ function initAddAndEditModals() {
       } else if (st === 'TRIAL') {
         const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
         if (expiresEl) expiresEl.value = in3Days;
-        if (pkgEl) pkgEl.value = 'Dùng thử 3 ngày';
+        const trialPkg = adminPackages.find(p => p.price === 0 || p.key === 'trial' || p.name.includes('Dùng thử'));
+        if (pkgEl && trialPkg) pkgEl.value = trialPkg.name;
       }
       updateModalExpireBadge();
     });
@@ -322,37 +486,17 @@ function initAddAndEditModals() {
   if (pkgEl && !pkgEl.dataset.bound) {
     pkgEl.dataset.bound = 'true';
     pkgEl.addEventListener('change', () => {
-      const p = pkgEl.value;
+      const selectedPkgName = pkgEl.value;
+      const found = adminPackages.find(p => p.name === selectedPkgName || p.key === selectedPkgName);
+      const days = found ? (found.durationDays || 30) : (selectedPkgName.includes('Dùng thử') ? 3 : 30);
       const now = new Date();
-      if (p.includes('Dùng thử')) {
-        now.setDate(now.getDate() + 3);
-        if (expiresEl) expiresEl.value = now.toISOString().split('T')[0];
-        if (statusEl) statusEl.value = 'TRIAL';
-      } else if (p.includes('1 Tháng')) {
-        now.setDate(now.getDate() + 30);
-        if (expiresEl) expiresEl.value = now.toISOString().split('T')[0];
-        if (statusEl) statusEl.value = 'ACTIVE';
-      } else if (p.includes('3 Tháng')) {
-        now.setDate(now.getDate() + 90);
-        if (expiresEl) expiresEl.value = now.toISOString().split('T')[0];
-        if (statusEl) statusEl.value = 'ACTIVE';
-      } else if (p.includes('6 Tháng')) {
-        now.setDate(now.getDate() + 180);
-        if (expiresEl) expiresEl.value = now.toISOString().split('T')[0];
-        if (statusEl) statusEl.value = 'ACTIVE';
-      } else if (p.includes('9 Tháng')) {
-        now.setDate(now.getDate() + 270);
-        if (expiresEl) expiresEl.value = now.toISOString().split('T')[0];
-        if (statusEl) statusEl.value = 'ACTIVE';
-      } else if (p.includes('1 Năm')) {
-        now.setFullYear(now.getFullYear() + 1);
-        if (expiresEl) expiresEl.value = now.toISOString().split('T')[0];
-        if (statusEl) statusEl.value = 'ACTIVE';
-      } else if (p.includes('Vĩnh Viễn')) {
+      if (days >= 9999) {
         now.setFullYear(now.getFullYear() + 10);
-        if (expiresEl) expiresEl.value = now.toISOString().split('T')[0];
-        if (statusEl) statusEl.value = 'ACTIVE';
+      } else {
+        now.setDate(now.getDate() + days);
       }
+      if (expiresEl) expiresEl.value = now.toISOString().split('T')[0];
+      if (statusEl) statusEl.value = days <= 3 ? 'TRIAL' : 'ACTIVE';
       updateModalExpireBadge();
     });
   }
@@ -390,7 +534,8 @@ function initAddAndEditModals() {
     btnTrial.onclick = () => {
       const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
       if (expiresEl) expiresEl.value = in3Days;
-      if (pkgEl) pkgEl.value = 'Dùng thử 3 ngày';
+      const trialPkg = adminPackages.find(p => p.price === 0 || p.key === 'trial' || p.name.includes('Dùng thử'));
+      if (pkgEl && trialPkg) pkgEl.value = trialPkg.name;
       if (statusEl) statusEl.value = 'TRIAL';
       updateModalExpireBadge();
     };
@@ -408,27 +553,51 @@ function initAddAndEditModals() {
     };
   }
 
-  const btn1y = document.getElementById('btn-quick-1y');
-  if (btn1y && !btn1y.dataset.bound) {
-    btn1y.dataset.bound = 'true';
-    btn1y.onclick = () => {
-      const d = new Date();
-      d.setFullYear(d.getFullYear() + 1);
-      if (expiresEl) expiresEl.value = d.toISOString().split('T')[0];
-      if (pkgEl) pkgEl.value = '1 Năm';
+  const btn3m = document.getElementById('btn-quick-3m');
+  if (btn3m && !btn3m.dataset.bound) {
+    btn3m.dataset.bound = 'true';
+    btn3m.onclick = () => {
+      const in90Days = new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0];
+      if (expiresEl) expiresEl.value = in90Days;
+      if (pkgEl) pkgEl.value = '3 Tháng';
       if (statusEl) statusEl.value = 'ACTIVE';
       updateModalExpireBadge();
     };
   }
 
-  const btnLife = document.getElementById('btn-quick-lifetime');
-  if (btnLife && !btnLife.dataset.bound) {
-    btnLife.dataset.bound = 'true';
-    btnLife.onclick = () => {
-      const d = new Date();
-      d.setFullYear(d.getFullYear() + 10);
-      if (expiresEl) expiresEl.value = d.toISOString().split('T')[0];
-      if (pkgEl) pkgEl.value = 'Gói Vĩnh Viễn';
+  const btn6m = document.getElementById('btn-quick-6m');
+  if (btn6m && !btn6m.dataset.bound) {
+    btn6m.dataset.bound = 'true';
+    btn6m.onclick = () => {
+      const in180Days = new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0];
+      if (expiresEl) expiresEl.value = in180Days;
+      if (pkgEl) pkgEl.value = '6 Tháng';
+      if (statusEl) statusEl.value = 'ACTIVE';
+      updateModalExpireBadge();
+    };
+  }
+
+  const btn1y = document.getElementById('btn-quick-1y');
+  if (btn1y && !btn1y.dataset.bound) {
+    btn1y.dataset.bound = 'true';
+    btn1y.onclick = () => {
+      const d = new Date(Date.now() + 425 * 86400000).toISOString().split('T')[0];
+      if (expiresEl) expiresEl.value = d;
+      const yPkg = adminPackages.find(p => p.key === '1y' || p.name.includes('1 Năm'));
+      if (pkgEl && yPkg) pkgEl.value = yPkg.name;
+      if (statusEl) statusEl.value = 'ACTIVE';
+      updateModalExpireBadge();
+    };
+  }
+
+  const btn2y = document.getElementById('btn-quick-2y') || document.getElementById('btn-quick-lifetime');
+  if (btn2y && !btn2y.dataset.bound) {
+    btn2y.dataset.bound = 'true';
+    btn2y.onclick = () => {
+      const d = new Date(Date.now() + 910 * 86400000).toISOString().split('T')[0];
+      if (expiresEl) expiresEl.value = d;
+      const y2Pkg = adminPackages.find(p => p.key === '2y' || p.name.includes('2 Năm'));
+      if (pkgEl && y2Pkg) pkgEl.value = y2Pkg.name;
       if (statusEl) statusEl.value = 'ACTIVE';
       updateModalExpireBadge();
     };

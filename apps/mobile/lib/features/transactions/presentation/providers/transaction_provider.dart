@@ -34,8 +34,8 @@ class TransactionProvider extends ChangeNotifier {
 
   void updatePlanStatus({required bool isActive}) {
     _isPlanActive = isActive;
-    if (!isActive && _ttsService.isEnabled) {
-      _ttsService.isEnabled = false;
+    if (isActive) {
+      _ttsService.isEnabled = true;
     }
     notifyListeners();
   }
@@ -104,6 +104,12 @@ class TransactionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void dismissTransactionAlert() {
+    _activeAlertTransaction = null;
+    _isLightStrobeActive = false;
+    notifyListeners();
+  }
+
   Future<void> stopTts() async {
     await _ttsService.stop();
     notifyListeners();
@@ -122,9 +128,14 @@ class TransactionProvider extends ChangeNotifier {
     scheduleMicrotask(() => init());
   }
 
-  // Quản lý tự động reset doanh thu vào 0h sáng múi giờ Việt Nam (UTC+7)
+  // Quản lý tự động reset doanh thu vào 0h00 sáng (12h đêm)
   Timer? _midnightTimer;
+  Timer? _midnightPrecisionTimer;
   int? _lastRecordedVietnamDay;
+
+  // Hàng đợi phát âm thanh TTS khi có mạng trở lại hoặc nhận nhiều thông báo dồn dập
+  final List<NormalizedTransaction> _speechQueue = [];
+  bool _isSpeakingQueueRunning = false;
 
   Future<void> init() async {
     try {
@@ -142,28 +153,42 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
-  /// Tự động thiết lập đồng hồ đếm ngược reset doanh thu hôm nay vào 0h00 sáng giờ Việt Nam
+  /// Tự động thiết lập đồng hồ đếm ngược reset doanh thu hôm nay vào đúng chuẩn 12h đêm (00:00:00)
   void _setupMidnightTimer() {
     _midnightTimer?.cancel();
-    _lastRecordedVietnamDay = DateTime.now().toUtc().add(const Duration(hours: 7)).day;
-    // Kiểm tra định kỳ mỗi phút để reset chính xác khi bước sang ngày mới
-    _midnightTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+    _midnightPrecisionTimer?.cancel();
+    final now = DateTime.now();
+    _lastRecordedVietnamDay = now.day;
+
+    // 1. Tính toán thời gian còn lại đến chính xác 00:00:01 của ngày hôm sau
+    final tomorrowMidnight = DateTime(now.year, now.month, now.day + 1, 0, 0, 1);
+    final durationUntilMidnight = tomorrowMidnight.difference(now);
+
+    _midnightPrecisionTimer = Timer(durationUntilMidnight, () async {
+      await checkMidnightReset();
+      _setupMidnightTimer(); // Lên lịch chính xác cho đêm tiếp theo
+    });
+
+    // 2. Định kỳ quét mỗi 10 giây để đảm bảo nếu máy tắt màn hình/ngủ sâu tỉnh dậy thì reset ngay lập tức
+    _midnightTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       checkMidnightReset();
     });
   }
 
-  /// Kiểm tra nếu đã bước qua 0h sáng giờ Việt Nam thì đặt lại số tiền và số đơn về 0
+  /// Kiểm tra nếu đã bước qua 12h đêm (00:00:00) thì tự động đặt lại doanh thu hôm nay về 0đ
   Future<void> checkMidnightReset() async {
     try {
-      final nowVN = DateTime.now().toUtc().add(const Duration(hours: 7));
-      if (_lastRecordedVietnamDay != null && _lastRecordedVietnamDay != nowVN.day) {
-        debugPrint('[AutoBank] Đã sang ngày mới theo giờ Việt Nam (${nowVN.day}/${nowVN.month}/${nowVN.year}). Tự động reset doanh thu hôm nay về 0đ!');
-        _lastRecordedVietnamDay = nowVN.day;
+      final now = DateTime.now();
+      if (_lastRecordedVietnamDay != null && _lastRecordedVietnamDay != now.day) {
+        debugPrint('[AutoBank] Đã sang ngày mới (${now.day}/${now.month}/${now.year}). Tự động reset doanh thu hôm nay về đúng 0đ!');
+        _lastRecordedVietnamDay = now.day;
         _todayTotal = await _localDataSource.getTodayTotalReceived();
         _todayCount = await _localDataSource.getTodayTransactionCount();
         notifyListeners();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[AutoBank] Lỗi checkMidnightReset: $e');
+    }
   }
 
   Future<void> checkPermission() async {
@@ -171,6 +196,31 @@ class TransactionProvider extends ChangeNotifier {
       _isPermissionGranted = await NotificationService.isListenerEnabled();
       notifyListeners();
     } catch (_) {}
+  }
+
+  /// Tự động âm thầm đồng bộ các giao dịch offline (chưa đồng bộ) lên VPS khi có mạng
+  Future<int> syncPendingOfflineTransactions() async {
+    if (kIsWeb || _currentUserEmail == null || _currentUserEmail!.isEmpty) return 0;
+    try {
+      final unsynced = await _localDataSource.getUnsyncedTransactions();
+      if (unsynced.isEmpty) return 0;
+
+      int syncedCount = 0;
+      for (final tx in unsynced) {
+        final success = await _remoteDataSource.syncTransaction(tx, userEmail: _currentUserEmail);
+        if (success) {
+          await _localDataSource.markTransactionSynced(tx.id);
+          syncedCount++;
+        }
+      }
+      if (syncedCount > 0) {
+        debugPrint('[AutoBank Offline Queue] Đã tự động đồng bộ ngầm $syncedCount giao dịch lên máy chủ VPS');
+      }
+      return syncedCount;
+    } catch (e) {
+      debugPrint('[AutoBank Offline Queue] Lỗi đồng bộ ngầm: $e');
+      return 0;
+    }
   }
 
   Future<void> loadLocalTransactions() async {
@@ -181,6 +231,9 @@ class TransactionProvider extends ChangeNotifier {
       _todayTotal = await _localDataSource.getTodayTotalReceived();
       _todayCount = await _localDataSource.getTodayTransactionCount();
       notifyListeners();
+
+      // Tự động quét và đẩy các giao dịch offline nếu có kết nối mạng
+      unawaited(syncPendingOfflineTransactions());
     } catch (e) {
       debugPrint('[AutoBank] Lỗi nạp loadLocalTransactions: $e');
     }
@@ -190,16 +243,18 @@ class TransactionProvider extends ChangeNotifier {
   Future<void> syncAccountTransactions(String email) async {
     final cleanEmail = email.trim().toLowerCase();
     if (cleanEmail.isEmpty) return;
-    _currentUserEmail = cleanEmail;
-    await _loadUserBudgetsAndCategories(cleanEmail);
-
-    try {
-      // 1. Xóa sạch dữ liệu cục bộ trước khi đồng bộ để đảm bảo chính xác 100% với dữ liệu mới nhất trên MySQL
+    
+    // Nếu chuyển đổi sang tài khoản khác, làm sạch cache local cũ để đảm bảo cách ly 100% dữ liệu
+    if (_currentUserEmail != null && _currentUserEmail != cleanEmail) {
       await _localDataSource.clearAll();
       _transactions.clear();
       _todayTotal = 0.0;
       _todayCount = 0;
+    }
+    _currentUserEmail = cleanEmail;
+    await _loadUserBudgetsAndCategories(cleanEmail);
 
+    try {
       final remoteList = await _remoteDataSource.fetchTransactionsByUser(cleanEmail);
       if (remoteList.isNotEmpty) {
         for (final rTx in remoteList) {
@@ -277,12 +332,17 @@ class TransactionProvider extends ChangeNotifier {
     }
 
     // DƯỚI ĐÂY LÀ GIAO DỊCH THẬT TỪ HỆ THỐNG / APP NGÂN HÀNG:
-    // Chống trùng lặp mức ứng dụng (Semantic Deduplication trong 6 giây)
-    final semanticKey = '${parsedTx.bankCode}_${parsedTx.amount.toInt()}_${parsedTx.type.name}';
+    // Kiểm tra xem đã qua 12h đêm (00:00:00) chưa trước khi tính toán
+    await checkMidnightReset();
+
+    // Chống trùng lặp mức ứng dụng: chỉ triệt tiêu nếu thông báo y hệt từng chi tiết bắn lặp trong 1.5 giây do Android OS
+    final cleanOrder = (parsedTx.orderCode ?? '').trim().toLowerCase();
+    final cleanContentHash = parsedTx.content.trim().toLowerCase().hashCode;
+    final semanticKey = '${parsedTx.bankCode}_${parsedTx.amount.toInt()}_${parsedTx.type.name}_${cleanOrder}_$cleanContentHash';
     final now = DateTime.now();
     final lastSeen = _recentTxCooldownMap[semanticKey];
-    if (lastSeen != null && now.difference(lastSeen).inSeconds < 6) {
-      debugPrint('Đã triệt tiêu thông báo ngân hàng bị bắn lặp lại trong 6 giây: $semanticKey');
+    if (lastSeen != null && now.difference(lastSeen).inMilliseconds < 1500) {
+      debugPrint('Đã triệt tiêu thông báo ngân hàng bị bắn lặp lại bởi Android OS trong 1.5s: $semanticKey');
       return false;
     }
     _recentTxCooldownMap[semanticKey] = now;
@@ -296,36 +356,26 @@ class TransactionProvider extends ChangeNotifier {
     final isNew = await _localDataSource.insertTransaction(parsedTx);
     if (isNew) {
       _transactions = [parsedTx, ..._transactions];
+
+      // ĐỒNG BỘ NGAY LẬP TỨC LÊN SERVER MYSQL QUA NESTJS API TRƯỚC KHI ĐỌC LOA
+      // Giúp trang Web Live nhận tín hiệu SSE và phát loa đồng thời ngay lập tức cùng lúc với điện thoại (0s delay)
+      unawaited(_remoteDataSource.syncTransaction(parsedTx, userEmail: _currentUserEmail));
+
+      // Kiểm tra chuẩn ngày theo múi giờ địa phương của máy
+      final txTimeLocal = parsedTx.transactionTime.toLocal();
+      final isTodayTx = txTimeLocal.year == now.year && txTimeLocal.month == now.month && txTimeLocal.day == now.day;
+
       if (parsedTx.type.isCredit) {
-        _todayTotal += parsedTx.amount;
-        _todayCount += 1;
-
-        // 1. Kích hoạt thông báo toàn màn hình & sáng đèn tín hiệu
-        triggerTransactionAlert(parsedTx);
-
-        // 2. Phát âm thanh giọng nói TTS theo mẫu câu đã cấu hình (khóa đọc tự động nếu gói đã hết hạn)
-        if (_isPlanActive) {
-          await _ttsService.speakReceivedMoney(
-            amount: parsedTx.amount,
-            orderCode: parsedTx.orderCode,
-            bankName: parsedTx.bankCode,
-          );
-        } else {
-          debugPrint('Gói cước đã hết hạn, tạm khóa đọc thông báo nhận tiền tự động.');
+        if (isTodayTx) {
+          _todayTotal += parsedTx.amount;
+          _todayCount += 1;
         }
+
+        // Đưa vào hàng đợi phát âm thanh và hiển thị cảnh báo (không bị nuốt câu khi có mạng thông báo dồn)
+        _enqueueSpeech(parsedTx);
       } else {
-        // Biến động tiền ra (chi tiêu/trừ tiền): kích hoạt cảnh báo toàn màn hình & phát âm thanh giọng nói TTS
-        triggerTransactionAlert(parsedTx);
-
-        if (_isPlanActive) {
-          await _ttsService.speakDebitMoney(
-            amount: parsedTx.amount,
-            orderCode: parsedTx.orderCode,
-            bankName: parsedTx.bankCode,
-          );
-        } else {
-          debugPrint('Gói cước đã hết hạn, tạm khóa đọc thông báo chuyển tiền tự động.');
-        }
+        // Biến động tiền ra (chi tiêu/trừ tiền)
+        _enqueueSpeech(parsedTx);
       }
       notifyListeners();
 
@@ -334,14 +384,58 @@ class TransactionProvider extends ChangeNotifier {
         onTransactionReceived?.call(parsedTx);
       } catch (_) {}
 
-      // Đồng bộ bất đồng bộ lên Server MySQL qua NestJS API (kèm user email của tài khoản)
-      unawaited(_remoteDataSource.syncTransaction(parsedTx, userEmail: _currentUserEmail));
-
       return true;
     } else {
       debugPrint('Đã bỏ qua thông báo trùng lặp (Fingerprint: ${parsedTx.fingerprint})');
       return false;
     }
+  }
+
+  /// Đưa giao dịch vào hàng đợi âm thanh TTS để đọc lần lượt từng câu rõ ràng khi có mạng lại thông báo dồn dập
+  void _enqueueSpeech(NormalizedTransaction tx) {
+    _speechQueue.add(tx);
+    if (!_isSpeakingQueueRunning) {
+      _processNextInSpeechQueue();
+    }
+  }
+
+  Future<void> _processNextInSpeechQueue() async {
+    if (_speechQueue.isEmpty) {
+      _isSpeakingQueueRunning = false;
+      return;
+    }
+    _isSpeakingQueueRunning = true;
+    final tx = _speechQueue.removeAt(0);
+
+    try {
+      // 1. Kích hoạt thông báo toàn màn hình, đánh thức màn hình sáng & loa lớn
+      triggerTransactionAlert(tx);
+      NotificationService.wakeUpScreen();
+      await NotificationService.ensureMaxVolume();
+
+      // 2. Phát âm thanh giọng nói TTS theo mẫu câu đã cấu hình (luôn đọc rõ ràng khi có tiền về)
+      if (tx.type.isCredit) {
+        await _ttsService.speakReceivedMoney(
+          amount: tx.amount,
+          orderCode: tx.orderCode,
+          bankName: tx.bankCode,
+          bypassChecks: true,
+        );
+      } else {
+        await _ttsService.speakDebitMoney(
+          amount: tx.amount,
+          orderCode: tx.orderCode,
+          bankName: tx.bankCode,
+          bypassChecks: true,
+        );
+      }
+    } catch (e) {
+      debugPrint('[AutoBank Queue] Lỗi đọc giọng nói TTS: $e');
+    }
+
+    // Tạm dừng 400ms giữa các câu đọc dồn dập
+    await Future.delayed(const Duration(milliseconds: 400));
+    _processNextInSpeechQueue();
   }
 
   /// Giả lập thông báo ngân hàng (phục vụ test và demo trên máy thật / giả lập)
@@ -409,31 +503,65 @@ class TransactionProvider extends ChangeNotifier {
   ];
   List<String> get expenseCategories => List.unmodifiable(_expenseCategories);
 
-  // Quản lý Quỹ ngân sách chi tiêu hàng tháng (VND)
-  final Map<String, double> _monthlyBudgets = {
+  // 1. QUỸ NGÂN SÁCH DOANH NGHIỆP (Business Funds)
+  final Map<String, double> _businessBudgets = {
+    'Quỹ Nhập hàng': 20000000.0,
+    'Quỹ Mặt bằng & Vận hành': 10000000.0,
+    'Quỹ Lương nhân viên': 15000000.0,
+    'Quỹ Dự phòng & Thuế': 5000000.0,
+  };
+  Map<String, double> get businessBudgets => Map.unmodifiable(_businessBudgets);
+
+  // 2. QUỸ NGÂN SÁCH CÁ NHÂN (Personal Funds)
+  final Map<String, double> _personalBudgets = {
     'Tiền ăn': 3000000.0,
     'Tiền nhà': 5000000.0,
     'Xăng xe': 500000.0,
     'Đi chơi': 1000000.0,
     'Mua sắm': 1500000.0,
     'Tiền điện nước': 1200000.0,
-    'Du lịch': 2000000.0,
   };
-  Map<String, double> get monthlyBudgets => Map.unmodifiable(_monthlyBudgets);
+  Map<String, double> get personalBudgets => Map.unmodifiable(_personalBudgets);
+
+  // Khả năng tương thích ngược
+  Map<String, double> get monthlyBudgets => Map.unmodifiable(_personalBudgets);
+
+  // 3. THỜI GIAN HIỂN THỊ THÔNG BÁO NHẬN TIỀN (Mặc định 10 giây nếu chưa cấu hình)
+  int _alertDisplayDurationSeconds = 10;
+  int get alertDisplayDurationSeconds => _alertDisplayDurationSeconds;
 
   Future<void> _loadUserBudgetsAndCategories(String email) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final budgetStr = prefs.getString('autobank_budgets_$email');
-      if (budgetStr != null && budgetStr.isNotEmpty) {
-        final decoded = jsonDecode(budgetStr);
+
+      // Đọc thời gian hiển thị thông báo nhận tiền (mặc định 10s)
+      _alertDisplayDurationSeconds = prefs.getInt('autobank_alert_duration_seconds') ?? 10;
+      if (_alertDisplayDurationSeconds < 3) _alertDisplayDurationSeconds = 10;
+
+      // Đọc Quỹ Doanh Nghiệp
+      final bizBudgetStr = prefs.getString('autobank_biz_budgets_$email');
+      if (bizBudgetStr != null && bizBudgetStr.isNotEmpty) {
+        final decoded = jsonDecode(bizBudgetStr);
         if (decoded is Map) {
-          _monthlyBudgets.clear();
+          _businessBudgets.clear();
           decoded.forEach((k, v) {
-            _monthlyBudgets[k.toString()] = (v as num).toDouble();
+            _businessBudgets[k.toString()] = (v as num).toDouble();
           });
         }
       }
+
+      // Đọc Quỹ Cá Nhân (nếu chưa có thì đọc autobank_budgets_$email cũ)
+      final personalBudgetStr = prefs.getString('autobank_personal_budgets_$email') ?? prefs.getString('autobank_budgets_$email');
+      if (personalBudgetStr != null && personalBudgetStr.isNotEmpty) {
+        final decoded = jsonDecode(personalBudgetStr);
+        if (decoded is Map) {
+          _personalBudgets.clear();
+          decoded.forEach((k, v) {
+            _personalBudgets[k.toString()] = (v as num).toDouble();
+          });
+        }
+      }
+
       final catStr = prefs.getString('autobank_categories_$email');
       if (catStr != null && catStr.isNotEmpty) {
         final decoded = jsonDecode(catStr);
@@ -449,27 +577,96 @@ class TransactionProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  Future<void> setAlertDisplayDuration(int seconds) async {
+    _alertDisplayDurationSeconds = seconds > 0 ? seconds : 10;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('autobank_alert_duration_seconds', _alertDisplayDurationSeconds);
+    } catch (_) {}
+    notifyListeners();
+  }
+
   Future<void> _saveUserBudgetsAndCategories() async {
     final email = _currentUserEmail ?? 'guest';
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('autobank_budgets_$email', jsonEncode(_monthlyBudgets));
+      await prefs.setString('autobank_biz_budgets_$email', jsonEncode(_businessBudgets));
+      await prefs.setString('autobank_personal_budgets_$email', jsonEncode(_personalBudgets));
       await prefs.setString('autobank_categories_$email', jsonEncode(_expenseCategories));
     } catch (_) {}
   }
 
-  void setCategoryBudget(String category, double amount) {
+  // --- QUẢN LÝ QUỸ DOANH NGHIỆP (CRUD) ---
+  void setBusinessBudget(String name, double amount) {
+    final clean = name.trim();
+    if (clean.isEmpty) return;
     if (amount <= 0) {
-      _monthlyBudgets.remove(category);
+      _businessBudgets.remove(clean);
     } else {
-      _monthlyBudgets[category] = amount;
+      _businessBudgets[clean] = amount;
     }
     _saveUserBudgetsAndCategories();
     notifyListeners();
   }
 
+  void deleteBusinessBudget(String name) {
+    _businessBudgets.remove(name);
+    _saveUserBudgetsAndCategories();
+    notifyListeners();
+  }
+
+  void renameBusinessBudget(String oldName, String newName, double amount) {
+    final clean = newName.trim();
+    if (clean.isEmpty) return;
+    _businessBudgets.remove(oldName);
+    _businessBudgets[clean] = amount > 0 ? amount : 1000000.0;
+    _saveUserBudgetsAndCategories();
+    notifyListeners();
+  }
+
+  // --- QUẢN LÝ QUỸ CÁ NHÂN (CRUD) ---
+  void setPersonalBudget(String name, double amount) {
+    final clean = name.trim();
+    if (clean.isEmpty) return;
+    if (amount <= 0) {
+      _personalBudgets.remove(clean);
+    } else {
+      _personalBudgets[clean] = amount;
+    }
+    _saveUserBudgetsAndCategories();
+    notifyListeners();
+  }
+
+  void deletePersonalBudget(String name) {
+    _personalBudgets.remove(name);
+    _saveUserBudgetsAndCategories();
+    notifyListeners();
+  }
+
+  void renamePersonalBudget(String oldName, String newName, double amount) {
+    final clean = newName.trim();
+    if (clean.isEmpty) return;
+    _personalBudgets.remove(oldName);
+    _personalBudgets[clean] = amount > 0 ? amount : 1000000.0;
+    _saveUserBudgetsAndCategories();
+    notifyListeners();
+  }
+
+  // Compatibility methods
+  void setCategoryBudget(String category, double amount) => setPersonalBudget(category, amount);
+  void updateBudget(String category, double amount) {
+    if (_businessBudgets.containsKey(category)) {
+      setBusinessBudget(category, amount);
+    } else {
+      setPersonalBudget(category, amount);
+    }
+  }
+  void deleteCategoryBudget(String category) {
+    deleteBusinessBudget(category);
+    deletePersonalBudget(category);
+  }
   double getCategoryBudget(String category) {
-    return _monthlyBudgets[category] ?? 0.0;
+    return _businessBudgets[category] ?? _personalBudgets[category] ?? 0.0;
   }
 
   void addCustomCategory(String name) {
@@ -478,6 +675,19 @@ class TransactionProvider extends ChangeNotifier {
       _expenseCategories.add(trimmed);
       _saveUserBudgetsAndCategories();
       notifyListeners();
+    }
+  }
+
+  void addCustomFund({required String name, required double budgetAmount, bool isBusiness = false}) {
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) return;
+    if (isBusiness) {
+      setBusinessBudget(cleanName, budgetAmount);
+    } else {
+      if (!_expenseCategories.contains(cleanName)) {
+        _expenseCategories.add(cleanName);
+      }
+      setPersonalBudget(cleanName, budgetAmount);
     }
   }
 

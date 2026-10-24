@@ -2,7 +2,17 @@ import { BANKS_DATA as defaultBanks } from '../data/banks-data.js';
 
 // Environment variables
 export const ENV_ADMIN_USER = import.meta.env.VITE_ADMIN_USERNAME || 'admin';
-export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+export function resolveApiBase() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+    }
+    return 'https://api.docthongbaobank.com';
+  }
+  return import.meta.env.VITE_API_BASE || 'https://api.docthongbaobank.com';
+}
+export const API_BASE = resolveApiBase();
 
 // Storage keys
 export const STORAGE_AUTH_TOKEN = 'autobank_admin_session';
@@ -23,10 +33,21 @@ export function getAdminHeaders() {
   return headers;
 }
 
-// Wrapper fetch chuyên dụng cho Admin - tự động gắn JWT Token và bắt lỗi hết hạn phiên
+// Wrapper fetch chuyên dụng cho Admin - tự động gắn JWT Token, chống cache 304, và bắt lỗi hết hạn phiên
 export async function adminFetch(url, options = {}) {
   const headers = { ...getAdminHeaders(), ...(options.headers || {}) };
-  const res = await fetch(url, { ...options, headers });
+  let finalUrl = url;
+  const method = (options.method || 'GET').toUpperCase();
+  if (method === 'GET' && !finalUrl.includes('_t=')) {
+    const sep = finalUrl.includes('?') ? '&' : '?';
+    finalUrl = `${finalUrl}${sep}_t=${Date.now()}`;
+  }
+  const fetchOptions = {
+    cache: 'no-store',
+    ...options,
+    headers,
+  };
+  const res = await fetch(finalUrl, fetchOptions);
   if (res.status === 401 || res.status === 403) {
     sessionStorage.removeItem(STORAGE_AUTH_TOKEN);
     sessionStorage.removeItem(STORAGE_JWT_TOKEN);
@@ -40,7 +61,7 @@ export async function adminFetch(url, options = {}) {
 export const defaultConfig = {
   brandName: 'Đọc thông báo nhận tiền',
   brandSlogan: 'Tiền vừa sang ~ máy báo vang',
-  chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
+  chplayLink: 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
   youtubeLink: '',
   hotline: '0869226687',
   email: 'tranquocvu3011@gmail.com',
@@ -49,24 +70,22 @@ export const defaultConfig = {
   bankCode: 'MB',
   bankAcc: '3011200588888',
   bankName: 'TRẦN QUỐC VŨ',
-  serverDomain: 'http://192.168.1.217:3000',
-  webDomain: 'http://192.168.1.217:5173',
+  serverDomain: 'https://api.docthongbaobank.com',
+  webDomain: 'https://docthongbaobank.com',
   apiPort: 3000,
   priceTrial: '0đ (3 ngày)',
-  price1m: 38000,
-  price3m: 99000,
-  price6m: 179000,
-  price9m: 249000,
-  price1y: 299000,
-  priceLifetime: 499000,
+  price1m: 29000,
+  price3m: 69000,
+  price6m: 109000,
+  price1y: 159000,
+  priceLifetime: 219000,
   packages: [
     { key: 'trial', name: 'Dùng thử miễn phí', durationDays: 3, price: 0, badge: 'Miễn phí', description: 'Trải nghiệm 100% tính năng cao cấp trong 3 ngày', isActive: true },
-    { key: '1m', name: 'Gói 1 Tháng', durationDays: 30, price: 39000, badge: '', description: 'Bản quyền 30 ngày đầy đủ thông báo giọng nói & live sync', isActive: true },
-    { key: '3m', name: 'Gói 3 Tháng', durationDays: 90, price: 99000, badge: 'Tiết kiệm 15%', description: 'Bản quyền 90 ngày cho cửa hàng kinh doanh', isActive: true },
-    { key: '6m', name: 'Gói 6 Tháng', durationDays: 180, price: 179000, badge: 'Phổ biến', description: 'Bản quyền 180 ngày ổn định 24/7', isActive: true },
-    { key: '9m', name: 'Gói 9 Tháng', durationDays: 270, price: 249000, badge: 'Tiết kiệm', description: 'Bản quyền 270 ngày vận hành quầy thu ngân', isActive: true },
-    { key: '1y', name: 'Gói 1 Năm', durationDays: 365, price: 299000, badge: 'Khuyên dùng (Bán chạy nhất)', description: 'Tặng thêm 2 tháng VIP + Hỗ trợ kỹ thuật 24/7', isActive: true },
-    { key: 'lifetime', name: 'Gói Vĩnh Viễn', durationDays: 9999, price: 499000, badge: 'Trọn đời VIP', description: 'Dùng trọn đời không giới hạn thời gian', isActive: true },
+    { key: '1m', name: '1 Tháng', durationDays: 30, price: 29000, badge: 'Trải nghiệm', description: 'Bản quyền 30 ngày đầy đủ thông báo giọng nói', isActive: true },
+    { key: '3m', name: '3 Tháng', durationDays: 90, price: 69000, badge: 'Tiết kiệm', description: 'Bản quyền 90 ngày cho cửa hàng kinh doanh', isActive: true },
+    { key: '6m', name: '6 Tháng', durationDays: 180, price: 109000, badge: 'Phổ biến', description: 'Bản quyền 180 ngày ổn định 24/7', isActive: true },
+    { key: '1y', name: '1 Năm (tặng 2T)', durationDays: 425, price: 159000, badge: 'Khuyên dùng', description: 'Tặng thêm 2 tháng + Hỗ trợ kỹ thuật 24/7', isActive: true },
+    { key: '2y', name: '2 Năm (tặng 6T)', durationDays: 910, price: 219000, badge: 'Tốt Nhất', description: 'Tặng thêm 6 tháng + Hỗ trợ kỹ thuật 24/7', isActive: true },
   ],
   maintenance: false,
   maintenanceMsg: 'Hệ thống đang bảo trì nâng cấp máy chủ định kỳ. Vui lòng quay lại sau 15 phút.',
@@ -217,7 +236,7 @@ export async function deleteBankApi(id) {
 
 export async function fetchStats() {
   try {
-    const res = await adminFetch(`${API_BASE}/admin/stats`);
+    const res = await adminFetch(`${API_BASE}/admin/stats?_t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) return await res.json();
   } catch (_) {}
   return null;
@@ -225,7 +244,7 @@ export async function fetchStats() {
 
 export async function fetchLogs() {
   try {
-    const res = await adminFetch(`${API_BASE}/admin/logs`);
+    const res = await adminFetch(`${API_BASE}/admin/logs?_t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) return await res.json();
   } catch (_) {}
   return [];
@@ -241,11 +260,15 @@ export function loadUsers() {
 
 export async function fetchUsers() {
   try {
-    const res = await adminFetch(`${API_BASE}/admin/users`);
+    const res = await adminFetch(`${API_BASE}/admin/users?_t=${Date.now()}`, {
+      cache: 'no-store'
+    });
     if (res.ok) {
       const users = await res.json();
-      localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
-      return users;
+      if (Array.isArray(users)) {
+        localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
+        return users;
+      }
     }
   } catch (_) {}
   return loadUsers();

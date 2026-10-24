@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/security/app_pin_security_service.dart';
 
 class GoogleUserAccount {
   final String id;
@@ -13,6 +14,7 @@ class GoogleUserAccount {
   final String initial;
   String shop;
   String phone;
+  String bankName;
   String? boundDeviceId;
   final DateTime createdAt;
   bool isTrialStarted;
@@ -30,6 +32,7 @@ class GoogleUserAccount {
     required this.initial,
     this.shop = 'Cửa hàng',
     this.phone = '',
+    this.bankName = '',
     this.boundDeviceId,
     required this.createdAt,
     this.isTrialStarted = false,
@@ -47,8 +50,8 @@ class GoogleUserAccount {
   /// Tự động kiểm tra thời hạn sử dụng gói cước (Dùng thử 3 ngày hoặc gói tháng/năm)
   bool get isExpired => !isLifetime && DateTime.now().isAfter(expireDate);
 
-  /// Trạng thái kích hoạt thực tế: Nếu đã quá hạn thì tự động thu hồi quyền
-  bool get effectiveIsActivated => isActivated && !isExpired;
+  /// Trạng thái kích hoạt thực tế: Nếu thời hạn dùng còn trong tương lai thì luôn được xem là ACTIVE
+  bool get effectiveIsActivated => !isExpired;
 
   /// Tên gói cước hiển thị chuẩn theo trạng thái thời gian thực
   String get effectivePackageName {
@@ -57,8 +60,58 @@ class GoogleUserAccount {
           ? 'Gói dùng thử đã hết hạn'
           : 'Gói cước đã hết hạn';
     }
+    // Nếu chưa hết hạn (còn ngày sử dụng) nhưng tên gói lại chứa chuỗi 'hết hạn' hoặc 'Chưa kích hoạt'
+    if (activePackageName.contains('hết hạn') ||
+        activePackageName == 'Chưa kích hoạt gói' ||
+        activePackageName == 'Chưa đăng ký gói') {
+      if (isLifetime) return 'Gói Vĩnh Viễn Trọn Đời';
+      final daysLeft = expireDate.difference(DateTime.now()).inDays;
+      if (daysLeft >= 300) return 'Gói 1 Năm (VIP)';
+      if (daysLeft >= 75) return 'Gói 3 Tháng (VIP)';
+      if (daysLeft >= 20) return 'Gói 1 Tháng (VIP)';
+      if (daysLeft >= 4) return 'Gói Bản Quyền ($daysLeft ngày)';
+      return 'Dùng thử 3 ngày miễn phí';
+    }
     return activePackageName;
   }
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'name': name,
+    'email': email,
+    'initial': initial,
+    'shop': shop,
+    'phone': phone,
+    'bankName': bankName,
+    'boundDeviceId': boundDeviceId,
+    'createdAt': createdAt.toIso8601String(),
+    'isTrialStarted': isTrialStarted,
+    'trialStartedAt': trialStartedAt?.toIso8601String(),
+    'hasUsedTrial': hasUsedTrial,
+    'isActivated': isActivated,
+    'isLifetime': isLifetime,
+    'activePackageName': activePackageName,
+    'expireDate': expireDate.toIso8601String(),
+  };
+
+  factory GoogleUserAccount.fromMap(Map<String, dynamic> map) => GoogleUserAccount(
+    id: map['id']?.toString() ?? 'acc_local',
+    name: map['name']?.toString() ?? 'Người dùng',
+    email: map['email']?.toString() ?? '',
+    initial: map['initial']?.toString() ?? 'U',
+    shop: map['shop']?.toString() ?? 'Cửa hàng',
+    phone: map['phone']?.toString() ?? '',
+    bankName: map['bankName']?.toString() ?? '',
+    boundDeviceId: map['boundDeviceId']?.toString(),
+    createdAt: DateTime.tryParse('${map['createdAt']}') ?? DateTime.now(),
+    isTrialStarted: map['isTrialStarted'] == true,
+    trialStartedAt: DateTime.tryParse('${map['trialStartedAt']}'),
+    hasUsedTrial: map['hasUsedTrial'] == true,
+    isActivated: map['isActivated'] == true,
+    isLifetime: map['isLifetime'] == true,
+    activePackageName: map['activePackageName']?.toString() ?? 'Dùng thử 3 ngày miễn phí',
+    expireDate: DateTime.tryParse('${map['expireDate']}') ?? DateTime.now().add(const Duration(days: 3)),
+  );
 }
 
 class GoogleAuthProvider extends ChangeNotifier {
@@ -116,6 +169,7 @@ class GoogleAuthProvider extends ChangeNotifier {
   String get appVersion => _appVersion;
   String get shopName => currentAccount.shop;
   String get phone => currentAccount.phone;
+  String get bankName => currentAccount.bankName;
   String? get boundDeviceId => currentAccount.boundDeviceId;
   bool get isDeviceLockedToCurrent => currentAccount.boundDeviceId == _currentDeviceId;
 
@@ -166,6 +220,121 @@ class GoogleAuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Đăng nhập / Bắt đầu sử dụng bằng Tên cửa hàng & Số điện thoại (Hoàn toàn không cần Gmail/Google)
+  Future<bool> signInWithShopAndPhone({
+    required String shopOrName,
+    required String phone,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final cleanName = shopOrName.trim();
+      final cleanPhone = phone.trim().replaceAll(RegExp(r'[^0-9+]'), '');
+      if (cleanName.isEmpty) {
+        _errorMessage = 'Vui lòng nhập tên cửa hàng hoặc họ tên của bạn.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      if (cleanPhone.length < 9) {
+        _errorMessage = 'Vui lòng nhập số điện thoại hợp lệ (tối thiểu 9 số).';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Tạo định danh duy nhất nội bộ theo SĐT (người dùng hoàn toàn không cần nhập hay biết đến email)
+      final cleanEmail = '$cleanPhone@docthongbaobank.com';
+      final initial = cleanName.isNotEmpty ? cleanName[0].toUpperCase() : 'C';
+
+      // Đồng bộ vào backend MySQL
+      Map<String, dynamic>? backendUser;
+      try {
+        final uri = Uri.parse('${AppConfig.apiBaseUrl}/admin/users');
+        final Map<String, dynamic> bodyPayload = {
+          'name': cleanName,
+          'email': cleanEmail,
+          'device': _deviceName,
+          'version': _appVersion,
+          'packagePlan': 'Chưa kích hoạt gói',
+          'hasUsedTrial': false,
+          'expiresAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+          'phone': cleanPhone,
+          'shopName': cleanName,
+          'deviceId': _currentDeviceId,
+          'status': 'PENDING_PLAN',
+        };
+        final res = await http.post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(bodyPayload),
+        ).timeout(const Duration(seconds: 4));
+
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          final data = jsonDecode(res.body);
+          if (data != null && data['email'] != null) {
+            backendUser = Map<String, dynamic>.from(data);
+          }
+        }
+      } catch (e) {
+        debugPrint('Lỗi kết nối backend /admin/users: $e');
+      }
+
+      final hasUsedTrial = backendUser?['hasUsedTrial'] == true;
+      final String packagePlan = (backendUser?['packagePlan'] ?? 'Chưa kích hoạt gói').toString();
+      final bool isPaidPlan = packagePlan != 'Chưa kích hoạt gói' && !packagePlan.toLowerCase().contains('dùng thử');
+      final bool isTrialPlan = packagePlan.toLowerCase().contains('dùng thử');
+      final DateTime createdAt = DateTime.tryParse('${backendUser?['createdAt']}') ?? DateTime.now();
+
+      // Giới hạn tuyệt đối 72 giờ cho gói dùng thử
+      DateTime expiresAt = DateTime.tryParse('${backendUser?['expiresAt']}') ?? DateTime.now().subtract(const Duration(days: 1));
+      if (isTrialPlan && expiresAt.difference(DateTime.now()) > const Duration(hours: 72)) {
+        expiresAt = DateTime.now().add(const Duration(hours: 72));
+      }
+
+      final bool isTrialStarted = hasUsedTrial || isTrialPlan || isPaidPlan;
+      final bool isActivated = (backendUser?['status'] == 'ACTIVE') && (isPaidPlan || (isTrialPlan && !DateTime.now().isAfter(expiresAt)));
+
+      final realAcc = GoogleUserAccount(
+        id: backendUser?['id']?.toString() ?? 'acc_${DateTime.now().millisecondsSinceEpoch}',
+        name: cleanName,
+        email: cleanEmail,
+        initial: initial,
+        shop: cleanName,
+        phone: cleanPhone,
+        boundDeviceId: _currentDeviceId,
+        createdAt: createdAt,
+        isTrialStarted: isTrialStarted,
+        hasUsedTrial: hasUsedTrial,
+        isActivated: isActivated,
+        isLifetime: packagePlan.contains('Vĩnh Viễn') || packagePlan.toLowerCase().contains('lifetime'),
+        activePackageName: packagePlan,
+        expireDate: expiresAt,
+      );
+
+      _accounts.clear();
+      _accounts.add(realAcc);
+      _currentIndex = 0;
+      _isSignedIn = true;
+      _isLoading = false;
+      _errorMessage = null;
+      notifyListeners();
+
+      _syncUserToBackend();
+      AppPinSecurityService().initUniqueLivePinForUser(cleanEmail);
+      _saveSessionOffline(realAcc);
+
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Lỗi lưu thông tin: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Đăng nhập trực tiếp bằng Email Google thật (rất hữu ích khi chạy trên Web localhost chưa cấu hình Authorized Origins trên Google Cloud)
   Future<bool> signInWithEmailDirect({
     required String email,
@@ -190,39 +359,57 @@ class GoogleAuthProvider extends ChangeNotifier {
       final initial = cleanName.isNotEmpty ? cleanName[0].toUpperCase() : 'G';
       final hasCustomShop = shop != null && shop.trim().isNotEmpty;
 
-      // Đồng bộ vào backend MySQL
+      // 1. Kiểm tra xem tài khoản này ĐÃ TỒN TẠI trên hệ thống hay là TÀI KHOẢN MỚI
       Map<String, dynamic>? backendUser;
       try {
+        final getUri = Uri.parse('${AppConfig.apiBaseUrl}/admin/users/$cleanEmail');
+        final getRes = await http.get(getUri).timeout(const Duration(seconds: 4));
+        if (getRes.statusCode == 200 && getRes.body.isNotEmpty && getRes.body != 'null') {
+          final data = jsonDecode(getRes.body);
+          if (data != null && data['email'] != null) {
+            backendUser = Map<String, dynamic>.from(data);
+          }
+        }
+      } catch (e) {
+        debugPrint('Lỗi query getUserByEmail: $e');
+      }
+
+      final bool isExistingOnServer = backendUser != null &&
+          ((backendUser['phone'] != null && backendUser['phone'].toString().trim().isNotEmpty) ||
+           backendUser['hasUsedTrial'] == true ||
+           (backendUser['packagePlan'] != null &&
+            backendUser['packagePlan'] != 'Chưa kích hoạt gói' &&
+            backendUser['packagePlan'] != 'Chưa đăng ký gói'));
+
+      if (!isExistingOnServer && backendUser == null) {
+        // Tài khoản MỚI ĐĂNG KÝ -> Lưu trạng thái chờ chọn gói và chờ nhập SĐT/Ngân hàng
         final uri = Uri.parse('${AppConfig.apiBaseUrl}/admin/users');
         final Map<String, dynamic> bodyPayload = {
           'name': cleanName,
           'email': cleanEmail,
           'device': _deviceName,
           'version': _appVersion,
-          'packagePlan': 'Dùng thử 3 ngày',
-          'hasUsedTrial': true,
-          'expiresAt': DateTime.now().add(const Duration(days: 3)).toIso8601String(),
+          'packagePlan': 'Chưa kích hoạt gói',
+          'hasUsedTrial': false,
+          'expiresAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
           'phone': phone ?? '',
+          'shopName': hasCustomShop ? shop.trim() : 'Cửa hàng $cleanName',
           'deviceId': _currentDeviceId,
-          'status': 'ACTIVE',
+          'status': 'PENDING_PLAN',
         };
-        if (hasCustomShop) {
-          bodyPayload['shopName'] = shop.trim();
-        }
-        final res = await http.post(
-          uri,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(bodyPayload),
-        ).timeout(const Duration(seconds: 4));
-
-        if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          if (data != null && data['email'] != null) {
-            backendUser = Map<String, dynamic>.from(data);
+        try {
+          final res = await http.post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(bodyPayload),
+          ).timeout(const Duration(seconds: 4));
+          if (res.statusCode == 200 || res.statusCode == 201) {
+            final data = jsonDecode(res.body);
+            if (data != null && data['email'] != null) {
+              backendUser = Map<String, dynamic>.from(data);
+            }
           }
-        }
-      } catch (e) {
-        debugPrint('Lỗi kết nối backend /admin/users: $e');
+        } catch (_) {}
       }
 
       final hasUsedTrial = backendUser?['hasUsedTrial'] == true;
@@ -230,15 +417,18 @@ class GoogleAuthProvider extends ChangeNotifier {
       final bool isPaidPlan = packagePlan != 'Chưa kích hoạt gói' && !packagePlan.toLowerCase().contains('dùng thử');
       final bool isTrialPlan = packagePlan.toLowerCase().contains('dùng thử');
       final DateTime createdAt = DateTime.tryParse('${backendUser?['createdAt']}') ?? DateTime.now();
-      final DateTime expiresAt = DateTime.tryParse('${backendUser?['expiresAt']}') ?? DateTime.now().add(const Duration(days: 3));
+      final DateTime expiresAt = DateTime.tryParse('${backendUser?['expiresAt']}') ??
+          (isExistingOnServer ? DateTime.now().add(const Duration(days: 3)) : DateTime.now().subtract(const Duration(days: 1)));
 
       final bool isTrialStarted = hasUsedTrial || isTrialPlan || isPaidPlan;
       final bool isActivated = (backendUser?['status'] == 'ACTIVE') && (isPaidPlan || (isTrialPlan && !DateTime.now().isAfter(expiresAt)));
 
-      // Tên quán: ưu tiên tuyệt đối từ MySQL (nơi người dùng đã lưu)
+      // Tên quán & SĐT & Ngân hàng: ưu tiên từ MySQL
       final String resolvedShop = (backendUser != null && backendUser['shopName'] != null && backendUser['shopName'].toString().trim().isNotEmpty)
           ? backendUser['shopName'].toString().trim()
           : (hasCustomShop ? shop.trim() : 'Cửa hàng $cleanName');
+      final String resolvedPhone = (backendUser?['phone'] ?? phone ?? '').toString();
+      final String resolvedBank = (backendUser?['bankName'] ?? '').toString();
 
       final realAcc = GoogleUserAccount(
         id: backendUser?['id']?.toString() ?? 'acc_${DateTime.now().millisecondsSinceEpoch}',
@@ -246,7 +436,8 @@ class GoogleAuthProvider extends ChangeNotifier {
         email: cleanEmail,
         initial: initial,
         shop: resolvedShop,
-        phone: (backendUser?['phone'] ?? phone ?? '').toString(),
+        phone: resolvedPhone,
+        bankName: resolvedBank,
         boundDeviceId: _currentDeviceId,
         createdAt: createdAt,
         isTrialStarted: isTrialStarted,
@@ -266,6 +457,9 @@ class GoogleAuthProvider extends ChangeNotifier {
       notifyListeners();
 
       _syncUserToBackend();
+      AppPinSecurityService().initUniqueLivePinForUser(cleanEmail);
+      _saveSessionOffline(realAcc);
+
       return true;
     } catch (e) {
       _isLoading = false;
@@ -278,65 +472,103 @@ class GoogleAuthProvider extends ChangeNotifier {
   static List<Map<String, String>> get availableGoogleAccounts => [];
 
   GoogleAuthProvider() {
-    scheduleMicrotask(() {
+    scheduleMicrotask(() async {
+      // 1. Phục hồi ngay lập tức phiên đăng nhập từ bộ nhớ máy (0ms độ trễ, không bao giờ bị văng khi mất mạng)
+      await _loadUserFromLocalStorage();
       _initSilentSignIn();
       _loadUserFromBackend();
     });
+  }
+
+  /// Lưu trữ bền vững toàn bộ phiên đăng nhập vào bộ nhớ cục bộ
+  Future<void> _saveSessionOffline(GoogleUserAccount acc) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_signed_in_email', acc.email.trim());
+      await prefs.setString('autobank_offline_user_session', jsonEncode(acc.toMap()));
+    } catch (_) {}
+  }
+
+  /// Nạp phiên đăng nhập offline ngay khi app bật lên
+  Future<void> _loadUserFromLocalStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString('autobank_offline_user_session');
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        final Map<String, dynamic> map = jsonDecode(cachedJson);
+        final acc = GoogleUserAccount.fromMap(map);
+        if (acc.email.isNotEmpty && _accounts.isEmpty) {
+          _accounts.clear();
+          _accounts.add(acc);
+          _currentIndex = 0;
+          _isSignedIn = true;
+          notifyListeners();
+          debugPrint('[AutoBank Auth] Phục hồi tài khoản offline thành công: ${acc.email}');
+        }
+      }
+    } catch (e) {
+      debugPrint('[AutoBank Auth] Lỗi nạp local session: $e');
+    }
   }
 
   /// Tải thông tin người dùng thực tế từ Cơ sở dữ liệu MySQL nếu thiết bị đã từng đăng nhập
   Future<void> _loadUserFromBackend() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cachedEmail = prefs.getString('last_signed_in_email');
+      final cachedEmail = prefs.getString('last_signed_in_email') ?? (_accounts.isNotEmpty ? _accounts.first.email : null);
       if (cachedEmail == null || cachedEmail.trim().isEmpty) return;
 
-      final uri = Uri.parse('${AppConfig.apiBaseUrl}/admin/users');
+      final uri = Uri.parse('${AppConfig.apiBaseUrl}/admin/users/${Uri.encodeComponent(cachedEmail.trim())}');
       final res = await http.get(uri).timeout(const Duration(seconds: 4));
       if (res.statusCode == 200) {
-        final List<dynamic> list = jsonDecode(res.body);
-        if (list.isNotEmpty && _accounts.isEmpty) {
-          final primary = list.cast<Map<String, dynamic>?>().firstWhere(
+        final dynamic rawData = jsonDecode(res.body);
+        Map<String, dynamic>? primary;
+        if (rawData is Map<String, dynamic>) {
+          primary = rawData;
+        } else if (rawData is List && rawData.isNotEmpty) {
+          primary = rawData.cast<Map<String, dynamic>?>().firstWhere(
             (u) => (u?['email'] ?? '').toString().toLowerCase() == cachedEmail.trim().toLowerCase(),
             orElse: () => null,
           );
+        }
 
-          if (primary != null && primary['email'] != null) {
-            final String uEmail = primary['email'].toString();
-            final String uName = (primary['name'] ?? uEmail.split('@').first).toString();
-            final cachedShop = prefs.getString('shop_name_$uEmail');
-            final cachedPhone = prefs.getString('phone_$uEmail');
-            final String rawShop = (primary['shopName'] ?? '').toString().trim();
-            final String uShop = rawShop.isNotEmpty ? rawShop : (cachedShop != null && cachedShop.isNotEmpty ? cachedShop : 'Cửa hàng $uName');
-            final String rawPhone = (primary['phone'] ?? '').toString().trim();
-            final String uPhone = rawPhone.isNotEmpty ? rawPhone : (cachedPhone ?? '');
-            final String uPkg = (primary['packagePlan'] ?? 'Dùng thử 3 ngày').toString();
-            final DateTime uCreated = DateTime.tryParse('${primary['createdAt']}') ?? DateTime.now();
-            final DateTime uExpires = DateTime.tryParse('${primary['expiresAt']}') ?? DateTime.now().add(const Duration(days: 365));
+        if (primary != null && primary['email'] != null) {
+          final String uEmail = primary['email'].toString();
+          final String uName = (primary['name'] ?? uEmail.split('@').first).toString();
+          final cachedShop = prefs.getString('shop_name_$uEmail');
+          final cachedPhone = prefs.getString('phone_$uEmail');
+          final String rawShop = (primary['shopName'] ?? '').toString().trim();
+          final String uShop = rawShop.isNotEmpty ? rawShop : (cachedShop != null && cachedShop.isNotEmpty ? cachedShop : 'Cửa hàng $uName');
+          final String rawPhone = (primary['phone'] ?? '').toString().trim();
+          final String uPhone = rawPhone.isNotEmpty ? rawPhone : (cachedPhone ?? '');
+          final String uPkg = (primary['packagePlan'] ?? 'Dùng thử 3 ngày').toString();
+          final DateTime uExpires = DateTime.tryParse('${primary['expiresAt']}') ?? 
+              (uPkg.contains('Dùng thử') ? DateTime.now().add(const Duration(days: 3)) : DateTime.now().add(const Duration(days: 30)));
+          final DateTime uCreated = DateTime.tryParse('${primary['createdAt']}') ?? DateTime.now();
 
-            final sqlUser = GoogleUserAccount(
-              id: primary['id']?.toString() ?? 'acc_sql_1',
-              name: uName,
-              email: uEmail,
-              initial: uName.isNotEmpty ? uName[0].toUpperCase() : 'U',
-              shop: uShop,
-              phone: uPhone,
-              boundDeviceId: primary['deviceId']?.toString() ?? _currentDeviceId,
-              createdAt: uCreated,
-              isTrialStarted: true,
-              hasUsedTrial: true,
-              isActivated: primary['status'] != 'BLOCKED',
-              isLifetime: uPkg.contains('Vĩnh Viễn') || uPkg.toLowerCase().contains('lifetime'),
-              activePackageName: uPkg,
-              expireDate: uExpires,
-            );
+          final sqlUser = GoogleUserAccount(
+            id: primary['id']?.toString() ?? 'acc_sql_1',
+            name: uName,
+            email: uEmail,
+            initial: uName.isNotEmpty ? uName[0].toUpperCase() : 'U',
+            shop: uShop,
+            phone: uPhone,
+            boundDeviceId: primary['deviceId']?.toString() ?? _currentDeviceId,
+            createdAt: uCreated,
+            isTrialStarted: true,
+            hasUsedTrial: true,
+            isActivated: primary['status'] != 'BLOCKED',
+            isLifetime: uPkg.contains('Vĩnh Viễn') || uPkg.toLowerCase().contains('lifetime'),
+            activePackageName: uPkg,
+            expireDate: uExpires,
+          );
 
-            _accounts.clear();
-            _accounts.add(sqlUser);
-            _currentIndex = 0;
-            _isSignedIn = true;
-            notifyListeners();
-          }
+          _accounts.clear();
+          _accounts.add(sqlUser);
+          _currentIndex = 0;
+          _isSignedIn = true;
+          notifyListeners();
+          _saveSessionOffline(sqlUser);
         }
       }
     } catch (_) {}
@@ -384,7 +616,9 @@ class GoogleAuthProvider extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-      if (errStr.contains('People API') || errStr.contains('people.googleapis.com')) {
+      if (errStr.contains('10') || errStr.contains('sign_in_failed') || errStr.contains('ApiException')) {
+        _errorMessage = 'GOOGLE_PLAY_SETUP_NEEDED';
+      } else if (errStr.contains('People API') || errStr.contains('people.googleapis.com')) {
         _errorMessage = 'Dự án Google Cloud chưa bật People API. Hãy bật tại Google Developers Console.';
       } else if (errStr.contains('popup_closed') || errStr.contains('user_cancelled')) {
         _errorMessage = 'Bạn đã hủy đăng nhập Google.';
@@ -441,15 +675,12 @@ class GoogleAuthProvider extends ChangeNotifier {
       final backendStatus = (backendUser['status'] ?? 'PENDING_PLAN').toString().toUpperCase();
       hasUsedTrial = backendUser['hasUsedTrial'] == true || (packagePlan != 'Chưa kích hoạt gói' && packagePlan != 'Chưa đăng ký gói' && !packagePlan.contains('Dùng thử'));
       isTrialStarted = backendUser['hasUsedTrial'] == true || (hasUsedTrial && packagePlan.contains('Dùng thử'));
-      final isNewUserWithoutPlan = packagePlan == 'Chưa kích hoạt gói' || packagePlan == 'Chưa đăng ký gói' || !hasUsedTrial;
-      isActivated = backendStatus == 'ACTIVE' && !isNewUserWithoutPlan;
       createdAt = DateTime.tryParse('${backendUser['createdAt']}') ?? DateTime.now();
-      final rawExpires = DateTime.tryParse('${backendUser['expiresAt']}') ?? (isNewUserWithoutPlan ? DateTime.now().subtract(const Duration(days: 1)) : DateTime.now().add(const Duration(days: 3)));
-      if (backendStatus == 'EXPIRED' && rawExpires.isAfter(DateTime.now())) {
-        expiresAt = DateTime.now().subtract(const Duration(days: 1));
-      } else {
-        expiresAt = rawExpires;
-      }
+      final rawExpires = DateTime.tryParse('${backendUser['expiresAt']}') ?? DateTime.now().add(const Duration(days: 3));
+      final bool hasFutureExpiry = rawExpires.isAfter(DateTime.now());
+
+      expiresAt = rawExpires;
+      isActivated = backendStatus != 'BLOCKED' && hasFutureExpiry;
       shopName = (backendUser['shopName'] ?? 'Cửa hàng $name').toString();
       phone = (backendUser['phone'] ?? '').toString();
       boundDeviceId = backendUser['deviceId']?.toString();
@@ -466,6 +697,8 @@ class GoogleAuthProvider extends ChangeNotifier {
       isTrialStarted = false;
     }
 
+    final String bankName = (backendUser?['bankName'] ?? '').toString();
+
     final realAcc = GoogleUserAccount(
       id: backendUser != null && backendUser['id'] != null ? backendUser['id'].toString() : 'gg_${googleUser.id}',
       name: name,
@@ -473,6 +706,7 @@ class GoogleAuthProvider extends ChangeNotifier {
       initial: initial,
       shop: shopName,
       phone: phone,
+      bankName: bankName,
       boundDeviceId: boundDeviceId,
       createdAt: createdAt,
       isTrialStarted: isTrialStarted,
@@ -493,9 +727,8 @@ class GoogleAuthProvider extends ChangeNotifier {
 
     // Đồng bộ tiếp với máy chủ trong nền
     _syncUserToBackend();
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setString('last_signed_in_email', email);
-    }).catchError((_) {});
+    AppPinSecurityService().initUniqueLivePinForUser(email);
+    _saveSessionOffline(realAcc);
 
     try {
       onNotificationEvent?.call(
@@ -508,6 +741,18 @@ class GoogleAuthProvider extends ChangeNotifier {
 
   /// Gửi idToken lên NestJS API /auth/google để lưu vào CSDL
   Future<Map<String, dynamic>?> _authenticateWithBackend(String? idToken, GoogleSignInAccount googleUser) async {
+    // 0. Kiểm tra trước xem tài khoản đã tồn tại trong CSDL MySQL chưa
+    try {
+      final getUri = Uri.parse('${AppConfig.apiBaseUrl}/admin/users/${googleUser.email}');
+      final getRes = await http.get(getUri).timeout(const Duration(seconds: 4));
+      if (getRes.statusCode == 200 && getRes.body.isNotEmpty && getRes.body != 'null') {
+        final data = jsonDecode(getRes.body);
+        if (data != null && data['email'] != null) {
+          return Map<String, dynamic>.from(data);
+        }
+      }
+    } catch (_) {}
+
     // 1. Thử xác thực chuẩn bằng idToken qua POST /auth/google
     if (idToken != null && idToken.isNotEmpty) {
       try {
@@ -565,32 +810,74 @@ class GoogleAuthProvider extends ChangeNotifier {
     return null;
   }
 
-  /// Cập nhật thông tin quán & SĐT (lưu vào MySQL và cache bộ nhớ máy)
-  Future<void> updateAccountInfo({required String shop, required String phone}) async {
+  /// Cập nhật thông tin quán, SĐT & Ngân hàng (lưu vào MySQL và cache bộ nhớ máy)
+  Future<void> updateAccountInfo({String? shop, String? phone, String? bankName}) async {
     if (!isSignedIn) return;
-    currentAccount.shop = shop.trim();
-    currentAccount.phone = phone.trim();
+    if (shop != null && shop.trim().isNotEmpty) {
+      currentAccount.shop = shop.trim();
+    }
+    if (phone != null && phone.trim().isNotEmpty) {
+      currentAccount.phone = phone.trim();
+    }
+    if (bankName != null && bankName.trim().isNotEmpty) {
+      currentAccount.bankName = bankName.trim();
+    }
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('custom_shop_${currentAccount.email}', shop.trim());
-      await prefs.setString('custom_phone_${currentAccount.email}', phone.trim());
+      if (shop != null && shop.trim().isNotEmpty) {
+        await prefs.setString('custom_shop_${currentAccount.email}', shop.trim());
+      }
+      if (phone != null && phone.trim().isNotEmpty) {
+        await prefs.setString('custom_phone_${currentAccount.email}', phone.trim());
+      }
+      if (bankName != null && bankName.trim().isNotEmpty) {
+        await prefs.setString('custom_bank_${currentAccount.email}', bankName.trim());
+      }
     } catch (_) {}
     _syncUserToBackend();
   }
 
-  /// Kích hoạt gói dùng thử
-  bool startTrial() {
-    if (!isSignedIn || currentAccount.hasUsedTrial) return false;
+
+  /// Kích hoạt gói dùng thử 3 ngày chính xác 72 giờ
+  Future<bool> startTrial({String? shop, String? phone, String? bankName}) async {
+    if (!isSignedIn) return false;
     final now = DateTime.now();
     currentAccount.isTrialStarted = true;
     currentAccount.trialStartedAt = now;
     currentAccount.hasUsedTrial = true;
     currentAccount.isActivated = true;
     currentAccount.activePackageName = 'Dùng thử 3 ngày miễn phí';
-    currentAccount.expireDate = now.add(const Duration(days: 3));
+    // Đếm ngược chính xác đúng 72 giờ (3 ngày) từ thời điểm bấm kích hoạt
+    currentAccount.expireDate = now.add(const Duration(hours: 72));
+
+    if (shop != null && shop.trim().isNotEmpty) {
+      currentAccount.shop = shop.trim();
+    }
+    if (phone != null && phone.trim().isNotEmpty) {
+      currentAccount.phone = phone.trim();
+    }
+    if (bankName != null && bankName.trim().isNotEmpty) {
+      currentAccount.bankName = bankName.trim();
+    }
+
     notifyListeners();
-    _syncUserToBackend();
+    _saveSessionOffline(currentAccount);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (shop != null && shop.trim().isNotEmpty) {
+        await prefs.setString('custom_shop_${currentAccount.email}', shop.trim());
+      }
+      if (phone != null && phone.trim().isNotEmpty) {
+        await prefs.setString('custom_phone_${currentAccount.email}', phone.trim());
+      }
+      if (bankName != null && bankName.trim().isNotEmpty) {
+        await prefs.setString('custom_bank_${currentAccount.email}', bankName.trim());
+      }
+    } catch (_) {}
+
+    await _syncUserToBackend();
     return true;
   }
 
@@ -703,6 +990,7 @@ class GoogleAuthProvider extends ChangeNotifier {
     notifyListeners();
     SharedPreferences.getInstance().then((prefs) {
       prefs.remove('last_signed_in_email');
+      prefs.remove('autobank_offline_user_session');
     }).catchError((_) {});
     try {
       onNotificationEvent?.call(
@@ -762,8 +1050,9 @@ class GoogleAuthProvider extends ChangeNotifier {
           'expiresAt': expireDate.toIso8601String(),
           'phone': phone,
           'shopName': shopName,
+          'bankName': bankName,
           'deviceId': boundDeviceId ?? _currentDeviceId,
-          'status': 'ACTIVE',
+          'status': isExpired ? 'EXPIRED' : 'ACTIVE',
         }),
       ).timeout(const Duration(seconds: 4));
 
@@ -771,14 +1060,29 @@ class GoogleAuthProvider extends ChangeNotifier {
         final data = jsonDecode(response.body);
         if (data != null && data['expiresAt'] != null) {
           final serverExpiry = DateTime.tryParse(data['expiresAt'].toString());
-          if (serverExpiry != null &&
-              (serverExpiry.isAfter(currentAccount.expireDate) ||
-                  serverExpiry.isBefore(currentAccount.expireDate))) {
-            currentAccount.expireDate = serverExpiry;
-            if (data['packagePlan'] != null) {
-              currentAccount.activePackageName = data['packagePlan'].toString();
+          if (serverExpiry != null) {
+            final now = DateTime.now();
+            // Nếu tài khoản trên máy đang còn hạn hợp lệ (chưa hết hạn),
+            // TUYỆT ĐỐI không cho phép dữ liệu quá khứ từ server đè lên làm hết hạn!
+            if (currentAccount.expireDate.isAfter(now) && serverExpiry.isBefore(now)) {
+              debugPrint('Bỏ qua ngày hết hạn quá khứ từ server: $serverExpiry vs còn hạn máy: ${currentAccount.expireDate}');
+            } else {
+              DateTime clampedExpiry = serverExpiry;
+              if (currentAccount.activePackageName.contains('Dùng thử')) {
+                final maxAllowed = now.add(const Duration(hours: 72));
+                if (clampedExpiry.isAfter(maxAllowed)) {
+                  clampedExpiry = maxAllowed;
+                }
+              }
+              if (clampedExpiry != currentAccount.expireDate) {
+                currentAccount.expireDate = clampedExpiry;
+                if (data['packagePlan'] != null) {
+                  currentAccount.activePackageName = data['packagePlan'].toString();
+                }
+                notifyListeners();
+                _saveSessionOffline(currentAccount);
+              }
             }
-            notifyListeners();
           }
         }
       }

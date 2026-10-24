@@ -1,4 +1,4 @@
-import { checkAuth, initSidebar, showToast, fetchOrders, saveOrderApi, approveOrderApi, deleteOrderApi } from './admin-core.js';
+import { checkAuth, initSidebar, showToast, fetchOrders, saveOrderApi, approveOrderApi, deleteOrderApi, loadConfig } from './admin-core.js';
 
 let ordersList = [];
 
@@ -142,8 +142,27 @@ function openOrderModal(orderCode = null) {
     document.getElementById('m-order-code').value = orderCode;
     document.getElementById('m-order-code').readOnly = true;
     document.getElementById('m-order-customer').value = o.customerName || o.customer || o.phone || '';
-    document.getElementById('m-order-pkg').value = o.description || o.pkg || 'Gói 1 Năm';
-    document.getElementById('m-order-amount').value = o.totalAmount || o.amount || 299000;
+    const currentPkg = o.description || o.pkg || '1 Năm (tặng 2T)';
+    const pkgSelect = document.getElementById('m-order-pkg');
+    if (pkgSelect) {
+      // Check if option exists, otherwise add it
+      let found = false;
+      for (let i = 0; i < pkgSelect.options.length; i++) {
+        if (pkgSelect.options[i].value === currentPkg || pkgSelect.options[i].text.includes(currentPkg)) {
+          pkgSelect.selectedIndex = i;
+          found = true;
+          break;
+        }
+      }
+      if (!found && currentPkg) {
+        const opt = document.createElement('option');
+        opt.value = currentPkg;
+        opt.textContent = currentPkg;
+        opt.selected = true;
+        pkgSelect.appendChild(opt);
+      }
+    }
+    document.getElementById('m-order-amount').value = o.totalAmount || o.amount || 159000;
     document.getElementById('m-order-status').value = isPaid(o.status) ? 'PAID' : 'PENDING';
   } else {
     document.getElementById('modal-order-title').textContent = 'Thêm Đơn Hàng Mới Thủ Công';
@@ -152,7 +171,13 @@ function openOrderModal(orderCode = null) {
     document.getElementById('m-order-code').readOnly = false;
     const randCode = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
     document.getElementById('m-order-code').value = randCode;
-    document.getElementById('m-order-amount').value = '299000';
+    const pkgSelect = document.getElementById('m-order-pkg');
+    if (pkgSelect && pkgSelect.selectedOptions[0]) {
+      const pVal = pkgSelect.selectedOptions[0].getAttribute('data-price');
+      document.getElementById('m-order-amount').value = pVal || '159000';
+    } else {
+      document.getElementById('m-order-amount').value = '159000';
+    }
   }
 
   modal.classList.add('is-open');
@@ -161,6 +186,46 @@ function openOrderModal(orderCode = null) {
 function closeOrderModal() {
   const modal = document.getElementById('admin-order-modal');
   if (modal) modal.classList.remove('is-open');
+}
+
+async function loadAndSyncOrderPackages() {
+  const pkgSelect = document.getElementById('m-order-pkg');
+  if (!pkgSelect) return;
+
+  let pkgs = [];
+  try {
+    const res = await fetch(`${API_BASE}/admin/configs`, {
+      headers: { 'Authorization': `Bearer ${getToken()}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data?.packages) && data.packages.length > 0) {
+        pkgs = data.packages;
+      }
+    }
+  } catch (e) {
+    console.warn('Cannot fetch configs for orders modal, using local fallback:', e);
+  }
+
+  if (pkgs.length === 0) {
+    const cfg = loadConfig();
+    if (Array.isArray(cfg?.packages) && cfg.packages.length > 0) {
+      pkgs = cfg.packages;
+    }
+  }
+
+  const paidPkgs = pkgs.filter(p => p.price > 0 && p.isActive !== false);
+  if (paidPkgs.length > 0) {
+    pkgSelect.innerHTML = paidPkgs.map((p, idx) => `
+      <option value="${p.name}" data-price="${p.price}" ${idx === 3 ? 'selected' : ''}>${p.name} (${Number(p.price).toLocaleString('vi-VN')}đ)</option>
+    `).join('');
+  }
+
+  pkgSelect.onchange = () => {
+    const opt = pkgSelect.selectedOptions[0];
+    const pVal = opt ? opt.getAttribute('data-price') : '';
+    if (pVal) document.getElementById('m-order-amount').value = pVal;
+  };
 }
 
 function initAddAndEditModals() {
@@ -174,11 +239,8 @@ function initAddAndEditModals() {
   if (cancelBtn) cancelBtn.onclick = closeOrderModal;
   if (addBtn) addBtn.onclick = () => openOrderModal(null);
 
-  if (modal) {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeOrderModal();
-    });
-  }
+  // Đồng bộ danh mục gói cước từ cấu hình Admin thực tế
+  loadAndSyncOrderPackages();
 
   if (form && !form.dataset.bound) {
     form.dataset.bound = 'true';

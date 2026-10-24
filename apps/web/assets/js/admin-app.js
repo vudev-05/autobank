@@ -16,7 +16,7 @@ const STORAGE_PUSH = 'autobank_push_notifications';
 const defaultConfig = {
   brandName: 'Đọc thông báo nhận tiền',
   brandSlogan: 'Tiền vừa sang ~ máy báo vang',
-  chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
+  chplayLink: 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
   youtubeLink: '',
   hotline: '0869226687',
   email: 'tranquocvu3011@gmail.com',
@@ -54,7 +54,9 @@ let usersList = loadUsers();
 let ordersList = loadOrders();
 let activeEditingUserIndex = -1;
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+const API_BASE = (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+  ? 'https://api.docthongbaobank.com'
+  : (import.meta.env.VITE_API_BASE || 'http://localhost:3000');
 
 function loadConfig() {
   try {

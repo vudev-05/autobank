@@ -11,16 +11,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function populateForm(cfg) {
     const elServerDomain = document.getElementById('cfg-server-domain');
-    if (elServerDomain) elServerDomain.value = cfg.serverDomain || 'http://192.168.1.217:3000';
+    if (elServerDomain) elServerDomain.value = cfg.serverDomain || 'https://api.docthongbaobank.com';
     const elWebDomain = document.getElementById('cfg-web-domain');
-    if (elWebDomain) elWebDomain.value = cfg.webDomain || 'http://192.168.1.217:5173';
+    if (elWebDomain) elWebDomain.value = cfg.webDomain || 'https://docthongbaobank.com';
     const elApiPort = document.getElementById('cfg-api-port');
     if (elApiPort) elApiPort.value = cfg.apiPort || 3000;
 
     document.getElementById('cfg-brand-name').value = cfg.brandName || '';
     document.getElementById('cfg-brand-slogan').value = cfg.brandSlogan || '';
     document.getElementById('cfg-chplay-link').value = cfg.chplayLink || '';
+
+    const elRatingLink = document.getElementById('cfg-rating-link');
+    if (elRatingLink) elRatingLink.value = cfg.ratingUrl || cfg.chplayLink || '';
+
+    const elLivePin = document.getElementById('cfg-live-pin');
+    if (elLivePin) elLivePin.value = cfg.liveWebPin || '889922';
+
+    // Populate Affiliate Min Withdraw
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    setVal('cfg-aff-min-withdraw', cfg.affiliateMinWithdraw || 100000);
+
     document.getElementById('cfg-youtube-link').value = cfg.youtubeLink || '';
+    setVal('cfg-video-newbie', cfg.videoGuideNewbie || '');
+    setVal('cfg-video-smooth', cfg.videoGuideSmooth || '');
+    setVal('cfg-video-affiliate', cfg.videoGuideAffiliate || '');
+    setVal('cfg-video-history', cfg.videoGuideHistory || '');
+    setVal('cfg-video-voice', cfg.videoGuideVoice || '');
+
     document.getElementById('cfg-hotline').value = cfg.hotline || '';
     document.getElementById('cfg-email').value = cfg.email || '';
     document.getElementById('cfg-facebook').value = cfg.facebook || '';
@@ -38,7 +55,24 @@ document.addEventListener('DOMContentLoaded', () => {
       ? JSON.parse(JSON.stringify(cfg.packages))
       : JSON.parse(JSON.stringify(defaultConfig.packages || []));
 
+    // Đồng bộ hoa hồng tiếp thị theo từng gói cước
+    const affList = Array.isArray(cfg.affiliateRewards) ? cfg.affiliateRewards : [];
+    currentPackages.forEach(p => {
+      if (p.affiliateReward === undefined && p.commission === undefined) {
+        const match = affList.find(a => 
+          (a.key && a.key === p.key) || 
+          (a.name && p.name && (a.name.toLowerCase().includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(a.name.toLowerCase())))
+        );
+        p.affiliateReward = match ? match.reward : getDefaultAffiliateReward(p.durationDays, p.price);
+        p.commission = p.affiliateReward;
+      } else {
+        p.affiliateReward = p.affiliateReward ?? p.commission ?? 0;
+        p.commission = p.affiliateReward;
+      }
+    });
+
     renderPackagesTable();
+    renderAffiliateCommissionInputs();
 
     const maintToggle = document.getElementById('cfg-maintenance-toggle');
     if (maintToggle) maintToggle.checked = Boolean(cfg.maintenance);
@@ -111,11 +145,73 @@ document.addEventListener('DOMContentLoaded', () => {
     initDragAndDrop();
   }
 
+  function getDefaultAffiliateReward(days, price) {
+    if (!days || days <= 3 || !price) return 0;
+    if (days <= 30) return 10000;
+    if (days <= 90) return 20000;
+    if (days <= 180) return 35000;
+    if (days <= 450) return 50000;
+    return 65000;
+  }
+
+  function renderAffiliateCommissionInputs() {
+    const container = document.getElementById('admin-affiliate-dynamic-container');
+    if (!container) return;
+
+    const paidPackages = currentPackages.filter(p => p.price > 0);
+    if (paidPackages.length === 0) {
+      container.innerHTML = `<div style="color: #94a3b8; font-size: 0.88rem; padding: 12px; grid-column: 1 / -1;">Chưa có gói cước tính phí nào để cấu hình hoa hồng. Hãy thêm gói cước ở bảng bên dưới.</div>`;
+      return;
+    }
+
+    container.innerHTML = paidPackages.map((p) => {
+      const reward = parseInt(p.affiliateReward ?? p.commission ?? getDefaultAffiliateReward(p.durationDays, p.price), 10) || 0;
+      p.affiliateReward = reward;
+      p.commission = reward;
+
+      return `
+        <div class="admin-form-group" style="background: rgba(15, 23, 42, 0.4); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-weight: 700; color: #f8fafc; font-size: 0.88rem; margin-bottom: 0;">
+              ${p.name}
+            </label>
+            <span style="font-size: 0.76rem; color: #38bdf8; font-family: monospace;">${p.durationDays ? p.durationDays + ' ngày' : ''} · ${Number(p.price).toLocaleString('vi-VN')}đ</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="number" 
+                   class="admin-input aff-dynamic-input" 
+                   id="cfg-aff-pkg-${p.key}" 
+                   data-key="${p.key}" 
+                   min="0" 
+                   step="1000" 
+                   value="${reward}" 
+                   placeholder="Nhập số tiền VNĐ..." />
+            <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 600;">VNĐ</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Bắt sự kiện người dùng thay đổi giá trị hoa hồng
+    container.querySelectorAll('.aff-dynamic-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const key = e.target.getAttribute('data-key');
+        const val = parseInt(e.target.value, 10) || 0;
+        const targetPkg = currentPackages.find(p => p.key === key);
+        if (targetPkg) {
+          targetPkg.affiliateReward = val;
+          targetPkg.commission = val;
+        }
+      });
+    });
+  }
+
   function movePackage(fromIndex, toIndex) {
     if (fromIndex < 0 || fromIndex >= currentPackages.length || toIndex < 0 || toIndex >= currentPackages.length) return;
     const item = currentPackages.splice(fromIndex, 1)[0];
     currentPackages.splice(toIndex, 0, item);
     renderPackagesTable();
+    renderAffiliateCommissionInputs();
     autoSavePackages(`Đã chuyển gói "${item.name}" sang thứ tự #${toIndex + 1} và đồng bộ đến Web & App!`);
   }
 
@@ -238,9 +334,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function autoSavePackages(msg) {
     const current = loadConfig();
+    const affRewards = currentPackages
+      .filter(p => p.isActive !== false && p.price > 0)
+      .map(p => ({
+        name: p.name,
+        key: p.key,
+        duration: p.durationDays ? `${p.durationDays} ngày` : 'Theo gói',
+        reward: parseInt(p.affiliateReward || p.commission || 0, 10),
+        desc: `Nhận ${parseInt(p.affiliateReward || p.commission || 0, 10).toLocaleString('vi-VN')}₫/lượt khi khách mua ${p.name}`
+      }));
+
     const updated = {
       ...current,
       packages: currentPackages,
+      affiliateRewards: affRewards,
     };
     saveConfig(updated);
     if (msg) showToast(msg, 'success');
@@ -251,6 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pkg) {
       pkg.isActive = pkg.isActive === false ? true : false;
       renderPackagesTable();
+      renderAffiliateCommissionInputs();
       autoSavePackages(`Đã ${pkg.isActive ? 'bật hiển thị' : 'ẩn'} gói "${pkg.name}" và đồng bộ tức thì đến Web & App!`);
     }
   }
@@ -263,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const deletedName = pkg.name;
         currentPackages.splice(idx, 1);
         renderPackagesTable();
+        renderAffiliateCommissionInputs();
         autoSavePackages(`Đã xóa gói "${deletedName}" và đồng bộ tức thì đến Web & App!`);
       }
     }
@@ -284,6 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('m-pkg-days').value = p.durationDays;
       document.getElementById('m-pkg-name').value = p.name;
       document.getElementById('m-pkg-price').value = p.price;
+      const affInp = document.getElementById('m-pkg-affiliate');
+      if (affInp) affInp.value = p.affiliateReward ?? p.commission ?? getDefaultAffiliateReward(p.durationDays, p.price);
       document.getElementById('m-pkg-badge').value = p.badge || '';
       document.getElementById('m-pkg-desc').value = p.description || '';
       document.getElementById('m-pkg-active').checked = p.isActive !== false;
@@ -292,6 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
       form.reset();
       document.getElementById('m-pkg-index').value = '';
       document.getElementById('m-pkg-key').readOnly = false;
+      const affInp = document.getElementById('m-pkg-affiliate');
+      if (affInp) affInp.value = '20000';
       document.getElementById('m-pkg-active').checked = true;
     }
     modal.classList.add('is-open');
@@ -329,6 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const days = parseInt(document.getElementById('m-pkg-days').value, 10) || 30;
       const name = document.getElementById('m-pkg-name').value.trim();
       const price = parseInt(document.getElementById('m-pkg-price').value, 10) || 0;
+      const affVal = parseInt(document.getElementById('m-pkg-affiliate')?.value, 10) || 0;
       const badge = document.getElementById('m-pkg-badge').value.trim();
       const desc = document.getElementById('m-pkg-desc').value.trim();
       const isActive = document.getElementById('m-pkg-active').checked;
@@ -343,6 +457,8 @@ document.addEventListener('DOMContentLoaded', () => {
         name,
         durationDays: days,
         price,
+        affiliateReward: affVal,
+        commission: affVal,
         badge,
         description: desc,
         isActive,
@@ -361,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       closePackageModal();
       renderPackagesTable();
+      renderAffiliateCommissionInputs();
       autoSavePackages(`Đã ${existingIdx >= 0 ? 'cập nhật' : 'thêm'} gói "${name}" và đồng bộ tức thì đến Web & App!`);
     };
   }
@@ -417,16 +534,41 @@ document.addEventListener('DOMContentLoaded', () => {
       return isNaN(parsed) ? fallback : parsed;
     };
 
+    // Xây dựng bảng hoa hồng liên kết chuẩn xác 100% theo các gói cước đang có của Admin
+    const affiliateRewards = currentPackages
+      .filter(p => p.isActive !== false && p.price > 0)
+      .map(p => {
+        const inp = document.getElementById(`cfg-aff-pkg-${p.key}`);
+        const r = inp ? (parseInt(inp.value, 10) || 0) : (p.affiliateReward || p.commission || 0);
+        p.affiliateReward = r;
+        p.commission = r;
+        return {
+          name: p.name,
+          key: p.key,
+          duration: p.durationDays ? `${p.durationDays} ngày` : 'Theo gói',
+          reward: r,
+          desc: `Nhận ${r.toLocaleString('vi-VN')}₫/lượt khi khách mua ${p.name}`
+        };
+      });
+
     const current = loadConfig();
     const updated = {
       ...current,
-      serverDomain: document.getElementById('cfg-server-domain')?.value.trim() || 'http://192.168.1.217:3000',
-      webDomain: document.getElementById('cfg-web-domain')?.value.trim() || 'http://192.168.1.217:5173',
+      serverDomain: document.getElementById('cfg-server-domain')?.value.trim() || 'https://api.docthongbaobank.com',
+      webDomain: document.getElementById('cfg-web-domain')?.value.trim() || 'https://docthongbaobank.com',
       apiPort: parseNum('cfg-api-port', 3000),
       brandName: document.getElementById('cfg-brand-name').value.trim(),
       brandSlogan: document.getElementById('cfg-brand-slogan').value.trim(),
       chplayLink: document.getElementById('cfg-chplay-link').value.trim(),
+      ratingUrl: document.getElementById('cfg-rating-link')?.value.trim() || document.getElementById('cfg-chplay-link').value.trim(),
+      liveWebPin: document.getElementById('cfg-live-pin')?.value.trim() || '889922',
+      affiliateRewards,
       youtubeLink: document.getElementById('cfg-youtube-link').value.trim(),
+      videoGuideNewbie: document.getElementById('cfg-video-newbie')?.value.trim() || '',
+      videoGuideSmooth: document.getElementById('cfg-video-smooth')?.value.trim() || '',
+      videoGuideAffiliate: document.getElementById('cfg-video-affiliate')?.value.trim() || '',
+      videoGuideHistory: document.getElementById('cfg-video-history')?.value.trim() || '',
+      videoGuideVoice: document.getElementById('cfg-video-voice')?.value.trim() || '',
       hotline: document.getElementById('cfg-hotline').value.trim(),
       email: document.getElementById('cfg-email').value.trim(),
       facebook: document.getElementById('cfg-facebook').value.trim(),
@@ -465,6 +607,20 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Đang mở kiểm tra video YouTube trên tab mới...', 'info');
     });
   }
+
+  // Handle all test video buttons
+  document.querySelectorAll('.btn-test-video').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-target');
+      const val = document.getElementById(targetId)?.value.trim();
+      if (!val) {
+        showToast('Vui lòng nhập link video YouTube trước khi bấm kiểm tra!', 'warning');
+        return;
+      }
+      window.open(val.startsWith('http') ? val : `https://${val}`, '_blank');
+      showToast('Đang mở video YouTube trên tab mới...', 'info');
+    });
+  });
 
   // Reset to default button
   const resetBtn = document.getElementById('btn-reset-default');

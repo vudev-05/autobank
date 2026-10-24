@@ -182,18 +182,19 @@ class _ActivityCheckPageState extends State<ActivityCheckPage> {
 
                   // 2. CHẠY NỀN KHÔNG BỊ TẮT (BATTERY OPTIMIZATION)
                   _buildPermissionCard(
-                    title: 'Cài đặt Pin Ứng dụng: Chọn "Không hạn chế"',
+                    title: 'Mức sử dụng pin: Bật "Cho phép hoạt động dưới nền"',
                     isGranted: _batteryOptimizationIgnored,
-                    description: 'Đây là Cài đặt Pin của riêng ứng dụng AutoBank (KHÔNG phải chế độ tiết kiệm pin của máy). Mặc định Android để là "Tối ưu hóa" (Optimized) và sẽ tắt app khi khóa màn hình. Bạn cần chọn "Không hạn chế" (Unrestricted) để máy duy trì đọc tiền 24/7.',
-                    guide: 'Bấm nút "Tắt tối ưu pin (Nhanh)" để cấp quyền trực tiếp, hoặc bấm "Mở Cài đặt Pin App" > Chọn Pin > Tích chọn "Không hạn chế" (Unrestricted).',
-                    actionText: _batteryOptimizationIgnored ? 'Đã bật Không hạn chế' : 'Tắt tối ưu pin (Nhanh)',
+                    description: 'Vào Thông tin ứng dụng → Mục "Mức sử dụng pin" → Bật "Cho phép hoạt động dưới nền" và "Cho phép tự động khởi chạy" để ứng dụng không bị ngắt khi tắt/khóa màn hình.',
+                    guide: 'Bấm "Mở Thông Tin Ứng Dụng" > Vào mục "Mức sử dụng pin" > Bật "Cho phép hoạt động dưới nền" & "Tự động khởi chạy". Nên Khóa app (🔒) ở màn hình đa nhiệm.',
+                    actionText: _batteryOptimizationIgnored ? 'Đã bật hoạt động nền' : 'Tôi đã bật (Xác nhận)',
                     onAction: () async {
-                      await NotificationService.requestIgnoreBatteryOptimizations();
-                      await Future.delayed(const Duration(seconds: 1));
-                      _checkAllPermissions();
+                      if (!_batteryOptimizationIgnored) {
+                        await NotificationService.setBatteryOptimizationIgnored(granted: true);
+                        _checkAllPermissions();
+                      }
                     },
-                    secondaryActionText: 'Mở Cài đặt Pin App',
-                    onSecondaryAction: () => NotificationService.openAppSettings(),
+                    secondaryActionText: _batteryOptimizationIgnored ? null : 'Mở Thông Tin Ứng Dụng',
+                    onSecondaryAction: _batteryOptimizationIgnored ? null : () => NotificationService.openAppSettings(),
                   ),
 
                   const SizedBox(height: 14),

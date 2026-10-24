@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, ForbiddenException, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MailService } from '../mail/mail.service.js';
 import crypto from 'node:crypto';
 
 export interface JwtPayload {
@@ -16,7 +17,10 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly jwtSecret = process.env.JWT_SECRET || 'autobank_pro_production_secret_key_2026';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   /**
    * Tạo JWT Token an toàn theo chuẩn RFC 7519
@@ -213,7 +217,7 @@ export class AuthService {
           \`deviceId\` = VALUES(\`deviceId\`),
           \`expiresAt\` = VALUES(\`expiresAt\`),
           \`updatedAt\` = NOW()
-      `, user.name, user.email, user.phone || null, user.shopName || null, user.packagePlan || '1 Năm', user.status || 'ACTIVE', user.device || 'Thiết bị di động', user.version || '1.2.0', user.deviceId || null, user.expiresAt ? new Date(user.expiresAt) : null);
+      `, user.name, user.email, user.phone || null, user.shopName || null, user.packagePlan || 'Dùng thử 3 ngày', user.status || 'ACTIVE', user.device || 'Thiết bị di động', user.version || '1.2.0', user.deviceId || null, user.expiresAt ? new Date(user.expiresAt) : null);
     } catch (_) {}
 
     const token = this.signToken({
@@ -352,6 +356,83 @@ export class AuthService {
       role: 'SUPER_ADMIN',
       username: cleanUser,
       message: 'Đăng nhập Quản trị viên thành công',
+    };
+  }
+
+  // Quản lý mã OTP cấp lại PIN trong bộ nhớ với thời hạn 10 phút và cooldown 60 giây chống spam
+  private static otpMap = new Map<string, { otp: string; expiresAt: number; lastSentAt: number }>();
+
+  /**
+   * Gửi mã OTP 6 số về Gmail thật của người dùng
+   */
+  async sendPinResetOtp(email: string): Promise<{ success: boolean; message: string; cooldownSec?: number }> {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new HttpException('Email không hợp lệ', HttpStatus.BAD_REQUEST);
+    }
+
+    const now = Date.now();
+    const existing = AuthService.otpMap.get(cleanEmail);
+    if (existing && now - existing.lastSentAt < 60000) {
+      const waitSec = Math.ceil((60000 - (now - existing.lastSentAt)) / 1000);
+      throw new HttpException(
+        `Vui lòng đợi ${waitSec} giây trước khi yêu cầu gửi lại mã OTP mới`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    // Sinh mã OTP 6 số ngẫu nhiên
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = now + 10 * 60 * 1000; // 10 phút
+
+    AuthService.otpMap.set(cleanEmail, {
+      otp,
+      expiresAt,
+      lastSentAt: now,
+    });
+
+    // Gửi email thực qua MailService
+    await this.mailService.sendPinOtpEmail(cleanEmail, otp);
+
+    return {
+      success: true,
+      message: `Đã gửi mã xác thực OTP 6 số tới hộp thư ${cleanEmail}. Vui lòng kiểm tra Gmail.`,
+    };
+  }
+
+  /**
+   * Xác thực mã OTP 6 số khi đặt lại mã PIN
+   */
+  async verifyPinResetOtp(email: string, otp: string): Promise<{ success: boolean; message: string }> {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanOtp = (otp || '').trim();
+
+    const record = AuthService.otpMap.get(cleanEmail);
+    if (!record) {
+      throw new HttpException(
+        'Không tìm thấy yêu cầu cấp lại mã PIN hoặc mã đã hết hạn. Vui lòng gửi lại yêu cầu.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (Date.now() > record.expiresAt) {
+      AuthService.otpMap.delete(cleanEmail);
+      throw new HttpException(
+        'Mã OTP đã hết hạn (quá 10 phút). Vui lòng yêu cầu mã mới.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (record.otp !== cleanOtp) {
+      throw new HttpException('Mã OTP không chính xác. Vui lòng kiểm tra lại.', HttpStatus.BAD_REQUEST);
+    }
+
+    // Xác thực thành công -> xóa mã để chống dùng lại
+    AuthService.otpMap.delete(cleanEmail);
+
+    return {
+      success: true,
+      message: 'Xác thực OTP thành công. Bạn có thể tiến hành đổi mã PIN bảo vệ mới.',
     };
   }
 }

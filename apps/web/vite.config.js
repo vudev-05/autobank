@@ -24,6 +24,31 @@ export default defineConfig({
             return;
           }
 
+          // Clean public legal URL: /privacy, /terms, /dieu-khoan
+          if (urlPath === '/privacy' || urlPath === '/terms' || urlPath === '/dieu-khoan') {
+            req.url = `/privacy.html${query}`;
+            return next();
+          }
+
+          if (urlPath === '/privacy.html') {
+            res.writeHead(301, { Location: `/privacy${query}` });
+            res.end();
+            return;
+          }
+
+          // Clean public blog URLs: /bai-viet, /cam-nang
+          if (urlPath === '/bai-viet' || urlPath === '/bai-viet/' || urlPath === '/cam-nang' || urlPath === '/cam-nang/') {
+            req.url = `/blog.html${query}`;
+            return next();
+          }
+
+          if (urlPath.startsWith('/bai-viet/') || urlPath.startsWith('/cam-nang/')) {
+            const articleSlug = urlPath.replace(/^\/(bai-viet|cam-nang)\//, '').replace(/\/$/, '');
+            const separator = query ? '&' : '?';
+            req.url = `/article.html${query}${separator}slug=${articleSlug}`;
+            return next();
+          }
+
           // 2. Clean admin root URL: /admin
           if (urlPath === '/admin' || urlPath === '/admin/') {
             req.url = `/admin/index.html${query}`;
@@ -88,6 +113,8 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         live: resolve(__dirname, 'live.html'),
         privacy: resolve(__dirname, 'privacy.html'),
+        blog: resolve(__dirname, 'blog.html'),
+        article: resolve(__dirname, 'article.html'),
         admin: resolve(__dirname, 'admin/index.html'),
         adminLogin: resolve(__dirname, 'admin/login.html'),
         adminConfig: resolve(__dirname, 'admin/config.html'),

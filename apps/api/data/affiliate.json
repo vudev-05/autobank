@@ -1,0 +1,108 @@
+{
+  "withdrawals": [
+    {
+      "id": "WD_1730001",
+      "referralCode": "688219",
+      "userEmail": "quocvu.merchant@gmail.com",
+      "bankName": "MBBank",
+      "accountNumber": "3011200588888",
+      "accountHolder": "TRẦN QUỐC VŨ",
+      "amount": 500000,
+      "status": "PENDING",
+      "rejectReason": "",
+      "date": "23/10/2026 14:30",
+      "createdAt": "2026-10-24T00:37:24.412Z"
+    },
+    {
+      "id": "WD_1730002",
+      "referralCode": "912384",
+      "userEmail": "minhnguyen.coffee@gmail.com",
+      "bankName": "Techcombank",
+      "accountNumber": "190382910398",
+      "accountHolder": "NGUYỄN VĂN MINH",
+      "amount": 250000,
+      "status": "APPROVED",
+      "rejectReason": "",
+      "date": "22/10/2026 09:15",
+      "createdAt": "2026-10-23T05:37:24.412Z",
+      "processedAt": "2026-10-23T06:37:24.412Z"
+    },
+    {
+      "id": "WD_1730003",
+      "referralCode": "349182",
+      "userEmail": "spamanh@gmail.com",
+      "bankName": "Vietcombank",
+      "accountNumber": "0071000889912",
+      "accountHolder": "LÊ THỊ ANH",
+      "amount": 200000,
+      "status": "REJECTED",
+      "rejectReason": "Sai số tài khoản nhận tiền tại Vietcombank, đã hoàn lại 200.000₫ về số dư",
+      "date": "21/10/2026 16:40",
+      "createdAt": "2026-10-22T05:37:24.412Z",
+      "processedAt": "2026-10-22T06:07:24.412Z"
+    }
+  ],
+  "referrals": [
+    {
+      "id": "REF_173001",
+      "referrerCode": "688219",
+      "referrerEmail": "quocvu.merchant@gmail.com",
+      "invitedEmail": "tiembanh.mai@gmail.com",
+      "invitedName": "Tiệm Bánh Mơ Màng",
+      "packageName": "1 Năm (tặng 2T)",
+      "commissionAmount": 75000,
+      "date": "23/10/2026 11:20",
+      "createdAt": "2026-10-23T21:37:24.412Z"
+    },
+    {
+      "id": "REF_173002",
+      "referrerCode": "912384",
+      "referrerEmail": "minhnguyen.coffee@gmail.com",
+      "invitedEmail": "taphoahuong@gmail.com",
+      "invitedName": "Tạp Hóa Cô Hương",
+      "packageName": "6 Tháng",
+      "commissionAmount": 45000,
+      "date": "22/10/2026 18:05",
+      "createdAt": "2026-10-23T05:37:24.412Z"
+    },
+    {
+      "id": "REF_173003",
+      "referrerCode": "688219",
+      "referrerEmail": "quocvu.merchant@gmail.com",
+      "invitedEmail": "nhahangbien@gmail.com",
+      "invitedName": "Nhà Hàng Biển Xanh",
+      "packageName": "Gói Vĩnh Viễn Trọn Đời",
+      "commissionAmount": 120000,
+      "date": "21/10/2026 15:30",
+      "createdAt": "2026-10-22T05:37:24.412Z"
+    },
+    {
+      "id": "REF_173004",
+      "referrerCode": "773210",
+      "referrerEmail": "hoa.salon@gmail.com",
+      "invitedEmail": "phothin@gmail.com",
+      "invitedName": "Phở Thìn Hà Nội",
+      "packageName": "3 Tháng",
+      "commissionAmount": 25000,
+      "date": "20/10/2026 10:10",
+      "createdAt": "2026-10-21T05:37:24.412Z"
+    }
+  ],
+  "userBalances": {
+    "688219": {
+      "available": 195000,
+      "totalEarned": 695000,
+      "invitedCount": 8
+    },
+    "773210": {
+      "available": 195000,
+      "totalEarned": 195000,
+      "invitedCount": 3
+    },
+    "912384": {
+      "available": 120000,
+      "totalEarned": 370000,
+      "invitedCount": 5
+    }
+  }
+}

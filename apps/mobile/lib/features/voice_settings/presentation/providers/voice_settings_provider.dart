@@ -188,7 +188,7 @@ class VoiceSettingsProvider extends ChangeNotifier {
   // Bật/tắt đọc cho từng loại
   bool _isCreditEnabled = true;
   bool _isDebitEnabled = true;
-  bool _isMaxVolumePhone = true; // Kích âm lượng tối đa theo điện thoại
+  bool _isMaxVolumePhone = false; // Mặc định âm lượng dựa theo âm lượng điện thoại (không tự ép MAX)
 
   // Cấu hình Form đọc NHẬN TIỀN (Credit)
   String _activePresetId = 'BANK_STANDARD';

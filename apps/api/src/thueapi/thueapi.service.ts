@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MailService } from '../mail/mail.service.js';
 import { Prisma } from '@prisma/client';
 import crypto from 'node:crypto';
 
@@ -29,7 +30,10 @@ export class ThueApiWebhookDto {
 export class ThueApiService {
   private readonly logger = new Logger(ThueApiService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   /**
    * Lấy cấu hình ThueApi.Pro hiện tại (Mã hóa / Che key khi hiển thị cho Admin)
@@ -112,7 +116,7 @@ export class ThueApiService {
         id: 'default',
         brandName: 'Đọc thông báo nhận tiền',
         brandSlogan: 'Tiền vừa sang ~ máy báo vang',
-        chplayLink: 'https://play.google.com/store/apps/details?id=com.dtappbaochuyentien.vn',
+        chplayLink: 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
         youtubeLink: 'https://www.youtube.com/@vudev05',
         ...updateData,
       },
@@ -386,6 +390,16 @@ export class ThueApiService {
               this.logger.log(
                 `KÍCH HOẠT GÓI THÀNH CÔNG cho ${appUser.email}! Hạn mới: ${newExpiry.toISOString()}`,
               );
+
+              // Tự động gửi email biên nhận và chúc mừng kích hoạt thành công
+              if (appUser.email && appUser.email.includes('@')) {
+                this.mailService.sendSubscriptionSuccessEmail(appUser.email, {
+                  packageName: matchedOrder.description || (isLifetime ? 'Gói Vĩnh Viễn' : `${daysToAdd} ngày`),
+                  amount: rawAmount,
+                  expiresAt: newExpiry,
+                  orderCode: matchedOrder.orderCode,
+                }).catch((e: any) => this.logger.error(`Error sending activation email to ${appUser.email}: ${e.message}`));
+              }
             }
           }
         }

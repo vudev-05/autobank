@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/web_theme.dart';
 import '../../../../core/tts/tts_service.dart';
@@ -15,7 +16,8 @@ import '../../../system/presentation/providers/system_config_provider.dart';
 
 class RegisterSubscriptionPage extends StatefulWidget {
   final String? initialPackageKey;
-  const RegisterSubscriptionPage({super.key, this.initialPackageKey});
+  final VoidCallback? onBackToHome;
+  const RegisterSubscriptionPage({super.key, this.initialPackageKey, this.onBackToHome});
 
   @override
   State<RegisterSubscriptionPage> createState() => _RegisterSubscriptionPageState();
@@ -94,7 +96,6 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
     final p1m = calcDiscount(sysConfig.price1m);
     final p3m = calcDiscount(sysConfig.price3m);
     final p6m = calcDiscount(sysConfig.price6m);
-    final p9m = calcDiscount(sysConfig.price9m);
     final p1y = calcDiscount(sysConfig.price1y);
     final pLife = calcDiscount(sysConfig.priceLifetime);
 
@@ -124,6 +125,12 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
         }
 
         final isDiscounted = hasCoupon && discountedPrice < rawPrice && rawPrice > 0;
+        final commission = sysConfig.getCommissionForPackage(
+          key: key,
+          name: name,
+          durationDays: days,
+          price: discountedPrice,
+        );
 
         dynamicList.add({
           'key': key,
@@ -134,6 +141,7 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
           'originalPriceText': isDiscounted ? CurrencyFormatter.formatVND(rawPrice.toDouble()) : null,
           'price': discountedPrice,
           'priceText': discountedPrice == 0 ? '0đ' : CurrencyFormatter.formatVND(discountedPrice.toDouble()),
+          'commission': commission,
           'badge': badge.isNotEmpty ? badge : couponBadge,
           'desc': desc.isNotEmpty ? desc : 'Đọc thông báo nhận tiền VietQR 24/7 ổn định',
           'isFeatured': badge.contains('Khuyên dùng') || key == '1year' || key == '1y',
@@ -146,9 +154,8 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
     final is1mDiscounted = hasCoupon && p1m < sysConfig.price1m && sysConfig.price1m > 0;
     final is3mDiscounted = hasCoupon && p3m < sysConfig.price3m && sysConfig.price3m > 0;
     final is6mDiscounted = hasCoupon && p6m < sysConfig.price6m && sysConfig.price6m > 0;
-    final is9mDiscounted = hasCoupon && p9m < sysConfig.price9m && sysConfig.price9m > 0;
     final is1yDiscounted = hasCoupon && p1y < sysConfig.price1y && sysConfig.price1y > 0;
-    final isLifeDiscounted = hasCoupon && pLife < sysConfig.priceLifetime && sysConfig.priceLifetime > 0;
+    final is2yDiscounted = hasCoupon && pLife < sysConfig.priceLifetime && sysConfig.priceLifetime > 0;
     final String? voucherTag = hasCoupon
         ? (couponPct > 0 ? '-$couponPct% VOUCHER' : '-${CurrencyFormatter.formatVND(couponAmt.toDouble())}')
         : null;
@@ -161,14 +168,14 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
         'days': 3,
         'price': 0,
         'priceText': '0đ',
-        'badge': 'Tài khoản mới',
-        'desc': 'Trải nghiệm 100% tính năng trong 3 ngày',
+        'badge': 'Miễn phí',
+        'desc': 'Trải nghiệm 100% tính năng cao cấp trong 3 ngày',
         'isFeatured': false,
         'icon': Icons.timer_outlined,
       },
       {
-        'key': '1month',
-        'name': 'Gói 1 Tháng',
+        'key': '1m',
+        'name': '1 Tháng',
         'duration': 'Thời hạn 30 ngày',
         'days': 30,
         'originalPrice': is1mDiscounted ? sysConfig.price1m : null,
@@ -176,14 +183,15 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
         'voucherTag': is1mDiscounted ? voucherTag : null,
         'price': p1m,
         'priceText': CurrencyFormatter.formatVND(p1m.toDouble()),
-        'badge': couponBadge,
-        'desc': 'Bản quyền 30 ngày trải nghiệm',
+        'commission': sysConfig.getCommissionForPackage(key: '1m', name: '1 Tháng', durationDays: 30, price: p1m),
+        'badge': couponBadge ?? 'Trải nghiệm',
+        'desc': 'Bản quyền 30 ngày đầy đủ thông báo giọng nói',
         'isFeatured': false,
         'icon': Icons.calendar_today_rounded,
       },
       {
-        'key': '3month',
-        'name': 'Gói 3 Tháng',
+        'key': '3m',
+        'name': '3 Tháng',
         'duration': 'Thời hạn 90 ngày',
         'days': 90,
         'originalPrice': is3mDiscounted ? sysConfig.price3m : null,
@@ -191,14 +199,15 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
         'voucherTag': is3mDiscounted ? voucherTag : null,
         'price': p3m,
         'priceText': CurrencyFormatter.formatVND(p3m.toDouble()),
-        'badge': couponBadge ?? 'Tiết kiệm 15%',
-        'desc': 'Bản quyền 90 ngày tiết kiệm',
+        'commission': sysConfig.getCommissionForPackage(key: '3m', name: '3 Tháng', durationDays: 90, price: p3m),
+        'badge': couponBadge ?? 'Tiết kiệm',
+        'desc': 'Bản quyền 90 ngày cho cửa hàng kinh doanh',
         'isFeatured': false,
         'icon': Icons.calendar_month_rounded,
       },
       {
-        'key': '6month',
-        'name': 'Gói 6 Tháng',
+        'key': '6m',
+        'name': '6 Tháng',
         'duration': 'Thời hạn 180 ngày',
         'days': 180,
         'originalPrice': is6mDiscounted ? sysConfig.price6m : null,
@@ -206,63 +215,41 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
         'voucherTag': is6mDiscounted ? voucherTag : null,
         'price': p6m,
         'priceText': CurrencyFormatter.formatVND(p6m.toDouble()),
+        'commission': sysConfig.getCommissionForPackage(key: '6m', name: '6 Tháng', durationDays: 180, price: p6m),
         'badge': couponBadge ?? 'Phổ biến',
-        'desc': 'Bản quyền 180 ngày nửa năm',
+        'desc': 'Bản quyền 180 ngày ổn định 24/7',
         'isFeatured': false,
         'icon': Icons.date_range_rounded,
       },
       {
-        'key': '9month',
-        'name': 'Gói 9 Tháng',
-        'duration': 'Thời hạn 270 ngày',
-        'days': 270,
-        'originalPrice': is9mDiscounted ? sysConfig.price9m : null,
-        'originalPriceText': is9mDiscounted ? CurrencyFormatter.formatVND(sysConfig.price9m.toDouble()) : null,
-        'voucherTag': is9mDiscounted ? voucherTag : null,
-        'price': p9m,
-        'priceText': CurrencyFormatter.formatVND(p9m.toDouble()),
-        'badge': couponBadge ?? 'Tiết kiệm 30%',
-        'desc': 'Bản quyền 270 ngày ưu đãi',
-        'isFeatured': false,
-        'icon': Icons.verified_rounded,
-      },
-      {
-        'key': '1year',
-        'name': 'Gói 1 Năm',
-        'duration': sysConfig.bonusMonths1y > 0
-            ? 'Thời hạn 365 ngày (+ Tặng ${sysConfig.bonusMonths1y} tháng)'
-            : 'Thời hạn 365 ngày',
-        'days': 365 + (sysConfig.bonusMonths1y * 30),
+        'key': '1y',
+        'name': '1 Năm (tặng 2T)',
+        'duration': 'Thời hạn 425 ngày',
+        'days': 425,
         'originalPrice': is1yDiscounted ? sysConfig.price1y : null,
         'originalPriceText': is1yDiscounted ? CurrencyFormatter.formatVND(sysConfig.price1y.toDouble()) : null,
         'voucherTag': is1yDiscounted ? voucherTag : null,
         'price': p1y,
         'priceText': CurrencyFormatter.formatVND(p1y.toDouble()),
-        'badge': couponBadge != null
-            ? (sysConfig.bonusMonths1y > 0
-                ? '$couponBadge + Tặng ${sysConfig.bonusMonths1y}T ⭐'
-                : '$couponBadge • Bán chạy nhất ⭐')
-            : (sysConfig.bonusMonths1y > 0
-                ? 'Tặng ${sysConfig.bonusMonths1y} tháng ⭐'
-                : 'Khuyên dùng nhất ⭐'),
-        'desc': sysConfig.bonusMonths1y > 0
-            ? 'Bản quyền 1 năm tặng thêm ${sysConfig.bonusMonths1y} tháng'
-            : 'Bản quyền 365 ngày trọn vẹn 1 năm',
+        'commission': sysConfig.getCommissionForPackage(key: '1y', name: '1 Năm (tặng 2T)', durationDays: 425, price: p1y),
+        'badge': couponBadge ?? 'Khuyên dùng',
+        'desc': 'Tặng thêm 2 tháng + Hỗ trợ kỹ thuật 24/7',
         'isFeatured': true,
         'icon': Icons.workspace_premium_rounded,
       },
       {
-        'key': 'lifetime',
-        'name': 'Gói Vĩnh Viễn',
-        'duration': 'Trọn đời không giới hạn',
-        'days': 36500,
-        'originalPrice': isLifeDiscounted ? sysConfig.priceLifetime : null,
-        'originalPriceText': isLifeDiscounted ? CurrencyFormatter.formatVND(sysConfig.priceLifetime.toDouble()) : null,
-        'voucherTag': isLifeDiscounted ? voucherTag : null,
+        'key': '2y',
+        'name': '2 Năm (tặng 6T)',
+        'duration': 'Thời hạn 910 ngày',
+        'days': 910,
+        'originalPrice': is2yDiscounted ? sysConfig.priceLifetime : null,
+        'originalPriceText': is2yDiscounted ? CurrencyFormatter.formatVND(sysConfig.priceLifetime.toDouble()) : null,
+        'voucherTag': is2yDiscounted ? voucherTag : null,
         'price': pLife,
         'priceText': CurrencyFormatter.formatVND(pLife.toDouble()),
-        'badge': couponBadge != null ? '$couponBadge • Vĩnh viễn trọn đời 🔥' : 'Vĩnh viễn trọn đời 🔥',
-        'desc': 'Thanh toán 1 lần dùng mãi mãi trọn đời',
+        'commission': sysConfig.getCommissionForPackage(key: '2y', name: '2 Năm (tặng 6T)', durationDays: 910, price: pLife),
+        'badge': couponBadge ?? 'Tốt Nhất',
+        'desc': 'Tặng thêm 6 tháng + Hỗ trợ kỹ thuật 24/7',
         'isFeatured': false,
         'icon': Icons.all_inclusive_rounded,
       },
@@ -857,7 +844,7 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
   }
 
   /// KÍCH HOẠT GÓI DÙNG THỬ 3 NGÀY & BẮT ĐẦU ĐẾM NGƯỢC TỪ LÚC NÀY
-  void _handleActivateTrial(GoogleAuthProvider googleAuth) {
+  void _handleActivateTrial(GoogleAuthProvider googleAuth) async {
     if (googleAuth.isLifetime) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -900,8 +887,8 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
       return;
     }
 
-    final success = googleAuth.startTrial(); // Bắt đầu tính giờ đếm ngược từ khoảnh khắc người dùng chọn gói!
-    if (!success) return;
+    final success = await googleAuth.startTrial(); // Bắt đầu tính giờ đếm ngược từ khoảnh khắc người dùng chọn gói!
+    if (!success || !mounted) return;
 
     final now = DateTime.now();
 
@@ -1035,9 +1022,46 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
 
     return Scaffold(
       backgroundColor: WebTheme.scaffoldBg,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: WebTheme.textHeading),
+          tooltip: 'Quay lại Trang chủ',
+          onPressed: () {
+            if (widget.onBackToHome != null) {
+              widget.onBackToHome!();
+            } else if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
+        title: const Text(
+          'Đăng ký & Nâng cấp gói',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: WebTheme.textHeading),
+        ),
+        actions: [
+          TextButton.icon(
+            style: TextButton.styleFrom(
+              foregroundColor: WebTheme.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            icon: const Icon(Icons.home_rounded, size: 20),
+            label: const Text('Trang chủ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            onPressed: () {
+              if (widget.onBackToHome != null) {
+                widget.onBackToHome!();
+              } else if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1066,27 +1090,34 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: WebTheme.primaryBg,
-                            borderRadius: BorderRadius.circular(WebTheme.radiusSm),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: WebTheme.primaryBg,
+                              borderRadius: BorderRadius.circular(WebTheme.radiusSm),
+                            ),
+                            child: const Icon(Icons.price_change_rounded, color: WebTheme.primary, size: 18),
                           ),
-                          child: const Icon(Icons.price_change_rounded, color: WebTheme.primary, size: 18),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Chọn gói thời hạn (Tháng / Năm)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: WebTheme.textHeading,
+                          const SizedBox(width: 8),
+                          const Flexible(
+                            child: Text(
+                              'Chọn gói thời hạn (Tháng / Năm)',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold,
+                                color: WebTheme.textHeading,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     InkWell(
                       onTap: () => _showAllSubscriptionPackagesModal(context),
                       borderRadius: BorderRadius.circular(6),
@@ -1147,14 +1178,16 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
     final coupon = sysConfig.getBestCouponForUser(
       userCreatedAt: googleAuth.createdAt,
       userEmail: googleAuth.email,
-    );
-
-    if (coupon == null) {
-      return const SizedBox.shrink();
-    }
+    ) ?? {
+      'code': 'NGUOIMOI',
+      'discountPercent': 10,
+      'discountAmount': 0,
+      'targetAudience': 'NEW_3DAYS',
+      'description': 'Giảm 10% cho thành viên mới trong vòng 3 ngày',
+    };
 
     final now = DateTime.now();
-    final target = (coupon['targetAudience'] ?? 'ALL').toString().toUpperCase();
+    final target = (coupon['targetAudience'] ?? 'NEW_3DAYS').toString().toUpperCase();
     int targetHours = 72;
     String targetDurationBadge = '3 NGÀY';
 
@@ -1168,28 +1201,32 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
       targetHours = 72;
       targetDurationBadge = '3 NGÀY';
     } else {
-      targetHours = 48;
+      targetHours = 72;
       targetDurationBadge = 'ƯU ĐÃI';
     }
 
     // Đếm ngược chính xác theo giờ cài đặt từ thời điểm tạo tài khoản (không phải lúc đăng nhập)
-    final expireAt = googleAuth.createdAt.add(Duration(hours: targetHours));
-    final remaining = expireAt.difference(now);
-    final isExpired = remaining.isNegative;
+    final startTime = googleAuth.trialStartedAt ?? googleAuth.createdAt;
+    final expireAt = startTime.add(Duration(hours: targetHours));
+    final rawRemaining = expireAt.difference(now);
+    final remaining = rawRemaining > Duration(hours: targetHours)
+        ? Duration(hours: targetHours)
+        : (rawRemaining.isNegative ? Duration.zero : rawRemaining);
+    final isExpired = rawRemaining.isNegative;
 
-    if (isExpired) {
+    if (isExpired && googleAuth.hasUsedTrial) {
       return const SizedBox.shrink();
     }
 
-    final days = remaining.inDays;
-    final hours = remaining.inHours % 24;
-    final minutes = remaining.inMinutes % 60;
-    final seconds = remaining.inSeconds % 60;
+    final days = isExpired ? 0 : remaining.inDays;
+    final hours = isExpired ? 0 : remaining.inHours % 24;
+    final minutes = isExpired ? 0 : remaining.inMinutes % 60;
+    final seconds = isExpired ? 0 : remaining.inSeconds % 60;
 
     final createdDateStr =
         '${googleAuth.createdAt.hour.toString().padLeft(2, '0')}:${googleAuth.createdAt.minute.toString().padLeft(2, '0')} ngày ${googleAuth.createdAt.day.toString().padLeft(2, '0')}/${googleAuth.createdAt.month.toString().padLeft(2, '0')}';
 
-    final int couponPct = (coupon['discountPercent'] as num?)?.toInt() ?? 0;
+    final int couponPct = (coupon['discountPercent'] as num?)?.toInt() ?? 10;
     final int couponAmt = (coupon['discountAmount'] as num?)?.toInt() ?? 0;
     final String discountTitle = couponPct > 0
         ? 'VOUCHER TÂN THỦ GIẢM $couponPct%'
@@ -1197,7 +1234,7 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
     final String discountDesc = couponPct > 0
         ? 'Đã trừ thẳng $couponPct% vào giá tất cả các gói. Bấm kích hoạt nhận ngay giá ưu đãi!'
         : 'Đã trừ thẳng ${CurrencyFormatter.formatVND(couponAmt.toDouble())} vào giá tất cả các gói. Bấm kích hoạt nhận ngay!';
-    final String couponCode = (coupon['code'] ?? 'UUDAI').toString().toUpperCase();
+    final String couponCode = (coupon['code'] ?? 'NGUOIMOI').toString().toUpperCase();
 
     return Container(
       decoration: BoxDecoration(
@@ -1335,7 +1372,7 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
 
           // Footer thông báo áp dụng
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
             child: Row(
               children: [
                 const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF16A34A)),
@@ -1360,6 +1397,45 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // NÚT HÀNH ĐỘNG MARKETING TỨC THÌ
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            child: SizedBox(
+              width: double.infinity,
+              height: 38,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.flash_on_rounded, size: 16, color: Colors.white),
+                label: Text(
+                  '⚡ ÁP DỤNG MÃ $couponCode & CHỌN GÓI 1 NĂM (GIẢM $couponPct%)',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEA580C),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 2,
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  setState(() {
+                    _selectedPackageKey = '1year';
+                  });
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setString('auto_apply_coupon_code', couponCode);
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('🎉 Đã chọn mã $couponCode (-$couponPct%) và gói 1 Năm!'),
+                      backgroundColor: const Color(0xFFEA580C),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -1656,12 +1732,21 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                             Text(
                               isExpired
                                   ? 'Vui lòng gia hạn thêm gói'
-                                  : 'HSD: ${googleAuth.expireDate.day}/${googleAuth.expireDate.month}/${googleAuth.expireDate.year} (Tự động cộng dồn khi mua thêm)',
+                                  : 'HSD: ${googleAuth.expireDate.day}/${googleAuth.expireDate.month}/${googleAuth.expireDate.year}',
                               style: TextStyle(
-                                fontSize: 9,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
                                 color: isExpired ? const Color(0xFFDC2626) : const Color(0xFF15803D),
                               ),
                             ),
+                            if (!isExpired)
+                              const Text(
+                                '(Cộng dồn khi mua thêm)',
+                                style: TextStyle(
+                                  fontSize: 8.5,
+                                  color: Color(0xFF15803D),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -1686,8 +1771,11 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
           else if (googleAuth.isTrialStarted)
             Builder(
               builder: (context) {
-                final remaining = googleAuth.expireDate.difference(DateTime.now());
-                final isExpired = remaining.isNegative;
+                final rawRemaining = googleAuth.expireDate.difference(DateTime.now());
+                final remaining = rawRemaining > const Duration(hours: 72)
+                    ? const Duration(hours: 72)
+                    : (rawRemaining.isNegative ? Duration.zero : rawRemaining);
+                final isExpired = rawRemaining.isNegative;
                 final days = isExpired ? 0 : remaining.inDays;
                 final hours = isExpired ? 0 : remaining.inHours % 24;
                 final minutes = isExpired ? 0 : remaining.inMinutes % 60;
@@ -2421,6 +2509,25 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (pkg['commission'] != null && (pkg['commission'] as num) > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.card_giftcard_rounded, size: 12, color: Color(0xFF16A34A)),
+                              const SizedBox(width: 3),
+                              Text(
+                                'Thưởng người giới thiệu: +${CurrencyFormatter.formatVND((pkg['commission'] as num).toDouble())}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF16A34A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -2681,6 +2788,16 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
 
     _registerOrderToBackend();
     _startStatusPolling();
+
+    // Tự động kiểm tra và áp dụng mã giảm giá tân thủ NGUOIMOI nếu có
+    SharedPreferences.getInstance().then((prefs) {
+      final autoCode = prefs.getString('auto_apply_coupon_code');
+      if (mounted && autoCode != null && autoCode.isNotEmpty) {
+        _couponCtrl.text = autoCode;
+        _applyCoupon();
+        prefs.remove('auto_apply_coupon_code');
+      }
+    });
   }
 
   void _startStatusPolling() {
@@ -2738,7 +2855,7 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
     );
   }
 
-  int get _googlePayFee => (widget.amount * 0.10).round();
+  int get _googlePayFee => (widget.amount * 0.15).round();
 
   int get _finalPayableAmount {
     if (_selectedPaymentMethod == 1) {
@@ -2781,7 +2898,13 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
   }
 
   void _applyLocalCouponFallback(String code) {
-    if (code == 'AUTOBANK20') {
+    if (code == 'NGUOIMOI') {
+      setState(() {
+        _appliedCouponCode = code;
+        _discount = (widget.amount * 0.10).round();
+        _couponMessage = '✓ Áp dụng mã NGUOIMOI thành công! Giảm ngay 10% (-${CurrencyFormatter.formatVND(_discount.toDouble())})';
+      });
+    } else if (code == 'AUTOBANK20') {
       setState(() {
         _appliedCouponCode = code;
         _discount = (widget.amount * 0.20).round();
@@ -3154,7 +3277,7 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                             const GoogleLogo(size: 14),
                             const SizedBox(width: 6),
                             Text(
-                              isGpayMaintenance ? '2. Google Pay (Bảo trì)' : '2. Google Pay (+10%)',
+                              isGpayMaintenance ? '2. Google Pay (Bảo trì)' : '2. Google Pay (+15%)',
                               style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: _selectedPaymentMethod == 1 ? FontWeight.bold : FontWeight.w600,
@@ -3454,7 +3577,7 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                             ),
                           ),
                           child: Text(
-                            isGpayMaintenance ? 'ĐANG BẢO TRÌ' : '+10% Phí Google Play',
+                            isGpayMaintenance ? 'ĐANG BẢO TRÌ' : '+15% Phí Google Play',
                             style: TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.bold,
@@ -3472,7 +3595,7 @@ class _PaymentModalSheetState extends State<_PaymentModalSheet> {
                     _buildPaymentRow('Giá gốc niêm yết:', CurrencyFormatter.formatVND(widget.amount.toDouble()), null),
                     const Divider(height: 10, color: Color(0xFFE2E8F0)),
                     _buildPaymentRow(
-                      'Phí dịch vụ Google Play (+10%):',
+                      'Phí dịch vụ Google Play (+15%):',
                       '+${CurrencyFormatter.formatVND(_googlePayFee.toDouble())}',
                       null,
                     ),
