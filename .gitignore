@@ -72,7 +72,8 @@ logs/
 *.log
 npm-debug.log*
 
-# ── Prisma ──
+# ── Database Backups ──
+*.sql
 apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 
