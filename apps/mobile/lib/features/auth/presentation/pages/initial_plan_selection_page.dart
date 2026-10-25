@@ -354,19 +354,22 @@ class _InitialPlanSelectionPageState extends State<InitialPlanSelectionPage> {
                             ),
                             onPressed: () async {
                               final shop = _shopController.text.trim();
-                              final phone = _phoneController.text.trim();
-                              if (shop.isEmpty) {
-                                setState(() => _inputError = 'Vui lòng nhập tên cửa hàng hoặc họ tên của bạn');
+                              final rawPhone = _phoneController.text.trim();
+                              final cleanPhone = rawPhone.replaceAll(RegExp(r'[\s\.\-]'), '');
+                              final vnPhoneRegex = RegExp(r'^(0|\+84)(3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$');
+
+                              if (shop.isEmpty || shop.length < 2) {
+                                setState(() => _inputError = 'Vui lòng nhập tên cửa hàng hoặc họ tên của bạn (tối thiểu 2 ký tự)');
                                 return;
                               }
-                              if (phone.isEmpty || phone.replaceAll(RegExp(r'[^0-9]'), '').length < 9) {
-                                setState(() => _inputError = 'Vui lòng nhập số điện thoại hợp lệ (tối thiểu 9 số)');
+                              if (!vnPhoneRegex.hasMatch(cleanPhone)) {
+                                setState(() => _inputError = 'Vui lòng nhập đúng số điện thoại di động Việt Nam (10 số, bắt đầu bằng 03, 05, 07, 08, 09 hoặc +84)');
                                 return;
                               }
                               setState(() => _inputError = null);
-                              final success = await auth.startTrial(shop: shop, phone: phone);
+                              final success = await auth.startTrial(shop: shop, phone: cleanPhone);
                               if (success) {
-                                TtsService().speakTestFeedback('Chào mừng bạn đến với hệ thống đọc thông báo nhận tiền tự động.');
+                                TtsService().speakTestFeedback('Chào mừng $shop đến với hệ thống đọc thông báo nhận tiền tự động. Gói dùng thử ba ngày đã được kích hoạt thành công.');
                                 if (context.mounted) {
                                   ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                                     const SnackBar(

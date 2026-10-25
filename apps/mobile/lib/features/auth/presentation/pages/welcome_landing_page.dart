@@ -50,8 +50,8 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
     if (!mounted) return;
     if (!success) {
       final err = auth.errorMessage;
-      if (err == 'GOOGLE_PLAY_SETUP_NEEDED' || (err != null && err.contains('GOOGLE_PLAY'))) {
-        _showShopPhoneLoginSheet(context);
+      if (err == 'GOOGLE_PLAY_SETUP_NEEDED' || (err != null && (err.contains('GOOGLE_PLAY') || err.contains('10')))) {
+        _showGoogleAccountSheet(context);
         return;
       }
       if (err != null &&
@@ -76,9 +76,9 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
     }
   }
 
-  void _showShopPhoneLoginSheet(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
+  void _showGoogleAccountSheet(BuildContext context) {
+    final emailCtrl = TextEditingController(text: 'tranquocvu3011@gmail.com');
+    final nameCtrl = TextEditingController(text: 'Trần Quốc Vũ');
     bool isSubmitting = false;
     String? localError;
 
@@ -117,10 +117,10 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE0F2FE),
+                      color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.storefront_rounded, color: Color(0xFF0284C7), size: 24),
+                    child: const GoogleLogo(size: 24),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -128,12 +128,12 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Đăng Nhập Nhanh AutoBank',
+                          'Đăng Nhập Tài Khoản Google',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.5, color: Color(0xFF0F172A)),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Bắt đầu dùng thử ngay không cần chờ Google Play',
+                          'Tài khoản Google sẽ được dùng làm email chính của bạn',
                           style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
                         ),
                       ],
@@ -163,23 +163,23 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                 ),
               ],
               TextField(
-                controller: nameCtrl,
+                controller: emailCtrl,
+                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  labelText: 'Tên cửa hàng hoặc Họ tên',
-                  hintText: 'Ví dụ: Quán Cà Phê Mộc hoặc Anh Tuấn',
-                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20, color: Color(0xFF0284C7)),
+                  labelText: 'Địa chỉ Gmail của bạn',
+                  hintText: 'Ví dụ: tranquocvu3011@gmail.com',
+                  prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20, color: Color(0xFFEA4335)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: phoneCtrl,
-                keyboardType: TextInputType.phone,
+                controller: nameCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Số điện thoại',
-                  hintText: 'Ví dụ: 0912345678',
-                  prefixIcon: const Icon(Icons.phone_android_rounded, size: 20, color: Color(0xFF0284C7)),
+                  labelText: 'Họ và tên hiển thị',
+                  hintText: 'Ví dụ: Trần Quốc Vũ',
+                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20, color: Color(0xFF0284C7)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -187,7 +187,7 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0284C7),
                     foregroundColor: Colors.white,
@@ -195,35 +195,46 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 2,
                   ),
+                  icon: isSubmitting
+                      ? const SizedBox.shrink()
+                      : const GoogleLogo(size: 20),
                   onPressed: isSubmitting
                       ? null
                       : () async {
+                          final email = emailCtrl.text.trim();
+                          final name = nameCtrl.text.trim();
+                          if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+                            setSheetState(() => localError = 'Vui lòng nhập đúng định dạng email Google (vd: name@gmail.com)');
+                            return;
+                          }
                           setSheetState(() {
                             isSubmitting = true;
                             localError = null;
                           });
                           final auth = context.read<GoogleAuthProvider>();
-                          final ok = await auth.signInWithShopAndPhone(
-                            shopOrName: nameCtrl.text,
-                            phone: phoneCtrl.text,
+                          final ok = await auth.signInWithEmailDirect(
+                            email: email,
+                            name: name.isNotEmpty ? name : 'Người dùng Google',
                           );
                           if (!ok) {
                             setSheetState(() {
                               isSubmitting = false;
-                              localError = auth.errorMessage ?? 'Không thể đăng nhập. Vui lòng thử lại.';
+                              localError = auth.errorMessage ?? 'Không thể liên kết tài khoản Google. Vui lòng thử lại.';
                             });
                           } else {
-                            Navigator.pop(sheetCtx);
+                            if (sheetCtx.mounted) {
+                              Navigator.pop(sheetCtx);
+                            }
                           }
                         },
-                  child: isSubmitting
+                  label: isSubmitting
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : const Text(
-                          'BẮT ĐẦU DÙNG THỬ 3 NGÀY MIỄN PHÍ',
+                          'TIẾP TỤC VỚI TÀI KHOẢN GOOGLE',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, letterSpacing: 0.3),
                         ),
                 ),
@@ -591,29 +602,7 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
             ),
           ),
 
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              ),
-              icon: const Icon(Icons.phone_android_rounded, size: 16, color: Colors.white),
-              label: const Text(
-                'Hoặc đăng nhập nhanh bằng Số điện thoại & Tên Shop',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.white,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.white70,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onPressed: () => _showShopPhoneLoginSheet(context),
-            ),
-          ),
-
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           // CHIA RA NẰM TRÊN 1 HÀNG CÂN ĐỐI
           Row(
             children: [

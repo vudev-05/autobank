@@ -130,8 +130,8 @@ class GoogleAuthProvider extends ChangeNotifier {
   GoogleSignIn get googleSignIn {
     _googleSignIn ??= GoogleSignIn(
       clientId: kIsWeb ? AppConfig.googleWebClientId : null,
-      serverClientId: kIsWeb ? null : AppConfig.googleWebClientId,
-      scopes: ['email'],
+      serverClientId: null,
+      scopes: ['email', 'profile'],
     );
     return _googleSignIn!;
   }
