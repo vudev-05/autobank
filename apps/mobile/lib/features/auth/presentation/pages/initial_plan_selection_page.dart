@@ -107,7 +107,7 @@ class _InitialPlanSelectionPageState extends State<InitialPlanSelectionPage> {
                   const SizedBox(height: 6),
                   const Center(
                     child: Text(
-                      'Tài khoản mới: Vui lòng nhập SĐT & Ngân hàng để nhận diện giao dịch',
+                      'Tài khoản mới: Vui lòng nhập SĐT & Tên cửa hàng để bắt đầu trải nghiệm',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                     ),

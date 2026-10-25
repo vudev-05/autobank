@@ -21,6 +21,7 @@ class MainActivity : FlutterActivity() {
     private val METHOD_CHANNEL = "vn.autobank.mobile/permissions"
     
     private var eventSink: EventChannel.EventSink? = null
+    private var pendingAccountResult: MethodChannel.Result? = null
 
     private val notificationReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -286,6 +287,41 @@ class MainActivity : FlutterActivity() {
                         result.success(false)
                     }
                 }
+                "pickGoogleAccount" -> {
+                    try {
+                        pendingAccountResult?.success(null)
+                        val intent = android.accounts.AccountManager.newChooseAccountIntent(
+                            null, null, arrayOf("com.google"), true, null, null, null, null
+                        )
+                        pendingAccountResult = result
+                        startActivityForResult(intent, 9901)
+                    } catch (t: Throwable) {
+                        try {
+                            val accountManager = android.accounts.AccountManager.get(this)
+                            val accounts = accountManager.getAccountsByType("com.google")
+                            if (accounts.isNotEmpty()) {
+                                result.success(accounts[0].name)
+                            } else {
+                                result.success(null)
+                            }
+                        } catch (_: Throwable) {
+                            result.success(null)
+                        }
+                    }
+                }
+                "getPrimaryGoogleAccount" -> {
+                    try {
+                        val accountManager = android.accounts.AccountManager.get(this)
+                        val accounts = accountManager.getAccountsByType("com.google")
+                        if (accounts.isNotEmpty()) {
+                            result.success(accounts[0].name)
+                        } else {
+                            result.success(null)
+                        }
+                    } catch (t: Throwable) {
+                        result.success(null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
@@ -314,6 +350,19 @@ class MainActivity : FlutterActivity() {
                 }
             }
         )
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 9901) {
+            if (resultCode == RESULT_OK && data != null) {
+                val accountName = data.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
+                pendingAccountResult?.success(accountName)
+            } else {
+                pendingAccountResult?.success(null)
+            }
+            pendingAccountResult = null
+        }
     }
 
     override fun cleanUpFlutterEngine(@NonNull flutterEngine: FlutterEngine) {

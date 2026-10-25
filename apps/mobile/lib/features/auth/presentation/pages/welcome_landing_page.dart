@@ -50,35 +50,19 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
     if (!mounted) return;
     if (!success) {
       final err = auth.errorMessage;
-      if (err == 'GOOGLE_PLAY_SETUP_NEEDED' || (err != null && (err.contains('GOOGLE_PLAY') || err.contains('10')))) {
-        _showGoogleAccountSheet(context);
-        return;
-      }
       if (err != null &&
           err.isNotEmpty &&
           !err.contains('hủy') &&
           !err.contains('cancelled') &&
           !err.contains('popup_closed')) {
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Expanded(child: Text(err, style: const TextStyle(fontSize: 12))),
-              ],
-            ),
-          ),
-        );
+        _showPhoneSignInSheet(context);
       }
     }
   }
 
-  void _showGoogleAccountSheet(BuildContext context) {
-    final emailCtrl = TextEditingController(text: 'tranquocvu3011@gmail.com');
-    final nameCtrl = TextEditingController(text: 'Trần Quốc Vũ');
+  void _showPhoneSignInSheet(BuildContext context) {
+    final phoneCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
     bool isSubmitting = false;
     String? localError;
 
@@ -117,10 +101,10 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const GoogleLogo(size: 24),
+                    child: const Icon(Icons.phone_iphone_rounded, color: Color(0xFF0284C7), size: 24),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -128,12 +112,12 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Đăng Nhập Tài Khoản Google',
+                          'Đăng Ký Bằng Số Điện Thoại',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.5, color: Color(0xFF0F172A)),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Tài khoản Google sẽ được dùng làm email chính của bạn',
+                          'Nhập Số điện thoại & Tên quán để bắt đầu dùng thử 3 ngày',
                           style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
                         ),
                       ],
@@ -163,12 +147,12 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                 ),
               ],
               TextField(
-                controller: emailCtrl,
-                keyboardType: TextInputType.emailAddress,
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  labelText: 'Địa chỉ Gmail của bạn',
-                  hintText: 'Ví dụ: tranquocvu3011@gmail.com',
-                  prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20, color: Color(0xFFEA4335)),
+                  labelText: 'Số điện thoại di động *',
+                  hintText: 'Ví dụ: 0912345678',
+                  prefixIcon: const Icon(Icons.phone_iphone_rounded, size: 20, color: Color(0xFF0284C7)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -177,9 +161,9 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
               TextField(
                 controller: nameCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Họ và tên hiển thị',
-                  hintText: 'Ví dụ: Trần Quốc Vũ',
-                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20, color: Color(0xFF0284C7)),
+                  labelText: 'Tên cửa hàng hoặc họ tên *',
+                  hintText: 'Ví dụ: Cà Phê Mộc hoặc Trần Quốc Vũ',
+                  prefixIcon: const Icon(Icons.storefront_rounded, size: 20, color: Color(0xFF0284C7)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -197,14 +181,19 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                   ),
                   icon: isSubmitting
                       ? const SizedBox.shrink()
-                      : const GoogleLogo(size: 20),
+                      : const Icon(Icons.arrow_forward_rounded, size: 20),
                   onPressed: isSubmitting
                       ? null
                       : () async {
-                          final email = emailCtrl.text.trim();
-                          final name = nameCtrl.text.trim();
-                          if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
-                            setSheetState(() => localError = 'Vui lòng nhập đúng định dạng email Google (vd: name@gmail.com)');
+                          final cleanPhone = phoneCtrl.text.trim().replaceAll(RegExp(r'[\s\.\-]'), '');
+                          final cleanName = nameCtrl.text.trim();
+                          final vnPhoneRegex = RegExp(r'^(0|\+84)(3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$');
+                          if (!vnPhoneRegex.hasMatch(cleanPhone)) {
+                            setSheetState(() => localError = 'Vui lòng nhập đúng số điện thoại di động Việt Nam (10 số, bắt đầu bằng 03, 05, 07, 08, 09)');
+                            return;
+                          }
+                          if (cleanName.length < 2) {
+                            setSheetState(() => localError = 'Vui lòng nhập tên cửa hàng hoặc họ tên (tối thiểu 2 ký tự)');
                             return;
                           }
                           setSheetState(() {
@@ -212,14 +201,14 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                             localError = null;
                           });
                           final auth = context.read<GoogleAuthProvider>();
-                          final ok = await auth.signInWithEmailDirect(
-                            email: email,
-                            name: name.isNotEmpty ? name : 'Người dùng Google',
+                          final ok = await auth.signInWithShopAndPhone(
+                            shopOrName: cleanName,
+                            phone: cleanPhone,
                           );
                           if (!ok) {
                             setSheetState(() {
                               isSubmitting = false;
-                              localError = auth.errorMessage ?? 'Không thể liên kết tài khoản Google. Vui lòng thử lại.';
+                              localError = auth.errorMessage ?? 'Không thể khởi tạo tài khoản. Vui lòng thử lại.';
                             });
                           } else {
                             if (sheetCtx.mounted) {
@@ -234,7 +223,7 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : const Text(
-                          'TIẾP TỤC VỚI TÀI KHOẢN GOOGLE',
+                          'TIẾP TỤC CHỌN GÓI DÙNG THỬ 3 NGÀY',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, letterSpacing: 0.3),
                         ),
                 ),

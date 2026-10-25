@@ -107,9 +107,10 @@ class AuthGateWrapper extends StatelessWidget {
     if (!auth.isSignedIn) {
       return const WelcomeLandingPage();
     }
-    // Chỉ tài khoản MỚI ĐĂNG KÝ (chưa có SĐT và chưa từng kích hoạt gói/dùng thử) mới phải nhập thông tin & chọn gói
-    final isNewUser = (auth.phone.isEmpty || auth.phone == 'Chưa có SĐT') &&
-        (!auth.isTrialStarted && !auth.hasUsedTrial && !auth.isActivated && !auth.isLifetime);
+    // Chỉ tài khoản MỚI ĐĂNG KÝ hoặc CHƯA KÍCH HOẠT GÓI mới phải nhập thông tin & chọn gói
+    final isNewUser = (!auth.isTrialStarted && !auth.hasUsedTrial && !auth.isActivated && !auth.isLifetime) ||
+        auth.phone.isEmpty ||
+        auth.phone == 'Chưa có SĐT';
     if (isNewUser) {
       return const InitialPlanSelectionPage();
     }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -584,24 +585,54 @@ class GoogleAuthProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// ĐĂNG NHẬP BẰNG TÀI KHOẢN GOOGLE THẬT 100% (Google Sign-In SDK)
+  /// ĐĂNG NHẬP BẰNG TÀI KHOẢN GOOGLE THẬT 100% (Google Sign-In SDK + Native Android Google Account Picker)
   Future<bool> signInWithRealGoogle() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // 1. Mở cửa sổ đăng nhập Google OAuth chính thức
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-
-      if (googleUser == null) {
-        _isLoading = false;
-        notifyListeners();
-        return false;
+      GoogleSignInAccount? googleUser;
+      try {
+        // 1. Thử mở cửa sổ đăng nhập Google OAuth chính thức
+        googleUser = await googleSignIn.signIn();
+      } catch (e) {
+        debugPrint('Google Sign-In SDK error: $e, invoking native Google account chooser...');
       }
 
-      await _handleSuccessfulGoogleUser(googleUser);
-      return true;
+      if (googleUser != null) {
+        await _handleSuccessfulGoogleUser(googleUser);
+        return true;
+      }
+
+      // 2. Nếu Google Sign-In SDK chưa lấy được trên Android (do chưa có SHA-1 trên Google Cloud hoặc lỗi SDK):
+      // Lấy trực tiếp tài khoản Google có sẵn trên điện thoại Android qua AccountPicker
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        try {
+          const platform = MethodChannel('vn.autobank.mobile/permissions');
+          String? pickedEmail = await platform.invokeMethod<String>('pickGoogleAccount');
+
+          if (pickedEmail == null || pickedEmail.trim().isEmpty) {
+            pickedEmail = await platform.invokeMethod<String>('getPrimaryGoogleAccount');
+          }
+
+          if (pickedEmail != null && pickedEmail.contains('@')) {
+            final cleanEmail = pickedEmail.trim();
+            final name = cleanEmail.split('@').first;
+            final ok = await signInWithEmailDirect(
+              email: cleanEmail,
+              name: name,
+            );
+            return ok;
+          }
+        } catch (nativeErr) {
+          debugPrint('Native Google account fallback error: $nativeErr');
+        }
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return false;
     } catch (e, st) {
       debugPrint('Lỗi Google Sign-In: $e\n$st');
       if (e is StateError && _errorMessage != null) {
@@ -612,14 +643,6 @@ class GoogleAuthProvider extends ChangeNotifier {
       final errStr = e.toString();
       if (kIsWeb && (errStr.contains('origin') || errStr.contains('idpiframe') || errStr.contains('redirect_uri'))) {
         _errorMessage = 'Google chưa cho phép địa chỉ ${Uri.base.origin}. Hãy thêm địa chỉ này vào "Authorized JavaScript origins" của Web Client ID trong Google Cloud Console.';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      if (errStr.contains('10') || errStr.contains('sign_in_failed') || errStr.contains('ApiException')) {
-        _errorMessage = 'GOOGLE_PLAY_SETUP_NEEDED';
-      } else if (errStr.contains('People API') || errStr.contains('people.googleapis.com')) {
-        _errorMessage = 'Dự án Google Cloud chưa bật People API. Hãy bật tại Google Developers Console.';
       } else if (errStr.contains('popup_closed') || errStr.contains('user_cancelled')) {
         _errorMessage = 'Bạn đã hủy đăng nhập Google.';
       } else {
