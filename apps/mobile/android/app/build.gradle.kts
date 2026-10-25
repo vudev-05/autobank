@@ -33,7 +33,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "vn.autobank.autobank_mobile"
+        applicationId = "com.docthongbaobank.app"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode

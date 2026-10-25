@@ -50,6 +50,10 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
     if (!mounted) return;
     if (!success) {
       final err = auth.errorMessage;
+      if (err == 'GOOGLE_PLAY_SETUP_NEEDED' || (err != null && err.contains('GOOGLE_PLAY'))) {
+        _showShopPhoneLoginSheet(context);
+        return;
+      }
       if (err != null &&
           err.isNotEmpty &&
           !err.contains('hủy') &&
@@ -70,6 +74,165 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
         );
       }
     }
+  }
+
+  void _showShopPhoneLoginSheet(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    bool isSubmitting = false;
+    String? localError;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            20,
+            24,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0F2FE),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.storefront_rounded, color: Color(0xFF0284C7), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Đăng Nhập Nhanh AutoBank',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.5, color: Color(0xFF0F172A)),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Bắt đầu dùng thử ngay không cần chờ Google Play',
+                          style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              if (localError != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(localError!, style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C))),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              TextField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Tên cửa hàng hoặc Họ tên',
+                  hintText: 'Ví dụ: Quán Cà Phê Mộc hoặc Anh Tuấn',
+                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20, color: Color(0xFF0284C7)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Số điện thoại',
+                  hintText: 'Ví dụ: 0912345678',
+                  prefixIcon: const Icon(Icons.phone_android_rounded, size: 20, color: Color(0xFF0284C7)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 2,
+                  ),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          setSheetState(() {
+                            isSubmitting = true;
+                            localError = null;
+                          });
+                          final auth = context.read<GoogleAuthProvider>();
+                          final ok = await auth.signInWithShopAndPhone(
+                            shopOrName: nameCtrl.text,
+                            phone: phoneCtrl.text,
+                          );
+                          if (!ok) {
+                            setSheetState(() {
+                              isSubmitting = false;
+                              localError = auth.errorMessage ?? 'Không thể đăng nhập. Vui lòng thử lại.';
+                            });
+                          } else {
+                            Navigator.pop(sheetCtx);
+                          }
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text(
+                          'BẮT ĐẦU DÙNG THỬ 3 NGÀY MIỄN PHÍ',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, letterSpacing: 0.3),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -428,7 +591,29 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              ),
+              icon: const Icon(Icons.phone_android_rounded, size: 16, color: Colors.white),
+              label: const Text(
+                'Hoặc đăng nhập nhanh bằng Số điện thoại & Tên Shop',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onPressed: () => _showShopPhoneLoginSheet(context),
+            ),
+          ),
+
+          const SizedBox(height: 12),
           // CHIA RA NẰM TRÊN 1 HÀNG CÂN ĐỐI
           Row(
             children: [
