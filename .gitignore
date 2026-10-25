@@ -87,4 +87,6 @@ check_user_db*.cjs
 scripts/
 start_all.bat
 install_apk_to_phone.bat
-
+chieu_man_hinh*.bat
+quay_video*.bat
+*.mp4
