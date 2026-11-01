@@ -18,6 +18,7 @@ class GenericBankParser implements IBankParser {
 
     return combined.contains('vnd') ||
         combined.contains('đ') ||
+        combined.contains('d') ||
         combined.contains('so du') ||
         combined.contains('số dư') ||
         combined.contains('biến động') ||
@@ -35,6 +36,14 @@ class GenericBankParser implements IBankParser {
         combined.contains('cong') ||
         combined.contains('nạp') ||
         combined.contains('nap') ||
+        combined.contains('momo') ||
+        combined.contains('zalopay') ||
+        combined.contains('shopeepay') ||
+        combined.contains('viettel') ||
+        combined.contains('vnpay') ||
+        combined.contains('ví') ||
+        combined.contains('tai khoan') ||
+        combined.contains('tài khoản') ||
         (combined.contains('+') && (combined.contains('vnd') || combined.contains('đ') || combined.contains('tk')));
   }
 
@@ -50,31 +59,50 @@ class GenericBankParser implements IBankParser {
 
     TransactionType type = TransactionType.unknown;
     double amount = 0.0;
+    final lowerText = fullText.toLowerCase();
 
-    // Yêu cầu bắt buộc có đơn vị tiền tệ (VND, đ, d) hoặc ngữ cảnh ngân hàng rõ ràng (GD, TK, SD)
-    // Triệt tiêu hoàn toàn lỗi bóc tách các con số ngẫu nhiên như +2, +1, +84 thành tiền nhận
+    // 1. Nhận diện số tiền nhận (Credit):
+    // Bao quát: "+50.000đ", "cộng 50.000VND", "nhận được 50.000đ", "nhan 50.000d", "tiền vào ví 50.000đ", "nạp thành công 50.000đ"
     final creditRegex = RegExp(
-      r'(?:\+|\bcộng\b|\bcong\b)\s*([0-9,.]+)\s*(?:VND|đ|d\b)',
+      r'(?:\+|\bcộng\b|\bcong\b|\bvừa nhận\b|\bvua nhan\b|\bnhận được\b|\bnhan duoc\b|\bđã nhận\b|\bda nhan\b|\bnhận\b|\bnhan\b|\bnạp tiền\b|\bnap tien\b|\bnạp ví\b|\bnap vi\b|\bnạp\b|\bnap\b|\btiền vào\b|\btien vao\b)\s*(?:thành công\s*)?[:]?\s*(?:\+)?\s*([0-9,.]+)\s*(?:VND|đ|d\b)?',
       caseSensitive: false,
     );
+
+    // 2. Nhận diện số tiền chuyển đi / thanh toán (Debit):
+    // Bao quát: "-50.000đ", "trừ 50.000VND", "chuyển thành công 50.000đ", "thanh toán 50.000đ", "rút tiền 50.000đ"
     final debitRegex = RegExp(
-      r'(?:\-|\btrừ\b|\btru\b)\s*([0-9,.]+)\s*(?:VND|đ|d\b)',
+      r'(?:\-|\btrừ\b|\btru\b|\bđã chuyển\b|\bda chuyen\b|\bchuyển thành công\b|\bchuyen thanh cong\b|\bchuyển\b|\bchuyen\b|\bthanh toán\b|\bthanh toan\b|\brút tiền\b|\brut tien\b|\brút\b|\brut\b)\s*(?:thành công\s*)?[:]?\s*(?:\-)?\s*([0-9,.]+)\s*(?:VND|đ|d\b)?',
       caseSensitive: false,
     );
+
+    // Ưu tiên kiểm tra ngữ cảnh rõ ràng trước
+    final isExplicitCredit = lowerText.contains('nhận') || lowerText.contains('nhan') ||
+        lowerText.contains('cộng') || lowerText.contains('cong') ||
+        lowerText.contains('+') || lowerText.contains('tiền vào') || lowerText.contains('nạp');
+    final isExplicitDebit = lowerText.contains('chuyển') || lowerText.contains('chuyen') ||
+        lowerText.contains('thanh toán') || lowerText.contains('thanh toan') ||
+        lowerText.contains('trừ') || lowerText.contains('tru') ||
+        lowerText.contains('-') || lowerText.contains('rút');
 
     final creditMatch = creditRegex.firstMatch(fullText);
     final debitMatch = debitRegex.firstMatch(fullText);
 
-    if (creditMatch != null) {
+    if (creditMatch != null && isExplicitCredit && !isExplicitDebit) {
+      type = TransactionType.credit;
+      amount = IBankParser.parseAmount(creditMatch.group(1) ?? '0');
+    } else if (debitMatch != null && isExplicitDebit && !isExplicitCredit) {
+      type = TransactionType.debit;
+      amount = IBankParser.parseAmount(debitMatch.group(1) ?? '0');
+    } else if (creditMatch != null) {
       type = TransactionType.credit;
       amount = IBankParser.parseAmount(creditMatch.group(1) ?? '0');
     } else if (debitMatch != null) {
       type = TransactionType.debit;
       amount = IBankParser.parseAmount(debitMatch.group(1) ?? '0');
     } else {
-      // Kiểm tra cấu trúc tiền tệ ngân hàng: GD: +50.000 hoặc SD: 100.000VND
+      // 3. Dự phòng cho các mẫu ngân hàng: "GD: +50.000", "SD: 100.000VND", "Số tiền: 50.000đ"
       final bankingRegex = RegExp(
-        r'(?:GD|Giao dịch|Số dư|SD)\s*[:]?\s*(?:\+)?\s*([0-9,.]+)\s*(?:VND|đ|d)?',
+        r'(?:GD|Giao dịch|Số dư|SD|Số tiền|So tien)\s*[:]?\s*([+-])?\s*([0-9,.]+)\s*(?:VND|đ|d)?',
         caseSensitive: false,
       );
       final bankingMatch = bankingRegex.firstMatch(fullText);
@@ -83,11 +111,18 @@ class GenericBankParser implements IBankParser {
       final fallbackMatch = fallbackRegex.firstMatch(fullText);
 
       if (bankingMatch != null) {
-        amount = IBankParser.parseAmount(bankingMatch.group(1) ?? '0');
-        type = fullText.contains('-') ? TransactionType.debit : TransactionType.credit;
-      } else if (fallbackMatch != null && (fullText.contains('nhận') || fullText.contains('cộng') || fullText.contains('+'))) {
+        amount = IBankParser.parseAmount(bankingMatch.group(2) ?? '0');
+        final sign = bankingMatch.group(1);
+        if (sign == '+') {
+          type = TransactionType.credit;
+        } else if (sign == '-') {
+          type = TransactionType.debit;
+        } else {
+          type = isExplicitDebit ? TransactionType.debit : TransactionType.credit;
+        }
+      } else if (fallbackMatch != null) {
         amount = IBankParser.parseAmount(fallbackMatch.group(1) ?? '0');
-        type = TransactionType.credit;
+        type = isExplicitDebit ? TransactionType.debit : TransactionType.credit;
       }
     }
 
@@ -103,7 +138,7 @@ class GenericBankParser implements IBankParser {
     }
 
     String content = '';
-    final contentRegex = RegExp(r'(?:\bND\b|Nội dung|Noi dung)\s*[:]?\s*([^|\r\n]+)', caseSensitive: false);
+    final contentRegex = RegExp(r'(?:\bND\b|Nội dung|Noi dung|Lời nhắn|Loi nhan)\s*[:]?\s*([^|\r\n]+)', caseSensitive: false);
     final contentMatch = contentRegex.firstMatch(fullText);
     if (contentMatch != null) {
       content = contentMatch.group(1)?.trim() ?? '';
@@ -169,6 +204,11 @@ class GenericBankParser implements IBankParser {
       'bidc': 'BIDC',
       'baoviet': 'BAOVIETBANK',
       'abbank': 'ABBANK',
+      'abb': 'ABBANK',
+      'an binh': 'ABBANK',
+      'an bình': 'ABBANK',
+      'abditizen': 'ABBANK',
+      'ditizen': 'ABBANK',
       'indovina': 'INDOVINABANK',
       'gpbank': 'GPBANK',
       'vietbank': 'VIETBANK',
@@ -182,16 +222,18 @@ class GenericBankParser implements IBankParser {
       'mbv': 'MBV_BANK',
       // Ví điện tử
       'momo': 'MOMO',
+      'mservice': 'MOMO',
       'zalopay': 'ZALOPAY',
+      'zalo': 'ZALOPAY',
       'shopeepay': 'SHOPEEPAY',
       'airpay': 'SHOPEEPAY',
       'viettelmoney': 'VIETTEL_MONEY',
       'viettelpay': 'VIETTEL_MONEY',
       'vnptmoney': 'VNPT_MONEY',
+      'vnpay': 'VNPAY',
       // Corporate
       'digibiz': 'VCB_DIGIBIZ',
       'one biz': 'ACB_ONEBIZ',
-      'ditizen': 'AB_DITIZEN',
       'ibank': 'BIDV_IBANK',
     };
 

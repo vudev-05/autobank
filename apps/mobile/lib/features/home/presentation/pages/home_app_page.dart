@@ -864,13 +864,33 @@ class _HomeAppPageState extends State<HomeAppPage> with TickerProviderStateMixin
       return;
     }
 
-    final sentenceToReplay = txProvider.latestBankSentence;
-    final hasSentence = sentenceToReplay.isNotEmpty;
     NotificationService.ensureMaxVolume();
-    if (hasSentence) {
-      TtsService().speakSentence(sentenceToReplay, isBankTransaction: true, bypassChecks: true);
+    final hasTx = txProvider.transactions.isNotEmpty;
+
+    if (hasTx) {
+      final latest = txProvider.transactions.first;
+      if (latest.type.isCredit) {
+        TtsService().speakReceivedMoney(
+          amount: latest.amount,
+          bankName: latest.bankCode,
+          orderCode: latest.orderCode,
+          bypassChecks: true,
+        );
+      } else {
+        TtsService().speakDebitMoney(
+          amount: latest.amount,
+          bankName: latest.bankCode,
+          orderCode: latest.orderCode,
+          bypassChecks: true,
+        );
+      }
     } else {
-      TtsService().speakTestFeedback('Chưa có thông báo nhận tiền mới từ ngân hàng để đọc lại.');
+      final sentenceToReplay = txProvider.latestBankSentence;
+      if (sentenceToReplay.isNotEmpty) {
+        TtsService().speakSentence(sentenceToReplay, isBankTransaction: true, bypassChecks: true);
+      } else {
+        TtsService().speakTestFeedback('Chưa có thông báo nhận tiền mới từ ngân hàng để đọc lại.');
+      }
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -883,7 +903,7 @@ class _HomeAppPageState extends State<HomeAppPage> with TickerProviderStateMixin
           children: [
             const Icon(Icons.replay_rounded, color: Colors.white, size: 20),
             const SizedBox(width: 8),
-            Text(hasSentence ? 'Đang phát lại thông báo nhận tiền gần nhất...' : 'Chưa có thông báo nhận tiền mới từ ngân hàng để đọc lại'),
+            Text((hasTx || txProvider.latestBankSentence.isNotEmpty) ? 'Đang phát lại thông báo nhận tiền gần nhất...' : 'Chưa có thông báo nhận tiền mới từ ngân hàng để đọc lại'),
           ],
         ),
       ),

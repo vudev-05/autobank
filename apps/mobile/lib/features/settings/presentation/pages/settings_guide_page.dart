@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/tts/tts_service.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -319,6 +320,135 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
             ),
           ),
           const SizedBox(height: 14),
+          // CHẾ ĐỘ HOẠT ĐỘNG: DOANH NGHIỆP VS CÁ NHÂN (CHỈ CHỌN 1 ĐỂ HOẠT ĐỘNG)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x080F172A),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: txProvider.isBusinessMode ? const Color(0xFFEFF6FF) : const Color(0xFFF5F3FF),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: txProvider.isBusinessMode ? const Color(0xFFBAE6FD) : const Color(0xFFDDD6FE),
+                        ),
+                      ),
+                      child: Icon(
+                        txProvider.isBusinessMode ? Icons.domain_rounded : Icons.person_rounded,
+                        size: 20,
+                        color: txProvider.isBusinessMode ? const Color(0xFF2563EB) : const Color(0xFF7C3AED),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'CHẾ ĐỘ HOẠT ĐỘNG',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Text(
+                                txProvider.isBusinessMode ? 'Doanh Nghiệp' : 'Cá Nhân',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: txProvider.isBusinessMode ? const Color(0xFF1D4ED8) : const Color(0xFF6D28D9),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0FDF4),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                                ),
+                                child: const Text(
+                                  'Đang dùng',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF15803D),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => _showSwitchModeDialog(context, txProvider),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: txProvider.isBusinessMode ? const Color(0xFFF5F3FF) : const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: txProvider.isBusinessMode ? const Color(0xFFDDD6FE) : const Color(0xFFBAE6FD),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.swap_horiz_rounded,
+                              size: 14,
+                              color: txProvider.isBusinessMode ? const Color(0xFF7C3AED) : const Color(0xFF2563EB),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Đổi chế độ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: txProvider.isBusinessMode ? const Color(0xFF7C3AED) : const Color(0xFF2563EB),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 6),
+                const Text(
+                  'Ghi nhận và đối soát thu chi độc lập 100%, bảo lưu lịch sử vĩnh viễn.',
+                  style: TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
 
           // ==========================================
           // 3. Ô TÌM KIẾM TÍNH NĂNG
@@ -571,12 +701,7 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                         label: 'Đánh giá',
                         subLabel: '5 sao Play',
                         onTap: () {
-                          final rateUrl = sysConfig.ratingUrl.isNotEmpty ? sysConfig.ratingUrl : sysConfig.chplayLink;
-                          if (rateUrl.isNotEmpty) {
-                            NotificationService.openUrl(rateUrl);
-                          } else {
-                            AppInAppRatingDialog.showDirectRating(context);
-                          }
+                          AppInAppRatingDialog.openStoreDirectly(context);
                         },
                       ),
                     ),
@@ -868,11 +993,17 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                   subtitle: const Text('Tự động lưu và hiển thị cho khách quét', style: TextStyle(fontSize: 12)),
                   trailing: const Icon(Icons.upload_file_rounded, size: 18),
                   onTap: () async {
+                    final googleAuth = Provider.of<GoogleAuthProvider>(context, listen: false);
+                    final email = googleAuth.isSignedIn ? googleAuth.email.trim().toLowerCase() : 'guest';
+                    final userKey = 'pos_user_qr_$email';
                     Navigator.pop(ctx);
                     final img = await ImagePickerService.pickImageAsBase64();
                     if (img != null && img.isNotEmpty) {
                       final prefs = await SharedPreferences.getInstance();
-                      await prefs.remove('pos_user_uploaded_qr_image');
+                      // Dọn dẹp ảnh cũ của tài khoản
+                      await prefs.remove(userKey);
+                      // Lưu ảnh mới độc lập theo tài khoản
+                      await prefs.setString(userKey, img);
                       await prefs.setString('pos_user_uploaded_qr_image', img);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -899,6 +1030,25 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                     setState(() => _strobeEffectEnabled = val);
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('strobe_effect_enabled', val);
+                  },
+                ),
+                const Divider(),
+
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: const Color(0xFF0F172A),
+                  title: const Text('Hiện bảng thông báo trên app khác', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: const Text('Hiện bảng báo tiền to rõ ngay khi đang dùng ứng dụng khác hoặc màn hình khóa', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                  value: txProvider.showFloatingAlertOnOtherApps,
+                  onChanged: (val) async {
+                    txProvider.setShowFloatingAlertOnOtherApps(val);
+                    setSheetState(() {});
+                    if (val) {
+                      final granted = await NotificationService.isOverlayPermissionGranted();
+                      if (!granted) {
+                        await NotificationService.requestOverlayPermission();
+                      }
+                    }
                   },
                 ),
                 const Divider(),
@@ -955,9 +1105,9 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
-                                    sec == 10 ? '10s (Mặc định)' : '${sec}s',
+                                    '${sec}s',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       color: isSel ? Colors.white : const Color(0xFF334155),
                                     ),
@@ -1182,6 +1332,25 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
               ),
               const Divider(),
 
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: const Color(0xFF0F172A),
+                title: const Text('Hiện bảng thông báo trên app khác', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                subtitle: const Text('Hiện bảng báo tiền to rõ ngay khi đang dùng ứng dụng khác hoặc màn hình khóa', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                value: txProvider.showFloatingAlertOnOtherApps,
+                onChanged: (val) async {
+                  txProvider.setShowFloatingAlertOnOtherApps(val);
+                  setSheetState(() {});
+                  if (val) {
+                    final granted = await NotificationService.isOverlayPermissionGranted();
+                    if (!granted) {
+                      await NotificationService.requestOverlayPermission();
+                    }
+                  }
+                },
+              ),
+              const Divider(),
+
               // CẤU HÌNH THỜI GIAN ĐÓNG THÔNG BÁO NHẬN TIỀN (Mặc định 10s)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1234,9 +1403,9 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
-                                  sec == 10 ? '10s (Mặc định)' : '${sec}s',
+                                  '${sec}s',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: isSel ? Colors.white : const Color(0xFF334155),
                                   ),
@@ -2283,7 +2452,7 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
               ),
               const Divider(),
 
-              // MỤC ĐÁNH GIÁ 5 SAO
+              // MỤC ĐÁNH GIÁ 5 SAO - MỞ THẲNG TRANG GOOGLE PLAY (CH PLAY)
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Container(
@@ -2299,7 +2468,7 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                 trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: Color(0xFF01875F)),
                 onTap: () {
                   Navigator.pop(ctx);
-                  AppInAppRatingDialog.showDirectRating(context);
+                  AppInAppRatingDialog.openStoreDirectly(context);
                 },
               ),
               const Divider(),
@@ -2309,18 +2478,13 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                 leading: const Icon(Icons.policy_rounded, color: Color(0xFF64748B)),
                 title: const Text('Chính sách quyền riêng tư', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 subtitle: const Text('Bảo mật tuyệt đối thông tin biến động tài khoản ngân hàng', style: TextStyle(fontSize: 12)),
-                onTap: () {
+                trailing: const Icon(Icons.open_in_new_rounded, size: 16, color: Color(0xFF64748B)),
+                onTap: () async {
                   Navigator.pop(ctx);
-                  showDialog(
-                    context: context,
-                    builder: (dCtx) => AlertDialog(
-                      title: const Text('Chính sách riêng tư'),
-                      content: const Text(
-                        'AutoBank cam kết bảo mật 100% dữ liệu ngân hàng. Mọi giao dịch được đọc cục bộ trên máy và không chia sẻ cho bên thứ ba trái phép.',
-                      ),
-                      actions: [TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Đóng'))],
-                    ),
-                  );
+                  final uri = Uri.parse('https://docthongbaobank.com/privacy.html');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
                 },
               ),
               const Divider(),
@@ -2330,18 +2494,13 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                 leading: const Icon(Icons.description_rounded, color: Color(0xFF64748B)),
                 title: const Text('Điều khoản sử dụng', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 subtitle: const Text('Quy định sử dụng dịch vụ thông báo số dư', style: TextStyle(fontSize: 12)),
-                onTap: () {
+                trailing: const Icon(Icons.open_in_new_rounded, size: 16, color: Color(0xFF64748B)),
+                onTap: () async {
                   Navigator.pop(ctx);
-                  showDialog(
-                    context: context,
-                    builder: (dCtx) => AlertDialog(
-                      title: const Text('Điều khoản dịch vụ'),
-                      content: const Text(
-                        'Người dùng sử dụng dịch vụ thông báo nhận tiền để phục vụ mục đích bán hàng, quản lý kinh doanh hợp pháp theo pháp luật Việt Nam.',
-                      ),
-                      actions: [TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Đóng'))],
-                    ),
-                  );
+                  final uri = Uri.parse('https://docthongbaobank.com/privacy.html#terms');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
                 },
               ),
               const Divider(),
@@ -2355,36 +2514,82 @@ class _SettingsGuidePageState extends State<SettingsGuidePage> {
                   googleAuth.signOut();
                 },
               ),
-              const Divider(),
-
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.delete_forever_rounded, color: Color(0xFFDC2626)),
-                title: const Text('Xóa tài khoản vĩnh viễn', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFFDC2626))),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  showDialog(
-                    context: context,
-                    builder: (dCtx) => AlertDialog(
-                      title: const Text('Xác nhận xóa tài khoản?'),
-                      content: const Text('Mọi dữ liệu gói cước và lịch sử giao dịch sẽ bị xóa vĩnh viễn khỏi hệ thống.'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Hủy')),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(dCtx);
-                            googleAuth.signOut();
-                          },
-                          child: const Text('Xóa ngay', style: TextStyle(color: Colors.red)),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSwitchModeDialog(BuildContext context, TransactionProvider txProvider) {
+    final currentIsBiz = txProvider.isBusinessMode;
+    final targetIsBiz = !currentIsBiz;
+    final targetName = targetIsBiz ? 'Doanh Nghiệp' : 'Cá Nhân';
+    final currentName = currentIsBiz ? 'Doanh Nghiệp' : 'Cá Nhân';
+
+    showDialog(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: targetIsBiz ? const Color(0xFFEFF6FF) : const Color(0xFFF5F3FF),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: targetIsBiz ? const Color(0xFFBAE6FD) : const Color(0xFFDDD6FE),
+                ),
+              ),
+              child: Icon(
+                targetIsBiz ? Icons.domain_rounded : Icons.person_rounded,
+                color: targetIsBiz ? const Color(0xFF2563EB) : const Color(0xFF7C3AED),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Chuyển sang $targetName?',
+                style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Khi chuyển sang chế độ $targetName:\n\n'
+          '• Các thông báo nhận/trừ tiền tiếp theo sẽ được tự động ghi nhận vào sổ thu chi của $targetName.\n'
+          '• Toàn bộ lịch sử và số liệu cũ của $currentName vẫn được bảo lưu an toàn 100% trên thiết bị, bạn có thể chuyển lại bất cứ lúc nào.\n\n'
+          'Bạn có chắc chắn muốn chuyển không?',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: const Text('Hủy', style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: targetIsBiz ? const Color(0xFF2563EB) : const Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.pop(dCtx);
+              txProvider.setBusinessMode(targetIsBiz);
+              setState(() {});
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Đã kích hoạt chế độ hoạt động $targetName!'),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: const Text('Xác nhận chuyển'),
+          ),
+        ],
       ),
     );
   }

@@ -205,6 +205,19 @@ class NotificationService {
     }
   }
 
+  /// Mở trang cài đặt Chuyển văn bản thành giọng nói (Text-to-speech) của hệ thống Android
+  static Future<void> openTtsSettings() async {
+    if (kIsWeb) return;
+    try {
+      await _methodChannel.invokeMethod('openTtsSettings');
+    } catch (_) {}
+  }
+
+  /// Mở trực tiếp trang cài đặt Google Speech Services trên CH Play
+  static Future<void> openGoogleTtsPlayStore() async {
+    await openPlayStoreListing(appId: 'com.google.android.tts');
+  }
+
   /// Listen to incoming notifications from the Android Service
   static Stream<Map<String, dynamic>> get notificationStream {
     if (kIsWeb) {

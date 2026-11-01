@@ -63,7 +63,7 @@ export const defaultConfig = {
   brandSlogan: 'Tiền vừa sang ~ máy báo vang',
   chplayLink: 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
   youtubeLink: '',
-  hotline: '0869226687',
+  hotline: '0866032505',
   email: 'tranquocvu3011@gmail.com',
   facebook: 'https://www.facebook.com/Baochuyentienbanggiongnoi',
   tiktok: 'https://www.tiktok.com/@locketgoldqvu',

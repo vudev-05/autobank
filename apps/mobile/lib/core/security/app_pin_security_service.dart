@@ -41,7 +41,12 @@ class AppPinSecurityService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _isPinEnabled = prefs.getBool(_prefPinEnabledKey) ?? false;
       _savedPin = prefs.getString(_prefPinKey);
-      _coldStartUnlocked = !_isPinEnabled; // Khóa ngay khi khởi động nếu đã bật mã PIN
+      // Nếu chưa từng đặt mã PIN 4 số hợp lệ, tuyệt đối không kích hoạt khóa
+      if (_savedPin == null || _savedPin!.length != 4) {
+        _isPinEnabled = false;
+        await prefs.setBool(_prefPinEnabledKey, false);
+      }
+      _coldStartUnlocked = !_isPinEnabled;
 
       final lastUnlockMs = prefs.getInt(_prefLastUnlockKey);
       if (lastUnlockMs != null && lastUnlockMs > 0) {
@@ -63,6 +68,48 @@ class AppPinSecurityService extends ChangeNotifier {
     } catch (e) {
       debugPrint('[PinSecurity] init error: $e');
     }
+  }
+
+  String? _currentUserEmail;
+  String? get currentUserEmail => _currentUserEmail;
+
+  /// Nạp cấu hình mã PIN riêng theo từng tài khoản Gmail (khách vãng lai = không có PIN)
+  Future<void> loadPinForUser(String email) async {
+    _currentUserEmail = email.trim().toLowerCase();
+    if (_currentUserEmail == null || _currentUserEmail!.isEmpty || _currentUserEmail == 'guest') {
+      _isPinEnabled = false;
+      _savedPin = null;
+      _coldStartUnlocked = true;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userPinKey = 'autobank_pin_${_currentUserEmail!}';
+      final userPinEnabledKey = 'autobank_pin_enabled_${_currentUserEmail!}';
+
+      final userPin = prefs.getString(userPinKey);
+      final userEnabled = prefs.getBool(userPinEnabledKey);
+
+      if (userPin != null && userPin.length == 4 && userEnabled == true) {
+        _savedPin = userPin;
+        _isPinEnabled = true;
+      } else {
+        final globalPin = prefs.getString(_prefPinKey);
+        final globalEnabled = prefs.getBool(_prefPinEnabledKey) ?? false;
+        if (globalPin != null && globalPin.length == 4 && globalEnabled) {
+          _savedPin = globalPin;
+          _isPinEnabled = true;
+        } else {
+          _savedPin = null;
+          _isPinEnabled = false;
+        }
+      }
+
+      _coldStartUnlocked = !_isPinEnabled;
+      notifyListeners();
+    } catch (_) {}
   }
 
   /// Khởi tạo mã Live Web duy nhất gắn liền với tài khoản email của người dùng
@@ -135,6 +182,10 @@ class AppPinSecurityService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefPinKey, newPin);
       await prefs.setBool(_prefPinEnabledKey, true);
+      if (_currentUserEmail != null && _currentUserEmail!.isNotEmpty) {
+        await prefs.setString('autobank_pin_${_currentUserEmail!}', newPin);
+        await prefs.setBool('autobank_pin_enabled_${_currentUserEmail!}', true);
+      }
       _savedPin = newPin;
       _isPinEnabled = true;
       _coldStartUnlocked = true;
@@ -159,6 +210,10 @@ class AppPinSecurityService extends ChangeNotifier {
       await prefs.setBool(_prefPinEnabledKey, false);
       await prefs.remove(_prefPinKey);
       await prefs.remove(_prefLastUnlockKey);
+      if (_currentUserEmail != null && _currentUserEmail!.isNotEmpty) {
+        await prefs.setBool('autobank_pin_enabled_${_currentUserEmail!}', false);
+        await prefs.remove('autobank_pin_${_currentUserEmail!}');
+      }
       _isPinEnabled = false;
       _savedPin = null;
       _lastUnlockTime = null;
@@ -169,7 +224,7 @@ class AppPinSecurityService extends ChangeNotifier {
 
   String? get savedPin => _savedPin;
 
-  /// Kiểm tra mã PIN nhập vào có khớp với mã PIN của người dùng không
+  /// Kiểm tra mã PIN nhập vào có khớp với mã PIN của người dùng không (chuẩn xác 100%)
   bool verifyPin(String pin) {
     if (!_isPinEnabled || _savedPin == null) return true;
     final clean = pin.trim();

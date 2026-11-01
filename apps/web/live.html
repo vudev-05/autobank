@@ -4505,6 +4505,15 @@
 
       bigAlertOverlay.style.display = 'flex';
 
+      // Ẩn Navigation Bar và Footer dưới màn hình khi có thông báo tiền về
+      try {
+        const liveFooters = document.querySelectorAll('.live-footer, .live-footer-container, footer, .bottom-nav, #liveBottomNav');
+        liveFooters.forEach(el => {
+          el.dataset.prevDisplay = el.style.display;
+          el.style.display = 'none';
+        });
+      } catch (_) {}
+
       const intervalStep = 100;
       bigAlertInterval = setInterval(() => {
         remaining -= intervalStep;
@@ -4535,6 +4544,14 @@
       if (bigAlertOverlay) {
         bigAlertOverlay.style.display = 'none';
       }
+
+      // Khôi phục lại Navigation Bar và Footer dưới màn hình
+      try {
+        const liveFooters = document.querySelectorAll('.live-footer, .live-footer-container, footer, .bottom-nav, #liveBottomNav');
+        liveFooters.forEach(el => {
+          el.style.display = el.dataset.prevDisplay !== undefined ? el.dataset.prevDisplay : '';
+        });
+      } catch (_) {}
     }
 
     // 2. CHẾ ĐỘ GIAO DIỆN SÁNG / TỐI (DARK MODE)

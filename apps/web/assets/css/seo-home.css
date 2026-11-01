@@ -1313,6 +1313,49 @@ textarea{
   }
 }
 
+/* BACKGROUND NỀN MỚI CHO TRANG WEB AUTOBANK */
+.hero-area.seo-hero-v2 {
+  position: relative;
+  overflow: hidden;
+  padding: 100px 0 70px;
+  background: transparent;
+}
 
+.seo-hero-v2__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.45) 0%, rgba(2, 132, 199, 0.25) 50%, rgba(240, 249, 255, 0.85) 100%), url("/assets/images/hero-banner-new.png");
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: contrast(1.05);
+}
 
+.seo-hero-v2__bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 75% 45%, transparent 30%, rgba(15, 23, 42, 0.35) 90%), linear-gradient(180deg, transparent 60%, #f0f9ff 100%);
+  pointer-events: none;
+}
 
+.seo-hero-v2__content {
+  background: rgba(255, 255, 255, 0.94);
+  padding: 32px 30px;
+  border-radius: 26px;
+  border: 1px solid rgba(186, 230, 253, 0.9);
+  box-shadow: 0 20px 45px rgba(2, 132, 199, 0.16), 0 4px 16px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+@media (max-width: 991px) {
+  .hero-area.seo-hero-v2 {
+    padding: 90px 0 50px;
+  }
+  .seo-hero-v2__content {
+    padding: 24px 20px;
+    border-radius: 20px;
+  }
+}

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/tts/tts_service.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/image_picker_service.dart';
+import '../../../auth/presentation/providers/google_auth_provider.dart';
 import '../../../notification_listener/presentation/notification_service.dart';
 import '../../../transactions/domain/entities/normalized_transaction.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
@@ -93,9 +94,21 @@ class _PosSmartCashierPageState extends State<PosSmartCashierPage> with SingleTi
     super.dispose();
   }
 
+  String _getUserQrKey() {
+    try {
+      final googleAuth = Provider.of<GoogleAuthProvider>(context, listen: false);
+      final email = googleAuth.isSignedIn ? googleAuth.email.trim().toLowerCase() : 'guest';
+      return 'pos_user_qr_$email';
+    } catch (_) {
+      return 'pos_user_qr_guest';
+    }
+  }
+
   Future<void> _loadSavedQrImage() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedData = prefs.getString('pos_user_uploaded_qr_image');
+    final userKey = _getUserQrKey();
+    // Đọc ảnh QR của đúng tài khoản đang đăng nhập, fallback key chung nếu có
+    final savedData = prefs.getString(userKey) ?? prefs.getString('pos_user_uploaded_qr_image');
     if (savedData != null && savedData.isNotEmpty) {
       _processAndSetQrData(savedData);
     }
@@ -125,9 +138,11 @@ class _PosSmartCashierPageState extends State<PosSmartCashierPage> with SingleTi
       final base64Image = await ImagePickerService.pickImageAsBase64();
       if (base64Image != null && base64Image.isNotEmpty) {
         final prefs = await SharedPreferences.getInstance();
-        // Xóa ảnh cũ trong bộ nhớ để giải phóng RAM & dung lượng
-        await prefs.remove('pos_user_uploaded_qr_image');
-        // Lưu ảnh mới
+        final userKey = _getUserQrKey();
+        // Dọn dẹp ảnh cũ của tài khoản này
+        await prefs.remove(userKey);
+        // Lưu ảnh mới riêng biệt cho tài khoản này
+        await prefs.setString(userKey, base64Image);
         await prefs.setString('pos_user_uploaded_qr_image', base64Image);
         
         _processAndSetQrData(base64Image);
@@ -157,6 +172,9 @@ class _PosSmartCashierPageState extends State<PosSmartCashierPage> with SingleTi
 
   Future<void> _removeQrImage() async {
     final prefs = await SharedPreferences.getInstance();
+    final userKey = _getUserQrKey();
+    // Dọn dẹp triệt để ảnh QR của tài khoản này
+    await prefs.remove(userKey);
     await prefs.remove('pos_user_uploaded_qr_image');
     setState(() {
       _userQrImageData = null;

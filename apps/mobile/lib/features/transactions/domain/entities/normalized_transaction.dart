@@ -16,6 +16,7 @@ class NormalizedTransaction {
   final bool isSynced;
   final String? category;
   final String? note;
+  final String appMode; // 'business' hoặc 'personal'
 
   NormalizedTransaction({
     required this.id,
@@ -31,6 +32,7 @@ class NormalizedTransaction {
     this.isSynced = false,
     this.category,
     this.note,
+    this.appMode = 'business',
   }) : fingerprint = fingerprint ?? generateFingerprint(
           bankCode: bankCode,
           accountNumber: accountNumber,
@@ -75,6 +77,7 @@ class NormalizedTransaction {
       'is_synced': isSynced ? 1 : 0,
       'category': category,
       'note': note,
+      'app_mode': appMode,
     };
   }
 
@@ -96,6 +99,7 @@ class NormalizedTransaction {
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
       category: map['category'] as String?,
       note: map['note'] as String?,
+      appMode: (map['app_mode'] as String?) ?? 'business',
     );
   }
 
@@ -123,6 +127,7 @@ class NormalizedTransaction {
       isSynced: true,
       category: json['category'] as String?,
       note: json['note'] as String?,
+      appMode: (json['appMode'] ?? json['app_mode'] ?? 'business').toString(),
     );
   }
 
@@ -140,6 +145,7 @@ class NormalizedTransaction {
     bool? isSynced,
     String? category,
     String? note,
+    String? appMode,
   }) {
     return NormalizedTransaction(
       id: id ?? this.id,
@@ -155,6 +161,7 @@ class NormalizedTransaction {
       isSynced: isSynced ?? this.isSynced,
       category: category ?? this.category,
       note: note ?? this.note,
+      appMode: appMode ?? this.appMode,
     );
   }
 }

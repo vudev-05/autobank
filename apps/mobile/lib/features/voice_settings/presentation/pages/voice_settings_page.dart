@@ -235,19 +235,56 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                     widget.onNavigateToRegister?.call();
                   }
                 : () {
-                    setState(() {
-                      _customCreditPrefix = null;
-                      _customCreditSuffix = null;
-                      _customDebitPrefix = null;
-                      _customDebitSuffix = null;
-                    });
-                    provider.resetToDefaults();
-                    provider.syncConfigToBackend(googleAuth.email);
-                    TtsService().speakTestFeedback('Đã khôi phục cài đặt câu thông báo về mặc định tối ưu');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã khôi phục cài đặt câu thông báo về mặc định tối ưu!'),
-                        duration: Duration(seconds: 2),
+                    showDialog(
+                      context: context,
+                      builder: (dCtx) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        title: const Row(
+                          children: [
+                            Icon(Icons.restart_alt_rounded, color: Color(0xFFEA580C), size: 22),
+                            SizedBox(width: 8),
+                            Text(
+                              'Khôi phục mặc định?',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        content: const Text(
+                          'Toàn bộ cấu hình câu thông báo (tiền tố, tên shop, lời cảm ơn, thứ tự đọc nhận tiền và trừ tiền) sẽ được đặt lại về mẫu chuẩn tối ưu của hệ thống.\n\nBạn có chắc chắn muốn khôi phục không?',
+                          style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.45),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dCtx),
+                            child: const Text('Hủy', style: TextStyle(color: Color(0xFF94A3B8))),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEA580C),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(dCtx);
+                              setState(() {
+                                _customCreditPrefix = null;
+                                _customCreditSuffix = null;
+                                _customDebitPrefix = null;
+                                _customDebitSuffix = null;
+                              });
+                              provider.resetToDefaults();
+                              provider.syncConfigToBackend(googleAuth.email);
+                              TtsService().speakTestFeedback('Đã khôi phục cài đặt câu thông báo về mặc định tối ưu');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Đã khôi phục cài đặt câu thông báo về mặc định tối ưu!'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: const Text('Xác nhận khôi phục'),
+                          ),
+                        ],
                       ),
                     );
                   },

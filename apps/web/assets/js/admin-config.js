@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const elRatingLink = document.getElementById('cfg-rating-link');
     if (elRatingLink) elRatingLink.value = cfg.ratingUrl || cfg.chplayLink || '';
 
+    const elForceRating = document.getElementById('cfg-force-rating');
+    if (elForceRating) elForceRating.checked = Boolean(cfg.forceRating);
+
     const elLivePin = document.getElementById('cfg-live-pin');
     if (elLivePin) elLivePin.value = cfg.liveWebPin || '889922';
 
@@ -561,6 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
       brandSlogan: document.getElementById('cfg-brand-slogan').value.trim(),
       chplayLink: document.getElementById('cfg-chplay-link').value.trim(),
       ratingUrl: document.getElementById('cfg-rating-link')?.value.trim() || document.getElementById('cfg-chplay-link').value.trim(),
+      forceRating: document.getElementById('cfg-force-rating') ? document.getElementById('cfg-force-rating').checked : false,
       liveWebPin: document.getElementById('cfg-live-pin')?.value.trim() || '889922',
       affiliateRewards,
       youtubeLink: document.getElementById('cfg-youtube-link').value.trim(),

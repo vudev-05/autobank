@@ -395,18 +395,102 @@ export class TtsController implements OnModuleInit {
       } catch (_) {}
     }
 
-    return {
-      success: true,
-      data: userVoiceConfigs.get(email) || userVoiceConfigs.get('anonymous') || {
-        voiceId: 'chi-google',
-        speechRate: 0.90,
-        pitch: 1.0,
-        volume: 1.0,
-        templateId: 'BANK_STANDARD',
-        blocksOrder: ['bell', 'prefix', 'amount', 'bank'],
-        enabledBlocks: ['bell', 'prefix', 'amount', 'bank'],
-      },
-    };
+  }
+
+  /**
+   * 6. Lưu trực tiếp danh mục và quỹ ngân sách (Cá Nhân & Doanh Nghiệp) vào MySQL
+   */
+  @Post('budgets')
+  async saveBudgets(@Body() body: { email: string; businessBudgets: any; personalBudgets: any; expenseCategories?: any }) {
+    const email = (body.email || '').trim().toLowerCase();
+    if (!email || email === 'anonymous') {
+      return { success: false, message: 'Email không hợp lệ' };
+    }
+    try {
+      let existingCfg: any = {};
+      const rows: any[] = await this.prisma.$queryRawUnsafe(
+        `SELECT voiceSettingsJson FROM app_device_users WHERE LOWER(email) = ? LIMIT 1`,
+        email,
+      );
+      if (rows && rows[0]?.voiceSettingsJson) {
+        try {
+          existingCfg = JSON.parse(rows[0].voiceSettingsJson);
+        } catch (_) {}
+      }
+      const updatedCfg = {
+        ...existingCfg,
+        businessBudgets: body.businessBudgets ?? {},
+        personalBudgets: body.personalBudgets ?? {},
+        expenseCategories: body.expenseCategories ?? existingCfg.expenseCategories ?? [],
+        updatedAt: new Date().toISOString(),
+      };
+      const jsonStr = JSON.stringify(updatedCfg);
+      await this.prisma.$executeRawUnsafe(
+        `UPDATE app_device_users SET voiceSettingsJson = ?, updatedAt = NOW() WHERE LOWER(email) = ?`,
+        jsonStr,
+        email,
+      );
+      await this.prisma.$executeRawUnsafe(
+        `UPDATE users SET voiceSettingsJson = ?, updatedAt = NOW() WHERE LOWER(email) = ?`,
+        jsonStr,
+        email,
+      );
+      userVoiceConfigs.set(email, updatedCfg);
+      return {
+        success: true,
+        message: 'Đã lưu danh mục và quỹ vào MySQL thành công',
+        data: {
+          businessBudgets: updatedCfg.businessBudgets,
+          personalBudgets: updatedCfg.personalBudgets,
+          expenseCategories: updatedCfg.expenseCategories,
+        },
+      };
+    } catch (err: any) {
+      this.logger.error(`Error saving budgets to MySQL: ${err.message}`);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * 7. Lấy danh mục và quỹ ngân sách từ MySQL
+   */
+  @Get('budgets/:email')
+  async getBudgets(@Param('email') emailParam: string) {
+    const email = (emailParam || '').trim().toLowerCase();
+    if (!email || email === 'anonymous') {
+      return { success: false, businessBudgets: {}, personalBudgets: {}, expenseCategories: [] };
+    }
+    try {
+      const rows: any[] = await this.prisma.$queryRawUnsafe(
+        `SELECT voiceSettingsJson FROM app_device_users WHERE LOWER(email) = ? AND voiceSettingsJson IS NOT NULL LIMIT 1`,
+        email,
+      );
+      if (rows && rows[0]?.voiceSettingsJson) {
+        const parsed = JSON.parse(rows[0].voiceSettingsJson);
+        return {
+          success: true,
+          businessBudgets: parsed.businessBudgets ?? {},
+          personalBudgets: parsed.personalBudgets ?? {},
+          expenseCategories: parsed.expenseCategories ?? [],
+        };
+      }
+      const userRows: any[] = await this.prisma.$queryRawUnsafe(
+        `SELECT voiceSettingsJson FROM users WHERE LOWER(email) = ? AND voiceSettingsJson IS NOT NULL LIMIT 1`,
+        email,
+      );
+      if (userRows && userRows[0]?.voiceSettingsJson) {
+        const parsed = JSON.parse(userRows[0].voiceSettingsJson);
+        return {
+          success: true,
+          businessBudgets: parsed.businessBudgets ?? {},
+          personalBudgets: parsed.personalBudgets ?? {},
+          expenseCategories: parsed.expenseCategories ?? [],
+        };
+      }
+    } catch (err: any) {
+      this.logger.error(`Error loading budgets from MySQL: ${err.message}`);
+    }
+    return { success: true, businessBudgets: {}, personalBudgets: {}, expenseCategories: [] };
   }
 
   private async generateBuffer(

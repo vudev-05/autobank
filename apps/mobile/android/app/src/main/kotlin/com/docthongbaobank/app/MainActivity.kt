@@ -172,6 +172,32 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
                 }
+                "isOverlayPermissionGranted" -> {
+                    try {
+                        val canDraw = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                            Settings.canDrawOverlays(this)
+                        } else {
+                            true
+                        }
+                        result.success(canDraw)
+                    } catch (e: Exception) {
+                        result.success(true)
+                    }
+                }
+                "requestOverlayPermission" -> {
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                android.net.Uri.parse("package:$packageName")
+                            ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                            startActivity(intent)
+                        }
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
                 "requestPhotoPermission" -> {
                     try {
                         val perm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -320,6 +346,25 @@ class MainActivity : FlutterActivity() {
                         }
                     } catch (t: Throwable) {
                         result.success(null)
+                    }
+                }
+                "openTtsSettings" -> {
+                    try {
+                        val intent = Intent("com.android.settings.TTS_SETTINGS").apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (t: Throwable) {
+                        try {
+                            val intent = Intent(Settings.ACTION_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (_: Throwable) {
+                            result.success(false)
+                        }
                     }
                 }
                 else -> result.notImplemented()

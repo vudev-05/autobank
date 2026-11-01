@@ -590,7 +590,7 @@
         totalAmount: pkg.price,
         description: pkg.name,
         customerName: 'Khách hàng Website VietQR',
-        customerPhone: '0869226687',
+        customerPhone: '0866032505',
         status: 'PENDING',
       }),
     }).catch(() => {});

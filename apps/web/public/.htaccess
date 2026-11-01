@@ -27,6 +27,7 @@
     RewriteRule ^admin/orders/?$ admin/orders.html [L,QSA]
     RewriteRule ^admin/keys/?$ admin/keys.html [L,QSA]
     RewriteRule ^admin/payment-autobank/?$ admin/payment-autobank.html [L,QSA]
+    RewriteRule ^admin/affiliate/?$ admin/affiliate.html [L,QSA]
 
     # 3. Serve existing files and directories directly
     RewriteCond %{REQUEST_FILENAME} -f [OR]

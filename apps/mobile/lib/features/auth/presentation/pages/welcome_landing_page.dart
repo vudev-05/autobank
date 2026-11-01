@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/tts/tts_service.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/app_video_guide_modal.dart';
 import '../../../../core/widgets/bank_directory_widget.dart';
 import '../../../../core/widgets/google_logo.dart';
@@ -270,7 +271,7 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                   _buildBankEcosystemSection(),
 
                   // 7. BẢNG GIÁ CÁC GÓI BẢN QUYỀN
-                  _buildPricingSection(context),
+                  _buildPricingSection(context, sysConfig),
 
                   // 8. HƯỚNG DẪN 3 BƯỚC BẮT ĐẦU CỰC DỄ
                   _buildHowItWorksSection(),
@@ -931,40 +932,112 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
     );
   }
 
-  // 7. BẢNG GIÁ CÁC GÓI BẢN QUYỀN
-  Widget _buildPricingSection(BuildContext context) {
+  // 7. BẢNG GIÁ CÁC GÓI BẢN QUYỀN (ĐỒNG BỘ 100% VỚI HỆ THỐNG)
+  Widget _buildPricingSection(BuildContext context, SystemConfigProvider sysConfig) {
+    // 1. Lấy danh sách gói cước động từ server cấu hình, có fallback chuẩn 100%
+    final allPackages = sysConfig.packages.isNotEmpty
+        ? sysConfig.packages.where((p) => p['isActive'] != false).toList()
+        : <Map<String, dynamic>>[
+            {
+              'key': 'trial',
+              'name': 'Dùng thử miễn phí',
+              'durationDays': 3,
+              'price': 0,
+              'badge': 'Miễn phí',
+              'description': 'Trải nghiệm 100% tính năng cao cấp trong 3 ngày',
+              'isActive': true,
+            },
+            {
+              'key': '1m',
+              'name': '1 Tháng',
+              'durationDays': 30,
+              'price': 29000,
+              'badge': 'Trải nghiệm',
+              'description': 'Bản quyền 30 ngày đầy đủ thông báo giọng nói',
+              'isActive': true,
+            },
+            {
+              'key': '3m',
+              'name': '3 Tháng',
+              'durationDays': 90,
+              'price': 69000,
+              'badge': 'Tiết kiệm',
+              'description': 'Bản quyền 90 ngày cho cửa hàng kinh doanh',
+              'isActive': true,
+            },
+            {
+              'key': '6m',
+              'name': '6 Tháng',
+              'durationDays': 180,
+              'price': 109000,
+              'badge': 'Phổ biến',
+              'description': 'Bản quyền 180 ngày ổn định 24/7',
+              'isActive': true,
+            },
+            {
+              'key': '1y',
+              'name': '1 Năm (tặng 2T)',
+              'durationDays': 425,
+              'price': 159000,
+              'badge': 'Khuyên dùng',
+              'description': 'Tặng thêm 2 tháng + Hỗ trợ kỹ thuật 24/7',
+              'isActive': true,
+            },
+            {
+              'key': '2y',
+              'name': '2 Năm (tặng 6T)',
+              'durationDays': 910,
+              'price': 219000,
+              'badge': 'Tốt Nhất',
+              'description': 'Tặng thêm 6 tháng + Hỗ trợ kỹ thuật 24/7',
+              'isActive': true,
+            },
+          ];
+
+    final trialPkg = allPackages.firstWhere(
+      (p) => (p['price'] as num? ?? 0) == 0 || p['key'] == 'trial',
+      orElse: () => allPackages.first,
+    );
+    final paidPackages = allPackages.where((p) => (p['price'] as num? ?? 0) > 0).toList();
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Tiêu đề section
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Text(
-              'CÁC GÓI DỊCH VỤ LINH HOẠT',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF64748B),
-                letterSpacing: 0.4,
-              ),
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Row(
+              children: [
+                Icon(Icons.verified_rounded, color: Color(0xFF0284C7), size: 16),
+                SizedBox(width: 6),
+                Text(
+                  'BẢNG GIÁ DỊCH VỤ NIÊM YẾT CHÍNH THỨC',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF64748B),
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ],
             ),
           ),
-          // Thẻ Gói Vĩnh Viễn VIP (Nổi bật nhất)
+          const SizedBox(height: 8),
+
+          // 1. THẺ GÓI DÙNG THỬ 3 NGÀY MIỄN PHÍ
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0369A1), Color(0xFF0284C7)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFF86EFAC), width: 1.8),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0284C7).withValues(alpha: 0.25),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+                  color: const Color(0xFF16A34A).withValues(alpha: 0.08),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -974,16 +1047,23 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.diamond_rounded, color: Color(0xFFFDE047), size: 20),
-                        SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.bolt_rounded, color: Color(0xFF16A34A), size: 18),
+                        ),
+                        const SizedBox(width: 8),
                         Text(
-                          'GÓI VĨNH VIỄN (TRỌN ĐỜI)',
-                          style: TextStyle(
-                            fontSize: 13,
+                          trialPkg['name']?.toString() ?? 'Dùng thử miễn phí',
+                          style: const TextStyle(
+                            fontSize: 14,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: Color(0xFF0F172A),
                           ),
                         ),
                       ],
@@ -991,39 +1071,53 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFDE047),
+                        color: const Color(0xFFDCFCE7),
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF86EFAC)),
                       ),
                       child: const Text(
-                        'VIP NHẤT HỆ THỐNG',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF713F12)),
+                        'MIỄN PHÍ 3 NGÀY',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF15803D)),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  '399.000 đ',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white),
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '0 đ',
+                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF16A34A)),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '/ 3 ngày (72 giờ trải nghiệm)',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ),
-                const Text(
-                  'Mua 1 lần dùng mãi mãi trọn đời • Không bao giờ phải gia hạn thêm',
-                  style: TextStyle(fontSize: 11.5, color: Color(0xFFBAE6FD)),
+                const SizedBox(height: 4),
+                Text(
+                  trialPkg['description']?.toString() ?? 'Trải nghiệm 100% tính năng cao cấp không giới hạn sau khi đăng nhập',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF0F172A),
+                      backgroundColor: const Color(0xFF16A34A),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
                     ),
-                    icon: const GoogleLogo(size: 18),
+                    icon: const GoogleLogo(size: 16),
                     label: const Text(
-                      'Đăng nhập Google để nhận Gói VIP',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                      'Đăng nhập Google để nhận 3 ngày 0đ',
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
                     ),
                     onPressed: () => _handleGoogleSignIn(context),
                   ),
@@ -1031,52 +1125,247 @@ class _WelcomeLandingPageState extends State<WelcomeLandingPage> {
               ],
             ),
           ),
-          const SizedBox(height: 10),
 
-          // Các gói khác dạng row
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Dùng thử 3 ngày', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      SizedBox(height: 4),
-                      Text('0 đ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF16A34A))),
-                      Text('Miễn phí sau khi đăng nhập', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                    ],
+          const SizedBox(height: 16),
+
+          // Tiêu đề các gói trả phí
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Row(
+              children: [
+                Icon(Icons.diamond_rounded, color: Color(0xFF0284C7), size: 16),
+                SizedBox(width: 6),
+                Text(
+                  'CÁC GÓI BẢN QUYỀN CHÍNH THỨC',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: 0.3,
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Gói 1 Năm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      SizedBox(height: 4),
-                      Text('199.000 đ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0284C7))),
-                      Text('Chỉ ~16k / tháng', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(height: 6),
+
+          // 2. DANH SÁCH CÁC GÓI BẢN QUYỀN TRẢ PHÍ (ĐỌC 100% TỪ SYSCONFIG)
+          ...paidPackages.map((pkg) {
+            final key = (pkg['key'] ?? '').toString();
+            final name = (pkg['name'] ?? 'Gói dịch vụ').toString();
+            final rawPrice = (pkg['price'] as num?)?.toInt() ?? 0;
+            final days = (pkg['durationDays'] as num?)?.toInt() ?? 30;
+            final badge = (pkg['badge'] ?? '').toString();
+            final desc = (pkg['description'] ?? '').toString();
+            final isFeatured = badge.contains('Khuyên dùng') || key == '1y' || key == '1year';
+            final isBest = badge.contains('Tốt Nhất') || key == '2y';
+
+            // Tính giá trung bình mỗi tháng
+            final double months = days / 30.0;
+            final int monthlyAvg = months > 0 ? (rawPrice / months).round() : rawPrice;
+
+            if (isFeatured) {
+              // Thẻ Gói Khuyên Dùng nổi bật nhất (Màu xanh VIP)
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0369A1), Color(0xFF0284C7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.28),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.stars_rounded, color: Color(0xFFFDE047), size: 22),
+                            const SizedBox(width: 6),
+                            Text(
+                              name.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFDE047),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            badge.isNotEmpty ? badge.toUpperCase() : 'KHUYÊN DÙNG',
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF713F12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          CurrencyFormatter.formatVND(rawPrice.toDouble()),
+                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '/ $days ngày (~${CurrencyFormatter.formatVND(monthlyAvg.toDouble())}/tháng)',
+                          style: const TextStyle(fontSize: 11.5, color: Color(0xFFBAE6FD), fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      desc.isNotEmpty ? desc : 'Đầy đủ bản quyền đọc thông báo nhận tiền VietQR 24/7',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFFE0F2FE)),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF0F172A),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const GoogleLogo(size: 16),
+                        label: Text(
+                          'Đăng nhập Google để chọn $name',
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                        ),
+                        onPressed: () => _handleGoogleSignIn(context),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Các thẻ gói khác dạng card tinh tế
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isBest ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                  width: isBest ? 1.5 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                            ),
+                            if (badge.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isBest ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: isBest ? const Color(0xFFFCD34D) : const Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                                child: Text(
+                                  badge,
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: isBest ? const Color(0xFF92400E) : const Color(0xFF475569),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              CurrencyFormatter.formatVND(rawPrice.toDouble()),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 17,
+                                color: isBest ? const Color(0xFFD97706) : const Color(0xFF0284C7),
+                              ),
+                            ),
+                            if (days >= 30) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '(~${CurrencyFormatter.formatVND(monthlyAvg.toDouble())}/tháng)',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (desc.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            desc,
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF1F5F9),
+                      foregroundColor: const Color(0xFF0284C7),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      ),
+                    ),
+                    onPressed: () => _handleGoogleSignIn(context),
+                    child: const Text('Chọn gói', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

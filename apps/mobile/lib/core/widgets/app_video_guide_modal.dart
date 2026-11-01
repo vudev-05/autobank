@@ -115,6 +115,11 @@ class _AppVideoGuideModalState extends State<AppVideoGuideModal> {
   bool _dontShowAgain = false;
   WebViewController? _webViewController;
 
+  bool _isShorts(String url) {
+    final clean = url.trim().toLowerCase();
+    return clean.contains('/shorts/') || clean.contains('shorts');
+  }
+
   /// Trích xuất YouTube Video ID từ mọi dạng link YouTube
   String extractYoutubeId(String url) {
     final clean = url.trim();
@@ -152,12 +157,16 @@ class _AppVideoGuideModalState extends State<AppVideoGuideModal> {
         final controller = WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
           ..setBackgroundColor(Colors.black)
+          ..setUserAgent('Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
           ..setNavigationDelegate(
             NavigationDelegate(
               onPageFinished: (_) {},
             ),
           )
-          ..loadHtmlString(_buildYoutubeEmbedHtml(videoId));
+          ..loadHtmlString(
+            _buildYoutubeEmbedHtml(videoId),
+            baseUrl: 'https://docthongbaobank.com',
+          );
         _webViewController = controller;
       } catch (e) {
         debugPrint('[AppVideoGuideModal] WebView init error: $e');
@@ -179,7 +188,7 @@ class _AppVideoGuideModalState extends State<AppVideoGuideModal> {
         </head>
         <body>
           <iframe 
-            src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&playsinline=1&rel=0&modestbranding=1" 
+            src="https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1&enablejsapi=1&origin=https://docthongbaobank.com&widget_referrer=https://docthongbaobank.com&rel=0&modestbranding=1" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
             allowfullscreen>
           </iframe>
@@ -212,7 +221,9 @@ class _AppVideoGuideModalState extends State<AppVideoGuideModal> {
   @override
   Widget build(BuildContext context) {
     final videoId = extractYoutubeId(widget.videoUrl);
+    final isShorts = _isShorts(widget.videoUrl);
     final thumbnailUrl = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -302,12 +313,14 @@ class _AppVideoGuideModalState extends State<AppVideoGuideModal> {
 
               const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
-              // 2. VIDEO PLAYER VIEW (HIỂN THỊ TRỰC TIẾP TRONG APP)
+              // 2. VIDEO PLAYER VIEW (HIỂN THỊ TRỰC TIẾP TRONG APP - TỰ ĐỘNG THÍCH ỨNG SHORTS DỌC HOẶC VIDEO NGANG)
               Container(
                 color: Colors.black,
-                constraints: const BoxConstraints(maxHeight: 240),
+                constraints: BoxConstraints(
+                  maxHeight: isShorts ? screenHeight * 0.62 : 260,
+                ),
                 child: AspectRatio(
-                  aspectRatio: 16 / 9,
+                  aspectRatio: isShorts ? 9 / 16 : 16 / 9,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [

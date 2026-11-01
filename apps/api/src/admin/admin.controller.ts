@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Delete, Put, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service.js';
 import { AdminGuard, Public } from './admin.guard.js';
 
@@ -259,7 +259,7 @@ export class AdminController {
 
   @Public()
   @Get('affiliate/stats')
-  async getAffiliateStats(@Param('code') code?: string, @Param('email') email?: string) {
+  async getAffiliateStats(@Query('code') code?: string, @Query('email') email?: string) {
     return this.adminService.getAffiliateStats(code, email);
   }
 }

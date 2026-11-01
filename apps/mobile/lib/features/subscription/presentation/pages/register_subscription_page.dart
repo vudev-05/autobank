@@ -55,6 +55,16 @@ class _RegisterSubscriptionPageState extends State<RegisterSubscriptionPage> {
   }
 
   @override
+  void didUpdateWidget(RegisterSubscriptionPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialPackageKey != null && widget.initialPackageKey != oldWidget.initialPackageKey) {
+      setState(() {
+        _selectedPackageKey = widget.initialPackageKey!;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _liveCountdownTimer?.cancel();
     _shopController.dispose();

@@ -24,7 +24,7 @@ class TransactionLocalDataSource {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS $_tableName (
@@ -40,7 +40,8 @@ class TransactionLocalDataSource {
             fingerprint TEXT UNIQUE,
             is_synced INTEGER DEFAULT 0,
             category TEXT,
-            note TEXT
+            note TEXT,
+            app_mode TEXT DEFAULT 'business'
           )
         ''');
 
@@ -60,21 +61,35 @@ class TransactionLocalDataSource {
             await db.execute('ALTER TABLE $_tableName ADD COLUMN note TEXT');
           } catch (_) {}
         }
+        if (oldVersion < 3) {
+          try {
+            await db.execute("ALTER TABLE $_tableName ADD COLUMN app_mode TEXT DEFAULT 'business'");
+          } catch (_) {}
+        }
       },
     );
   }
 
-  /// Cập nhật danh mục phân loại chi tiêu và ghi chú cho 1 giao dịch
-  Future<bool> updateTransactionCategory(String id, String category, {String? note}) async {
+  /// Cập nhật danh mục phân loại chi tiêu, ghi chú và chế độ hoạt động cho 1 giao dịch
+  Future<bool> updateTransactionCategory(String id, String category, {String? note, String? appMode}) async {
+    final resolvedAppMode = appMode ??
+        (category.startsWith('[Cá Nhân]')
+            ? 'personal'
+            : (category.startsWith('[Doanh Nghiệp]') ? 'business' : null));
     final idx = _inMemoryList.indexWhere((t) => t.id == id);
     if (idx != -1) {
-      _inMemoryList[idx] = _inMemoryList[idx].copyWith(category: category, note: note);
+      _inMemoryList[idx] = _inMemoryList[idx].copyWith(
+        category: category,
+        note: note,
+        appMode: resolvedAppMode ?? _inMemoryList[idx].appMode,
+      );
     }
     if (!kIsWeb) {
       try {
         final db = await database;
         final updateData = <String, Object?>{'category': category};
         if (note != null) updateData['note'] = note;
+        if (resolvedAppMode != null) updateData['app_mode'] = resolvedAppMode;
         await db.update(
           _tableName,
           updateData,

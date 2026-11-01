@@ -65,6 +65,7 @@ export class AdminService implements OnModuleInit {
     let videoGuideAffiliate = '';
     let videoGuideHistory = '';
     let videoGuideVoice = '';
+    let forceRating = false;
 
     if (config.packagesJson) {
       try {
@@ -75,6 +76,7 @@ export class AdminService implements OnModuleInit {
           parsedPackages = parsed.packages || [];
           parsedAffiliate = parsed.affiliateRewards || null;
           if (parsed.ratingUrl) ratingUrl = parsed.ratingUrl;
+          if (parsed.forceRating !== undefined) forceRating = Boolean(parsed.forceRating);
           if (parsed.liveWebPin) liveWebPin = parsed.liveWebPin;
           if (parsed.videoGuideNewbie) videoGuideNewbie = parsed.videoGuideNewbie;
           if (parsed.videoGuideSmooth) videoGuideSmooth = parsed.videoGuideSmooth;
@@ -96,6 +98,7 @@ export class AdminService implements OnModuleInit {
         { name: 'Gói Vĩnh Viễn Trọn Đời', duration: 'Trọn đời', reward: 120000, desc: 'Nhận 120.000₫/lượt' },
       ],
       ratingUrl,
+      forceRating,
       liveWebPin,
       videoGuideNewbie: videoGuideNewbie || config.youtubeLink || 'https://www.youtube.com/watch?v=kYJqD9bZ_fQ',
       videoGuideSmooth: videoGuideSmooth || 'https://www.youtube.com/watch?v=kYJqD9bZ_fQ',
@@ -133,6 +136,7 @@ export class AdminService implements OnModuleInit {
       dto.packages !== undefined ||
       dto.affiliateRewards !== undefined ||
       dto.ratingUrl !== undefined ||
+      dto.forceRating !== undefined ||
       dto.liveWebPin !== undefined ||
       dto.videoGuideNewbie !== undefined ||
       dto.videoGuideSmooth !== undefined ||
@@ -144,6 +148,7 @@ export class AdminService implements OnModuleInit {
       let currentPackages = [];
       let currentAffiliate = null;
       let currentRating = dto.ratingUrl || dto.chplayLink;
+      let currentForceRating = dto.forceRating !== undefined ? Boolean(dto.forceRating) : false;
       let currentLivePin = dto.liveWebPin;
       let currentVideoNewbie = dto.videoGuideNewbie;
       let currentVideoSmooth = dto.videoGuideSmooth;
@@ -160,6 +165,7 @@ export class AdminService implements OnModuleInit {
             currentPackages = parsed.packages || [];
             currentAffiliate = parsed.affiliateRewards || null;
             if (!currentRating) currentRating = parsed.ratingUrl;
+            if (dto.forceRating === undefined && parsed.forceRating !== undefined) currentForceRating = Boolean(parsed.forceRating);
             if (!currentLivePin) currentLivePin = parsed.liveWebPin;
             if (currentVideoNewbie === undefined) currentVideoNewbie = parsed.videoGuideNewbie;
             if (currentVideoSmooth === undefined) currentVideoSmooth = parsed.videoGuideSmooth;
@@ -181,6 +187,7 @@ export class AdminService implements OnModuleInit {
         packages: currentPackages,
         affiliateRewards: currentAffiliate,
         ratingUrl: currentRating || existingConfig?.chplayLink || 'https://play.google.com/store/apps/details?id=com.docthongbaobank.app',
+        forceRating: currentForceRating,
         liveWebPin: currentLivePin || '889922',
         videoGuideNewbie: currentVideoNewbie || '',
         videoGuideSmooth: currentVideoSmooth || '',
@@ -1229,108 +1236,17 @@ export class AdminService implements OnModuleInit {
       } catch (_) {}
     }
 
-    // Dữ liệu mẫu chuẩn bị sẵn chuyên nghiệp
-    const defaultData = {
-      withdrawals: [
-        {
-          id: 'WD_1730001',
-          referralCode: '688219',
-          userEmail: 'quocvu.merchant@gmail.com',
-          bankName: 'MBBank',
-          accountNumber: '3011200588888',
-          accountHolder: 'TRẦN QUỐC VŨ',
-          amount: 500000,
-          status: 'PENDING',
-          rejectReason: '',
-          date: '23/10/2026 14:30',
-          createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-        },
-        {
-          id: 'WD_1730002',
-          referralCode: '912384',
-          userEmail: 'minhnguyen.coffee@gmail.com',
-          bankName: 'Techcombank',
-          accountNumber: '190382910398',
-          accountHolder: 'NGUYỄN VĂN MINH',
-          amount: 250000,
-          status: 'APPROVED',
-          rejectReason: '',
-          date: '22/10/2026 09:15',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          processedAt: new Date(Date.now() - 82800000).toISOString(),
-        },
-        {
-          id: 'WD_1730003',
-          referralCode: '349182',
-          userEmail: 'spamanh@gmail.com',
-          bankName: 'Vietcombank',
-          accountNumber: '0071000889912',
-          accountHolder: 'LÊ THỊ ANH',
-          amount: 200000,
-          status: 'REJECTED',
-          rejectReason: 'Sai số tài khoản nhận tiền tại Vietcombank, đã hoàn lại 200.000₫ về số dư',
-          date: '21/10/2026 16:40',
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          processedAt: new Date(Date.now() - 86400000 * 2 + 1800000).toISOString(),
-        },
-      ],
-      referrals: [
-        {
-          id: 'REF_173001',
-          referrerCode: '688219',
-          referrerEmail: 'quocvu.merchant@gmail.com',
-          invitedEmail: 'tiembanh.mai@gmail.com',
-          invitedName: 'Tiệm Bánh Mơ Màng',
-          packageName: '1 Năm (tặng 2T)',
-          commissionAmount: 75000,
-          date: '23/10/2026 11:20',
-          createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-        },
-        {
-          id: 'REF_173002',
-          referrerCode: '912384',
-          referrerEmail: 'minhnguyen.coffee@gmail.com',
-          invitedEmail: 'taphoahuong@gmail.com',
-          invitedName: 'Tạp Hóa Cô Hương',
-          packageName: '6 Tháng',
-          commissionAmount: 45000,
-          date: '22/10/2026 18:05',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: 'REF_173003',
-          referrerCode: '688219',
-          referrerEmail: 'quocvu.merchant@gmail.com',
-          invitedEmail: 'nhahangbien@gmail.com',
-          invitedName: 'Nhà Hàng Biển Xanh',
-          packageName: 'Gói Vĩnh Viễn Trọn Đời',
-          commissionAmount: 120000,
-          date: '21/10/2026 15:30',
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-        },
-        {
-          id: 'REF_173004',
-          referrerCode: '773210',
-          referrerEmail: 'hoa.salon@gmail.com',
-          invitedEmail: 'phothin@gmail.com',
-          invitedName: 'Phở Thìn Hà Nội',
-          packageName: '3 Tháng',
-          commissionAmount: 25000,
-          date: '20/10/2026 10:10',
-          createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-        },
-      ],
-      userBalances: {
-        '688219': { available: 195000, totalEarned: 695000, invitedCount: 8 },
-        '912384': { available: 120000, totalEarned: 370000, invitedCount: 5 },
-        '773210': { available: 195000, totalEarned: 195000, invitedCount: 3 },
-      },
+    // 100% Dữ liệu thật: Mặc định rỗng khi mới khởi tạo, chỉ tích lũy khi có người dùng thật thao tác
+    const emptyData = {
+      withdrawals: [],
+      referrals: [],
+      userBalances: {},
     };
 
     try {
-      fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2), 'utf-8');
+      fs.writeFileSync(filePath, JSON.stringify(emptyData, null, 2), 'utf-8');
     } catch (_) {}
-    return defaultData;
+    return emptyData;
   }
 
   private writeAffiliateData(data: any) {

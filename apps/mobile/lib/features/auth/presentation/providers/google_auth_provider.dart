@@ -459,6 +459,7 @@ class GoogleAuthProvider extends ChangeNotifier {
 
       _syncUserToBackend();
       AppPinSecurityService().initUniqueLivePinForUser(cleanEmail);
+      AppPinSecurityService().loadPinForUser(cleanEmail);
       _saveSessionOffline(realAcc);
 
       return true;
@@ -751,6 +752,7 @@ class GoogleAuthProvider extends ChangeNotifier {
     // Đồng bộ tiếp với máy chủ trong nền
     _syncUserToBackend();
     AppPinSecurityService().initUniqueLivePinForUser(email);
+    AppPinSecurityService().loadPinForUser(email);
     _saveSessionOffline(realAcc);
 
     try {
@@ -1010,6 +1012,7 @@ class GoogleAuthProvider extends ChangeNotifier {
     _accounts.clear();
     _isSignedIn = false;
     _currentIndex = 0;
+    AppPinSecurityService().loadPinForUser('');
     notifyListeners();
     SharedPreferences.getInstance().then((prefs) {
       prefs.remove('last_signed_in_email');

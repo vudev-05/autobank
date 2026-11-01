@@ -42,6 +42,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
   GoogleAuthProvider? _googleAuth;
   Timer? _inactivityTimer;
   Timer? _alertAutoDismissTimer;
+  int _alertCountdownSeconds = 10;
+  String? _lastAlertId;
 
   void _resetInactivityTimer() {
     if (!mounted) return;
@@ -350,10 +352,11 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
 
   @override
   Widget build(BuildContext context) {
-    // 1. LỚP BẢO MẬT TUYỆT ĐỐI CẤP ROOT: Nếu người dùng đã kích hoạt mã PIN và phiên bảo mật hết hạn/khởi động lại
-    // Hiển thị trực tiếp AppLockScreenOverlay, chặn 100% việc dựng hay lộ bất kỳ giao diện nào bên trong app!
+    // 1. LỚP BẢO MẬT TUYỆT ĐỐI CẤP ROOT: Chỉ áp dụng khi người dùng ĐANG ĐĂNG NHẬP tài khoản
+    // Khi người dùng đã đăng xuất (chế độ khách) -> tuyệt đối không yêu cầu mã PIN!
     final pinService = context.watch<AppPinSecurityService>();
-    if (pinService.isPinEnabled && pinService.isSessionExpired()) {
+    final googleAuth = context.watch<GoogleAuthProvider>();
+    if (googleAuth.isSignedIn && pinService.isPinEnabled && pinService.isSessionExpired()) {
       return AppLockScreenOverlay(
         onUnlocked: () {
           // Khi mở khóa thành công, kích hoạt chuỗi kiểm tra quyền và hướng dẫn
@@ -368,15 +371,25 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
     final alertDuration = txProvider.alertDisplayDurationSeconds;
 
     if (activeAlert != null) {
-      _alertAutoDismissTimer ??= Timer(Duration(seconds: alertDuration), () {
-        if (mounted) {
-          txProvider.dismissTransactionAlert();
-          _alertAutoDismissTimer = null;
-        }
-      });
+      if (_lastAlertId != activeAlert.id) {
+        _lastAlertId = activeAlert.id;
+        _alertAutoDismissTimer?.cancel();
+        _alertCountdownSeconds = alertDuration > 0 ? alertDuration : 10;
+        _alertAutoDismissTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!mounted) return;
+          if (_alertCountdownSeconds > 1) {
+            setState(() => _alertCountdownSeconds--);
+          } else {
+            timer.cancel();
+            _alertAutoDismissTimer = null;
+            txProvider.dismissTransactionAlert();
+          }
+        });
+      }
     } else {
       _alertAutoDismissTimer?.cancel();
       _alertAutoDismissTimer = null;
+      _lastAlertId = null;
     }
 
     final pages = [
@@ -409,8 +422,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
             children: pages,
           ),
 
-          // 1. HIỆU ỨNG SÁNG ĐÈN CHỚP VIỀN TÍN HIỆU QUẦY THU NGÂN (STROBE LIGHT FLASH)
-          if (isStrobe || activeAlert != null)
+          // 1. HIỆU ỨNG SÁNG ĐÈN CHỚP VIỀN TÍN HIỆU QUẦY THU NGÂN (Tắt hoàn toàn khi đang chạy ngầm)
+          if ((isStrobe || activeAlert != null) && !txProvider.isDimmedScreenActive)
             Positioned.fill(
               child: IgnorePointer(
                 child: AnimatedBuilder(
@@ -447,23 +460,56 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
               onTap: () => NotificationCenterSheet.show(context),
             ),
 
-          // 4. LÀM TỐI MÀN HÌNH SAU 30S TẠI TRANG CHỦ (GIỮ NGUYÊN GIAO DIỆN TRANG CHỦ, KHÔNG HIỆN CHẠY NGẦM)
-          if (txProvider.isDimmedScreenActive && _currentIndex == 0)
+          // 4. CHẾ ĐỘ CHẠY NGẦM 24/24 (TỐI MÀN HÌNH OLED, ẨN TOÀN BỘ NAVIGATION, TIẾT KIỆM PIN TỐI ĐA)
+          if (txProvider.isDimmedScreenActive)
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: _resetInactivityTimer,
+                onTap: () {
+                  txProvider.setDimmedScreenActive(false);
+                  NotificationService.setScreenBrightness(1.0);
+                  _resetInactivityTimer();
+                },
                 child: Container(
-                  color: Colors.black.withValues(alpha: 0.65),
+                  color: Colors.black.withValues(alpha: 0.94),
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bedtime_rounded, color: Color(0xFF475569), size: 42),
+                        SizedBox(height: 12),
+                        Text(
+                          'Chế độ chạy ngầm trực biến động 24/24',
+                          style: TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'Màn hình duy trì nhận diện và đọc to thông báo qua loa.\nChạm bất kỳ đâu trên màn hình để bật lại giao diện.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 11.5,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
         ],
       ),
-      bottomNavigationBar: Container(
+      bottomNavigationBar: (activeAlert != null || txProvider.isDimmedScreenActive)
+          ? null
+          : Container(
               clipBehavior: Clip.none,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+              decoration: const BoxDecoration(
+                color: Colors.white,
           border: Border(
             top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
           ),
@@ -642,27 +688,38 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
     final isCredit = tx.type.isCredit;
     final time = tx.transactionTime;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final timeStr = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')} • ${time.day.toString().padLeft(2, '0')}/${time.month.toString().padLeft(2, '0')}/${time.year}';
+    final alertDuration = txProvider.alertDisplayDurationSeconds;
+    final primaryColor = isCredit ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final cardBgColor = isCredit
+        ? (isDark ? const Color(0xFF0F172A) : Colors.white)
+        : (isDark ? const Color(0xFF1F1315) : const Color(0xFFFEF2F2));
+    final cardBorderColor = isCredit
+        ? (isDark ? const Color(0xFF059669) : const Color(0xFFA7F3D0))
+        : (isDark ? const Color(0xFF991B1B) : const Color(0xFFFECACA));
 
     return Positioned.fill(
       child: Material(
-        color: Colors.black.withValues(alpha: isDark ? 0.92 : 0.85),
+        color: Colors.black.withValues(alpha: 0.88),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
+                constraints: const BoxConstraints(maxWidth: 420),
                 child: Container(
-                  padding: const EdgeInsets.all(22),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: isDark ? Border.all(color: const Color(0xFF334155), width: 1.2) : null,
+                    color: cardBgColor,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: cardBorderColor,
+                      width: 1.8,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: (isCredit ? const Color(0xFF10B981) : const Color(0xFFE11D48)).withValues(alpha: 0.4),
-                        blurRadius: 36,
-                        spreadRadius: 6,
+                        color: primaryColor.withValues(alpha: 0.2),
+                        blurRadius: 32,
                         offset: const Offset(0, 10),
                       ),
                     ],
@@ -670,311 +727,297 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> with Sing
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 1. Icon vòng tròn phát sáng
+                      // 1. Icon tròn sinh động (Nhận màu xanh lá, Trừ màu đỏ)
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        width: 58,
+                        height: 58,
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? (isCredit ? const Color(0xFF064E3B) : const Color(0xFF881337))
-                              : (isCredit ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2)),
+                          color: isCredit ? const Color(0xFFECFDF5) : const Color(0xFFFEE2E2),
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isCredit ? const Color(0xFFA7F3D0) : const Color(0xFFFCA5A5),
+                            width: 1.5,
+                          ),
                         ),
                         child: Icon(
-                          isCredit ? Icons.notifications_active_rounded : Icons.payments_rounded,
-                          size: 40,
-                          color: isCredit ? const Color(0xFF22C55E) : const Color(0xFFF43F5E),
+                          isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                          size: 32,
+                          color: primaryColor,
                         ),
                       ),
                       const SizedBox(height: 12),
 
-                      // 2. Dòng trạng thái tiêu đề
+                      // 2. Tiêu đề trạng thái màu sắc chuẩn
                       Text(
-                        isCredit ? '🔔 ĐÃ NHẬN TIỀN VỀ TÀI KHOẢN!' : '⚡ BIẾN ĐỘNG SỐ DƯ (CHI TIÊU)',
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                          color: isCredit ? const Color(0xFF22C55E) : const Color(0xFFF43F5E),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Ngân hàng ${tx.bankCode}',
+                        isCredit ? 'THÔNG BÁO NHẬN TIỀN' : 'BIẾN ĐỘNG SỐ DƯ (TRỪ TIỀN)',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                          color: isCredit ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Badge Ngân hàng
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          color: isCredit ? const Color(0xFFF0FDF4) : const Color(0xFFFFF1F2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isCredit ? const Color(0xFFBBF7D0) : const Color(0xFFFECDD3),
+                          ),
+                        ),
+                        child: Text(
+                          tx.bankCode.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                            color: isCredit ? const Color(0xFF15803D) : const Color(0xFFBE123C),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 3. Số tiền nổi bật (Nhận xanh lá, Trừ màu đỏ)
+                      Text(
+                        '${isCredit ? '+' : '-'}${CurrencyFormatter.formatVND(tx.amount)}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.8,
+                          color: primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Thời gian
+                      Text(
+                        timeStr,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
                           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
 
-                      // 3. Khung số tiền cực lớn
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? (isCredit ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFF881337).withValues(alpha: 0.3))
-                              : (isCredit ? const Color(0xFFF0FDF4) : const Color(0xFFFFF1F2)),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isDark
-                                ? (isCredit ? const Color(0xFF059669) : const Color(0xFFBE123C))
-                                : (isCredit ? const Color(0xFFBBF7D0) : const Color(0xFFFECDD3)),
-                            width: 1.5,
+                      // 4. Nội dung giao dịch
+                      if (tx.content.trim().isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'NỘI DUNG GIAO DỊCH:',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                tx.content.trim(),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.4,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            Text(
-                              '${isCredit ? '+' : '-'}${CurrencyFormatter.formatVND(tx.amount)}',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
-                                color: isCredit ? const Color(0xFF22C55E) : const Color(0xFFF43F5E),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} • ${time.day.toString().padLeft(2, '0')}/${time.month.toString().padLeft(2, '0')}/${time.year}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 14),
 
-                      // 4. CHỌN NHANH QUỸ: DOANH NGHIỆP VS CÁ NHÂN
+                      // 4.1. CHỌN LOẠI QUỸ CHO GIAO DỊCH DỰA THEO CHẾ ĐỘ HOẠT ĐỘNG
                       Builder(
                         builder: (context) {
-                          final existingCat = tx.category ?? '';
-                          String selectedScope;
-                          if (existingCat.startsWith('[Cá Nhân]')) {
-                            selectedScope = 'Cá Nhân';
-                          } else if (existingCat.startsWith('[Doanh Nghiệp]')) {
-                            selectedScope = 'Doanh Nghiệp';
-                          } else {
-                            // Tiền nhận (+) -> Mở sẵn Doanh Nghiệp, Tiền trừ (-) -> Mở sẵn Cá Nhân
-                            selectedScope = isCredit ? 'Doanh Nghiệp' : 'Cá Nhân';
-                          }
+                          final isBiz = txProvider.isBusinessMode;
+                          final funds = isBiz
+                              ? txProvider.businessBudgets.keys.toList()
+                              : txProvider.personalBudgets.keys.toList();
+                          final currentCat = tx.category ?? '';
 
-                          return StatefulBuilder(
-                            builder: (context, setBlockState) {
-                              final bizCats = txProvider.businessBudgets.keys.toList();
-                              final personalCats = txProvider.personalBudgets.keys.toList();
-                              final activeList = selectedScope == 'Doanh Nghiệp' ? bizCats : personalCats;
-
-                              return Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    // Tab chuyển đổi Quỹ Doanh Nghiệp vs Cá Nhân
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: InkWell(
-                                            onTap: () => setBlockState(() => selectedScope = 'Doanh Nghiệp'),
-                                            borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: selectedScope == 'Doanh Nghiệp'
-                                                ? const Color(0xFF0284C7)
-                                                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.business_center_rounded, size: 14, color: selectedScope == 'Doanh Nghiệp' ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '🏢 Doanh Nghiệp (${bizCats.length})',
-                                                style: TextStyle(
-                                                  fontSize: 11.5,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: selectedScope == 'Doanh Nghiệp' ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
+                                    Icon(
+                                      Icons.account_balance_wallet_rounded,
+                                      size: 14,
+                                      color: primaryColor,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: InkWell(
-                                        onTap: () => setBlockState(() => selectedScope = 'Cá Nhân'),
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: selectedScope == 'Cá Nhân'
-                                                ? const Color(0xFFE11D48)
-                                                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.person_rounded, size: 14, color: selectedScope == 'Cá Nhân' ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '👤 Cá Nhân (${personalCats.length})',
-                                                style: TextStyle(
-                                                  fontSize: 11.5,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: selectedScope == 'Cá Nhân' ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isBiz ? 'PHÂN LOẠI QUỸ DOANH NGHIỆP:' : 'PHÂN LOẠI QUỸ CÁ NHÂN:',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.5,
+                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 10),
-
-                                // Danh sách chip quỹ
-                                Wrap(
-                                  spacing: 6,
-                                  runSpacing: 6,
-                                  children: activeList.map((cat) {
-                                    final fullCat = '[$selectedScope] $cat';
-                                    final isSelected = (tx.category == fullCat) || (tx.category == cat);
-                                    return ChoiceChip(
-                                      label: Text(cat),
-                                      selected: isSelected,
-                                      selectedColor: selectedScope == 'Doanh Nghiệp' ? const Color(0xFF0284C7) : const Color(0xFFE11D48),
-                                      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                                      labelStyle: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: isSelected ? Colors.white : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
-                                      ),
-                                      onSelected: (_) {
-                                        txProvider.updateAlertCategory(fullCat);
-                                        setBlockState(() {});
-                                      },
-                                    );
-                                  }).toList(),
-                                ),
-                                if (tx.category != null) ...[
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFDCFCE7),
-                                      borderRadius: BorderRadius.circular(6),
+                                const SizedBox(height: 8),
+                                if (funds.isEmpty)
+                                  Text(
+                                    isBiz
+                                        ? 'Chưa có danh mục quỹ. Bạn có thể thêm quỹ mới trong mục Báo cáo.'
+                                        : 'Chưa có danh mục quỹ cá nhân. Bạn có thể thêm quỹ trong mục Báo cáo.',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontStyle: FontStyle.italic,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF16A34A)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Đã phân loại vào: "${tx.category}"',
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                                  )
+                                else
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: funds.map((fName) {
+                                      final isSelected = currentCat == fName;
+                                      return InkWell(
+                                        onTap: () {
+                                          txProvider.updateAlertCategory(isSelected ? '' : fName);
+                                        },
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 150),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? primaryColor
+                                                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? primaryColor
+                                                  : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (isSelected) ...[
+                                                const Icon(
+                                                  Icons.check_rounded,
+                                                  size: 13,
+                                                  color: Colors.white,
+                                                ),
+                                                const SizedBox(width: 4),
+                                              ],
+                                              Text(
+                                                fName,
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ],
-                                    ),
+                                      );
+                                    }).toList(),
                                   ),
-                                ],
                               ],
                             ),
                           );
                         },
-                      );
-                    },
-                  ),
-                      const SizedBox(height: 14),
+                      ),
+                      const SizedBox(height: 18),
 
-                      // CẤU HÌNH THỜI GIAN ĐÓNG THÔNG BÁO (Mặc định 10s)
-                      StatefulBuilder(
-                        builder: (context, setTimerState) {
-                          final alertDuration = txProvider.alertDisplayDurationSeconds;
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.timer_outlined, color: Color(0xFF0284C7), size: 14),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Tự đóng sau ${alertDuration}s:',
-                                    style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                              Wrap(
-                                spacing: 4,
-                                children: [5, 10, 15, 30].map((sec) {
-                                  final isCur = alertDuration == sec;
-                                  return InkWell(
-                                    onTap: () {
-                                      txProvider.setAlertDisplayDuration(sec);
-                                      _alertAutoDismissTimer?.cancel();
-                                      _alertAutoDismissTimer = Timer(Duration(seconds: sec), () {
-                                        if (mounted) {
-                                          txProvider.dismissTransactionAlert();
-                                          _alertAutoDismissTimer = null;
-                                        }
-                                      });
-                                      setTimerState(() {});
-                                    },
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: isCur ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        '${sec}s',
-                                        style: TextStyle(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.bold,
-                                          color: isCur ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          );
-                        },
+                      // 5. ĐỒNG HỒ ĐẾM NGƯỢC TỪNG GIÂY (10s, 9s, 8s...)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.timer_rounded,
+                            size: 14,
+                            color: primaryColor,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Tự đóng sau ${_alertCountdownSeconds}s',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Thanh tiến trình (Progress bar) co dần theo thời gian thực
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: alertDuration > 0
+                              ? (_alertCountdownSeconds / alertDuration).clamp(0.0, 1.0)
+                              : 0.0,
+                          minHeight: 5,
+                          backgroundColor: isCredit ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+                          valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                        ),
                       ),
                       const SizedBox(height: 16),
 
-                      // 5. NÚT ĐÓNG (KHI BẤM SẼ DỪNG ĐỌC THÔNG BÁO VÀ THÔI)
+                      // 6. NÚT ĐÓNG THÔNG BÁO NỔI BẬT THEO MÀU
                       SizedBox(
                         width: double.infinity,
-                        height: 48,
+                        height: 46,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE11D48),
-                            elevation: 3,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                          icon: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: Colors.white,
+                          ),
                           label: const Text(
-                            'XÁC NHẬN & ĐÓNG',
-                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Colors.white),
+                            'ĐÓNG THÔNG BÁO',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              color: Colors.white,
+                            ),
                           ),
                           onPressed: () {
                             _alertAutoDismissTimer?.cancel();

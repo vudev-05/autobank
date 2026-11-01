@@ -94,7 +94,7 @@ class _AppLockScreenOverlayState extends State<AppLockScreenOverlay> {
         const SizedBox(height: 8),
 
         const Text(
-          'Nhập mã PIN 4 số để mở khóa bảo vệ phiên làm việc của bạn.',
+          'Nhập mã PIN 4 số để bảo vệ phiên làm việc của bạn.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
         ),
@@ -148,7 +148,7 @@ class _AppLockScreenOverlayState extends State<AppLockScreenOverlay> {
           },
         ),
 
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
 
         // NÚT QUÊN MÃ PIN
         TextButton.icon(
@@ -163,6 +163,26 @@ class _AppLockScreenOverlayState extends State<AppLockScreenOverlay> {
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
           ),
           onPressed: () => _startForgotFlow(pinService),
+        ),
+        const SizedBox(height: 12),
+
+        // NÚT ĐĂNG XUẤT TÀI KHOẢN (Đăng xuất xong sẽ không yêu cầu mã PIN nữa)
+        TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFEF4444),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+          icon: const Icon(Icons.logout_rounded, size: 16, color: Color(0xFFEF4444)),
+          label: const Text(
+            'Đăng xuất khỏi tài khoản',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFEF4444)),
+          ),
+          onPressed: () async {
+            final googleAuth = context.read<GoogleAuthProvider>();
+            await googleAuth.signOut();
+            await pinService.loadPinForUser('');
+            widget.onUnlocked?.call();
+          },
         ),
       ],
     );

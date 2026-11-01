@@ -62,7 +62,7 @@ export default defineConfig({
           }
 
           // 3. Clean admin sub-pages
-          const adminPages = ['login', 'config', 'banks', 'users', 'notifications', 'orders', 'coupons', 'keys', 'payment-autobank'];
+          const adminPages = ['login', 'config', 'banks', 'users', 'notifications', 'orders', 'coupons', 'keys', 'payment-autobank', 'affiliate'];
           
           // Redirect legacy .html to clean URLs
           for (const page of adminPages) {
@@ -125,6 +125,7 @@ export default defineConfig({
         adminOrders: resolve(__dirname, 'admin/orders.html'),
         adminKeys: resolve(__dirname, 'admin/keys.html'),
         adminPaymentAutobank: resolve(__dirname, 'admin/payment-autobank.html'),
+        adminAffiliate: resolve(__dirname, 'admin/affiliate.html'),
       },
     },
   },

@@ -27,6 +27,7 @@ class SystemConfigProvider extends ChangeNotifier {
   String _marketingBanner = '';
   bool _maintenance = false;
   String _maintenanceMsg = '';
+  bool _forceRating = false;
   bool _googlePayMaintenance = false;
   String _googlePayMaintenanceMsg = '';
   String _chplayLink = '';
@@ -128,6 +129,7 @@ class SystemConfigProvider extends ChangeNotifier {
   String get marketingBanner => _marketingBanner;
   bool get maintenance => _maintenance;
   String get maintenanceMsg => _maintenanceMsg;
+  bool get forceRating => _forceRating;
   bool get googlePayMaintenance => _googlePayMaintenance;
   String get googlePayMaintenanceMsg => _googlePayMaintenanceMsg.isNotEmpty
       ? _googlePayMaintenanceMsg
@@ -371,6 +373,7 @@ class SystemConfigProvider extends ChangeNotifier {
         }
         _maintenance = data['maintenance'] == true;
         _maintenanceMsg = data['maintenanceMsg'] ?? '';
+        _forceRating = data['forceRating'] == true;
         _googlePayMaintenance = data['googlePayMaintenance'] == true;
         _googlePayMaintenanceMsg = data['googlePayMaintenanceMsg'] ?? '';
         _chplayLink = data['chplayLink'] ?? '';

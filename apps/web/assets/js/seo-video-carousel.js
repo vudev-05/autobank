@@ -173,10 +173,11 @@
     }
 
     // Update main facade image
-    if (facade && currentVideos[0] && currentVideos[0].id) {
+    if (facade) {
       var fImg = facade.querySelector("img");
-      if (fImg) {
-        fImg.src = "https://img.youtube.com/vi/" + currentVideos[0].id + "/hqdefault.jpg";
+      if (fImg && !fImg.getAttribute("data-custom-set")) {
+        fImg.src = "/assets/images/hero-banner-new.png";
+        fImg.setAttribute("data-custom-set", "true");
       }
       facade.hidden = false;
       if (player) {
