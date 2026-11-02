@@ -34,7 +34,7 @@ class MBBankParser implements IBankParser {
     DateTime? timestamp,
   }) {
     final fullText = '$title $body'.trim();
-    final now = timestamp ?? DateTime.now();
+    final parsedTime = IBankParser.extractTransactionTime(fullText, fallback: timestamp ?? DateTime.now())!;
 
     // 1. Trích xuất loại giao dịch & Số tiền
     // Format 1: GD: +100,000VND hoặc GD: -50,000VND
@@ -60,7 +60,15 @@ class MBBankParser implements IBankParser {
       final fallbackMatch = fallbackAmountRegex.firstMatch(fullText);
       if (fallbackMatch != null) {
         amount = IBankParser.parseAmount(fallbackMatch.group(1) ?? '0');
-        type = TransactionType.credit; // Mặc định nhận tiền nếu không thấy dấu âm
+        // Phân biệt chính xác giao dịch trừ tiền (Debit) và nhận tiền (Credit)
+        final lower = fullText.toLowerCase();
+        final isDebit = lower.contains('-') ||
+            lower.contains('trừ') || lower.contains('tru') ||
+            lower.contains('chuyển') || lower.contains('chuyen') ||
+            lower.contains('thanh toán') || lower.contains('thanh toan') ||
+            lower.contains('rút') || lower.contains('rut') ||
+            lower.contains('phí');
+        type = isDebit ? TransactionType.debit : TransactionType.credit;
       }
     }
 
@@ -88,7 +96,7 @@ class MBBankParser implements IBankParser {
     // 4. Bóc tách mã đơn hàng (nếu có trong nội dung hoặc toàn bộ thông báo)
     final orderCode = IBankParser.extractOrderCode(content) ?? IBankParser.extractOrderCode(fullText);
 
-    final id = 'MB_${now.millisecondsSinceEpoch}_${(amount).toInt()}';
+    final id = 'MB_${parsedTime.millisecondsSinceEpoch}_${(amount).toInt()}';
 
     return NormalizedTransaction(
       id: id,
@@ -98,7 +106,7 @@ class MBBankParser implements IBankParser {
       type: type,
       content: content,
       orderCode: orderCode,
-      transactionTime: now,
+      transactionTime: parsedTime,
       rawContent: '$title\n$body',
     );
   }

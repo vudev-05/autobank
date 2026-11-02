@@ -30,7 +30,7 @@ class VietcombankParser implements IBankParser {
     DateTime? timestamp,
   }) {
     final fullText = '$title $body'.trim();
-    final now = timestamp ?? DateTime.now();
+    final parsedTime = IBankParser.extractTransactionTime(fullText, fallback: timestamp ?? DateTime.now())!;
 
     // 1. Trích xuất Loại giao dịch & Số tiền
     // VCB: +500,000 VND hoặc -200,000VND hoặc +100.000 VND
@@ -55,7 +55,14 @@ class VietcombankParser implements IBankParser {
       final fallbackMatch = fallbackRegex.firstMatch(fullText);
       if (fallbackMatch != null) {
         amount = IBankParser.parseAmount(fallbackMatch.group(1) ?? '0');
-        type = TransactionType.credit;
+        final lower = fullText.toLowerCase();
+        final isDebit = lower.contains('-') ||
+            lower.contains('trừ') || lower.contains('tru') ||
+            lower.contains('chuyển') || lower.contains('chuyen') ||
+            lower.contains('thanh toán') || lower.contains('thanh toan') ||
+            lower.contains('rút') || lower.contains('rut') ||
+            lower.contains('phí');
+        type = isDebit ? TransactionType.debit : TransactionType.credit;
       }
     }
 
@@ -84,7 +91,7 @@ class VietcombankParser implements IBankParser {
     // 4. Trích xuất mã đơn hàng (từ nội dung hoặc toàn bộ thông báo)
     final orderCode = IBankParser.extractOrderCode(content) ?? IBankParser.extractOrderCode(fullText);
 
-    final id = 'VCB_${now.millisecondsSinceEpoch}_${(amount).toInt()}';
+    final id = 'VCB_${parsedTime.millisecondsSinceEpoch}_${(amount).toInt()}';
 
     return NormalizedTransaction(
       id: id,
@@ -94,7 +101,7 @@ class VietcombankParser implements IBankParser {
       type: type,
       content: content,
       orderCode: orderCode,
-      transactionTime: now,
+      transactionTime: parsedTime,
       rawContent: '$title\n$body',
     );
   }

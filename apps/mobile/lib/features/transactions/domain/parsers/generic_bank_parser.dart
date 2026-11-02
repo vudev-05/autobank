@@ -68,74 +68,92 @@ class GenericBankParser implements IBankParser {
     DateTime? timestamp,
   }) {
     final fullText = '$title $body'.trim();
-    final now = timestamp ?? DateTime.now();
+    final parsedTime = IBankParser.extractTransactionTime(fullText, fallback: timestamp ?? DateTime.now())!;
 
     TransactionType type = TransactionType.unknown;
     double amount = 0.0;
     final lowerText = fullText.toLowerCase();
 
-    // 1. Nhận diện số tiền nhận (Credit):
-    // Bao quát: "+50.000đ", "cộng 50.000VND", "nhận được 50.000đ", "nhan 50.000d", "tiền vào ví 50.000đ", "nạp thành công 50.000đ"
-    final creditRegex = RegExp(
-      r'(?:\+|\bcộng\b|\bcong\b|\bvừa nhận\b|\bvua nhan\b|\bnhận được\b|\bnhan duoc\b|\bđã nhận\b|\bda nhan\b|\bnhận\b|\bnhan\b|\bnạp tiền\b|\bnap tien\b|\bnạp ví\b|\bnap vi\b|\bnạp\b|\bnap\b|\btiền vào\b|\btien vao\b)\s*(?:thành công\s*)?[:]?\s*(?:\+)?\s*([0-9,.]+)\s*(?:VND|đ|d\b)?',
+    // 1. ƯU TIÊN TUYỆT ĐỐI: Dấu toán học (+ hoặc -) đi liền trước số tiền
+    // Nếu có dấu trừ (-) trước số tiền -> 100% LÀ TRỪ TIỀN (DEBIT), KHÔNG BAO GIỜ BỊ NHẦM THÀNH CỘNG TIỀN
+    final signedAmountRegex = RegExp(
+      r'(?:GD|Giao dịch|Số dư|SD|Số tiền|So tien|Biến động|TK)?\s*[:]?\s*([\+\-])\s*([0-9,.]+)\s*(?:VND|đ|d\b)?',
       caseSensitive: false,
     );
+    final signedMatch = signedAmountRegex.firstMatch(fullText);
 
-    // 2. Nhận diện số tiền chuyển đi / thanh toán (Debit):
-    // Bao quát: "-50.000đ", "trừ 50.000VND", "chuyển thành công 50.000đ", "thanh toán 50.000đ", "rút tiền 50.000đ"
-    final debitRegex = RegExp(
-      r'(?:\-|\btrừ\b|\btru\b|\bđã chuyển\b|\bda chuyen\b|\bchuyển thành công\b|\bchuyen thanh cong\b|\bchuyển\b|\bchuyen\b|\bthanh toán\b|\bthanh toan\b|\brút tiền\b|\brut tien\b|\brút\b|\brut\b)\s*(?:thành công\s*)?[:]?\s*(?:\-)?\s*([0-9,.]+)\s*(?:VND|đ|d\b)?',
-      caseSensitive: false,
-    );
-
-    // Ưu tiên kiểm tra ngữ cảnh rõ ràng trước
-    final isExplicitCredit = lowerText.contains('nhận') || lowerText.contains('nhan') ||
-        lowerText.contains('cộng') || lowerText.contains('cong') ||
-        lowerText.contains('+') || lowerText.contains('tiền vào') || lowerText.contains('nạp');
-    final isExplicitDebit = lowerText.contains('chuyển') || lowerText.contains('chuyen') ||
-        lowerText.contains('thanh toán') || lowerText.contains('thanh toan') ||
-        lowerText.contains('trừ') || lowerText.contains('tru') ||
-        lowerText.contains('-') || lowerText.contains('rút');
-
-    final creditMatch = creditRegex.firstMatch(fullText);
-    final debitMatch = debitRegex.firstMatch(fullText);
-
-    if (creditMatch != null && isExplicitCredit && !isExplicitDebit) {
-      type = TransactionType.credit;
-      amount = IBankParser.parseAmount(creditMatch.group(1) ?? '0');
-    } else if (debitMatch != null && isExplicitDebit && !isExplicitCredit) {
-      type = TransactionType.debit;
-      amount = IBankParser.parseAmount(debitMatch.group(1) ?? '0');
-    } else if (creditMatch != null) {
-      type = TransactionType.credit;
-      amount = IBankParser.parseAmount(creditMatch.group(1) ?? '0');
-    } else if (debitMatch != null) {
-      type = TransactionType.debit;
-      amount = IBankParser.parseAmount(debitMatch.group(1) ?? '0');
+    if (signedMatch != null && signedMatch.group(1) != null) {
+      final sign = signedMatch.group(1);
+      final rawAmount = signedMatch.group(2) ?? '0';
+      amount = IBankParser.parseAmount(rawAmount);
+      type = (sign == '-') ? TransactionType.debit : TransactionType.credit;
     } else {
-      // 3. Dự phòng cho các mẫu ngân hàng: "GD: +50.000", "SD: 100.000VND", "Số tiền: 50.000đ"
-      final bankingRegex = RegExp(
-        r'(?:GD|Giao dịch|Số dư|SD|Số tiền|So tien)\s*[:]?\s*([+-])?\s*([0-9,.]+)\s*(?:VND|đ|d)?',
+      // 2. Phân tích hành động chi tiêu / chuyển đi (Debit)
+      // Bao gồm: "chuyển thành công", "đã chuyển", "chuyển tiền", "thanh toán", "trừ tiền", "rút tiền", "thu phí"
+      // LƯU Ý: "người nhận", "tài khoản nhận", "tk nhan" là người nhận của lệnh chuyển tiền đi, không phải nhận tiền về!
+      final hasDebitAction = lowerText.contains('chuyển') ||
+          lowerText.contains('chuyen') ||
+          lowerText.contains('thanh toán') ||
+          lowerText.contains('thanh toan') ||
+          lowerText.contains('trừ') ||
+          lowerText.contains('tru') ||
+          lowerText.contains('rút') ||
+          lowerText.contains('rut') ||
+          lowerText.contains('thu phí') ||
+          lowerText.contains('phí dịch vụ') ||
+          lowerText.contains('phi sms') ||
+          lowerText.contains('phi duy tri') ||
+          lowerText.contains('quẹt thẻ') ||
+          lowerText.contains('quet the');
+
+      // Phân tích hành động nhận tiền thực sự (Credit)
+      final hasCreditAction = lowerText.contains('đã nhận') ||
+          lowerText.contains('da nhan') ||
+          lowerText.contains('nhận được') ||
+          lowerText.contains('nhan duoc') ||
+          lowerText.contains('vừa nhận') ||
+          lowerText.contains('vua nhan') ||
+          lowerText.contains('tiền vào') ||
+          lowerText.contains('tien vao') ||
+          lowerText.contains('cộng tiền') ||
+          lowerText.contains('cong tien') ||
+          lowerText.contains('được cộng');
+
+      // 1. Nhận diện số tiền nhận (Credit):
+      final creditRegex = RegExp(
+        r'(?:\+|\bcộng\b|\bcong\b|\bvừa nhận\b|\bvua nhan\b|\bnhận được\b|\bnhan duoc\b|\bđã nhận\b|\bda nhan\b|\bnạp tiền\b|\bnap tien\b|\bnạp ví\b|\bnap vi\b|\btiền vào\b|\btien vao\b)\s*(?:thành công\s*)?[:]?\s*(?:\+)?\s*([0-9,.]+)\s*(?:VND|đ|d\b)?',
         caseSensitive: false,
       );
-      final bankingMatch = bankingRegex.firstMatch(fullText);
 
-      final fallbackRegex = RegExp(r'([0-9,.]+)\s*(?:VND|đ|d\b)', caseSensitive: false);
-      final fallbackMatch = fallbackRegex.firstMatch(fullText);
+      // 2. Nhận diện số tiền chuyển đi / thanh toán (Debit):
+      final debitRegex = RegExp(
+        r'(?:\-|\btrừ\b|\btru\b|\bđã chuyển\b|\bda chuyen\b|\bchuyển thành công\b|\bchuyen thanh cong\b|\bchuyển\b|\bchuyen\b|\bthanh toán\b|\bthanh toan\b|\brút tiền\b|\brut tien\b|\brút\b|\brut\b)\s*(?:thành công\s*)?[:]?\s*(?:\-)?\s*([0-9,.]+)\s*(?:VND|đ|d\b)?',
+        caseSensitive: false,
+      );
 
-      if (bankingMatch != null) {
-        amount = IBankParser.parseAmount(bankingMatch.group(2) ?? '0');
-        final sign = bankingMatch.group(1);
-        if (sign == '+') {
-          type = TransactionType.credit;
-        } else if (sign == '-') {
-          type = TransactionType.debit;
-        } else {
-          type = isExplicitDebit ? TransactionType.debit : TransactionType.credit;
+      final debitMatch = debitRegex.firstMatch(fullText);
+      final creditMatch = creditRegex.firstMatch(fullText);
+
+      if (debitMatch != null && hasDebitAction) {
+        type = TransactionType.debit;
+        amount = IBankParser.parseAmount(debitMatch.group(1) ?? '0');
+      } else if (creditMatch != null && hasCreditAction && !hasDebitAction) {
+        type = TransactionType.credit;
+        amount = IBankParser.parseAmount(creditMatch.group(1) ?? '0');
+      } else if (debitMatch != null) {
+        type = TransactionType.debit;
+        amount = IBankParser.parseAmount(debitMatch.group(1) ?? '0');
+      } else if (creditMatch != null) {
+        type = TransactionType.credit;
+        amount = IBankParser.parseAmount(creditMatch.group(1) ?? '0');
+      } else {
+        // Fallback: Tìm số tiền kèm VND / đ
+        final fallbackRegex = RegExp(r'([0-9,.]+)\s*(?:VND|đ|d\b)', caseSensitive: false);
+        final fallbackMatch = fallbackRegex.firstMatch(fullText);
+        if (fallbackMatch != null) {
+          amount = IBankParser.parseAmount(fallbackMatch.group(1) ?? '0');
+          type = hasDebitAction ? TransactionType.debit : TransactionType.credit;
         }
-      } else if (fallbackMatch != null) {
-        amount = IBankParser.parseAmount(fallbackMatch.group(1) ?? '0');
-        type = isExplicitDebit ? TransactionType.debit : TransactionType.credit;
       }
     }
 
@@ -160,7 +178,7 @@ class GenericBankParser implements IBankParser {
     }
 
     final orderCode = IBankParser.extractOrderCode(content) ?? IBankParser.extractOrderCode(fullText);
-    final id = 'GEN_${now.millisecondsSinceEpoch}_${(amount).toInt()}';
+    final id = 'GEN_${parsedTime.millisecondsSinceEpoch}_${(amount).toInt()}';
 
     // Cố gắng đoán tên ngân hàng từ package hoặc title
     String detectedBank = bankCode;
@@ -265,7 +283,7 @@ class GenericBankParser implements IBankParser {
       type: type,
       content: content,
       orderCode: orderCode,
-      transactionTime: now,
+      transactionTime: parsedTime,
       rawContent: '$title\n$body',
     );
   }

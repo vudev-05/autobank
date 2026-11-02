@@ -93,7 +93,7 @@ class NormalizedTransaction {
       ),
       content: map['content'] as String? ?? '',
       orderCode: map['order_code'] as String?,
-      transactionTime: DateTime.parse(map['transaction_time'] as String),
+      transactionTime: DateTime.parse(map['transaction_time'] as String).toLocal(),
       rawContent: map['raw_content'] as String? ?? '',
       fingerprint: map['fingerprint'] as String,
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
@@ -118,9 +118,9 @@ class NormalizedTransaction {
       content: (json['content'] ?? '').toString(),
       orderCode: json['orderCode'] as String? ?? json['order_code'] as String?,
       transactionTime: json['transactionTime'] != null
-          ? (DateTime.tryParse(json['transactionTime'].toString()) ?? DateTime.now())
+          ? (DateTime.tryParse(json['transactionTime'].toString())?.toLocal() ?? DateTime.now())
           : (json['transaction_time'] != null
-              ? (DateTime.tryParse(json['transaction_time'].toString()) ?? DateTime.now())
+              ? (DateTime.tryParse(json['transaction_time'].toString())?.toLocal() ?? DateTime.now())
               : DateTime.now()),
       rawContent: (json['rawContent'] ?? json['raw_content'] ?? '').toString(),
       fingerprint: (json['fingerprint'] ?? '').toString(),

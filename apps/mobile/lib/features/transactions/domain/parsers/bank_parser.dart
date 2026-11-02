@@ -43,4 +43,53 @@ abstract class IBankParser {
         .trim();
     return double.tryParse(cleaned) ?? 0.0;
   }
+
+  /// Trích xuất thời gian giao dịch thực tế được ngân hàng in trong thông báo
+  /// Hỗ trợ các định dạng: dd/MM/yy HH:mm[:ss], dd/MM/yyyy HH:mm[:ss], HH:mm dd/MM/yyyy, lúc HH:mm ngày dd/MM/yyyy
+  static DateTime? extractTransactionTime(String text, {DateTime? fallback}) {
+    if (text.isEmpty) return fallback;
+
+    // Pattern 1: dd/MM/yyyy HH:mm[:ss] hoặc dd/MM/yy HH:mm[:ss] (MBBank, VCB,...)
+    final p1 = RegExp(
+      r'\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\b',
+    );
+    final m1 = p1.firstMatch(text);
+    if (m1 != null) {
+      try {
+        final d = int.parse(m1.group(1)!);
+        final m = int.parse(m1.group(2)!);
+        var y = int.parse(m1.group(3)!);
+        if (y < 100) y += 2000;
+        final h = int.parse(m1.group(4)!);
+        final min = int.parse(m1.group(5)!);
+        final s = m1.group(6) != null ? int.parse(m1.group(6)!) : 0;
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && h >= 0 && h <= 23 && min >= 0 && min <= 59) {
+          return DateTime(y, m, d, h, min, s);
+        }
+      } catch (_) {}
+    }
+
+    // Pattern 2: HH:mm[:ss] [ngày|ngay] dd/MM/yyyy hoặc HH:mm[:ss] dd/MM/yy
+    final p2 = RegExp(
+      r'\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:ngày|ngay|,)?\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b',
+      caseSensitive: false,
+    );
+    final m2 = p2.firstMatch(text);
+    if (m2 != null) {
+      try {
+        final h = int.parse(m2.group(1)!);
+        final min = int.parse(m2.group(2)!);
+        final s = m2.group(3) != null ? int.parse(m2.group(3)!) : 0;
+        final d = int.parse(m2.group(4)!);
+        final m = int.parse(m2.group(5)!);
+        var y = int.parse(m2.group(6)!);
+        if (y < 100) y += 2000;
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && h >= 0 && h <= 23 && min >= 0 && min <= 59) {
+          return DateTime(y, m, d, h, min, s);
+        }
+      } catch (_) {}
+    }
+
+    return fallback;
+  }
 }

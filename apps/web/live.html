@@ -2961,7 +2961,7 @@
 
     const STORAGE_KEY_UNLOCKED_AT = 'autobank_live_pin_unlocked_at';
     const STORAGE_KEY_PIN = 'autobank_live_pin_code';
-    const STORAGE_KEY_CACHED_TXS = 'autobank_live_cached_txs_v4';
+    const STORAGE_KEY_CACHED_TXS = 'autobank_live_cached_txs_v5';
     const EXPIRE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 giờ
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -4186,7 +4186,7 @@
     // Kiểm tra xem giao dịch có thuộc về ngày hôm nay theo giờ Việt Nam (Từ 00:00:00 đến 23:59:59)
     // Toàn bộ số tiền / KPI thống kê tự động RESET về 0đ vào đúng 0h sáng mỗi ngày!
     function isTodayTransaction(tx) {
-      const txTimeStr = tx.createdAt || tx.transactionTime || tx.date;
+      const txTimeStr = tx.transactionTime || tx.createdAt || tx.date;
       if (!txTimeStr) return false;
       const txDateStr = getVietnamDateStr(txTimeStr);
       const todayDateStr = getVietnamDateStr(new Date());
@@ -4385,7 +4385,7 @@
           const bank = tx.bankCode || 'NGÂN HÀNG';
           const rawContent = tx.content || tx.rawContent || 'Biến động số dư tự động';
           const content = hideCnt ? 'Chi tiết giao dịch được bảo mật bởi chủ máy' : rawContent;
-          const time = formatTime(tx.createdAt || tx.transactionTime);
+          const time = formatTime(tx.transactionTime || tx.createdAt);
           const flashClass = tx._isNewFlash ? 'new-flash' : '';
           const displayAmtText = hideAmt ? '***.***đ' : ((isDebit ? '-' : '+') + formatVND(amt));
 
@@ -4517,7 +4517,7 @@
       const bank = tx.bankCode || 'NGÂN HÀNG';
       const rawContent = tx.content || tx.rawContent || 'Biến động số dư tự động';
       const content = userTtsConfig?.shareConfig?.shareShowContent === false ? 'Chi tiết giao dịch được bảo mật' : rawContent;
-      const time = formatTime(tx.createdAt || tx.transactionTime);
+      const time = formatTime(tx.transactionTime || tx.createdAt);
       const displayAmt = userTtsConfig?.shareConfig?.shareShowAmount === false ? '***.***đ' : ((isDebit ? '-' : '+') + formatVND(amt));
 
       if (bigAlertBankCode) bigAlertBankCode.textContent = bank;
@@ -4768,7 +4768,7 @@
             <td style="padding: 4px; font-weight: bold; color: ${isDebit ? '#dc2626' : '#059669'};">
               ${isDebit ? '-' : '+'}${formatVND(amt)}
             </td>
-            <td style="padding: 4px;">${formatTime(tx.createdAt || tx.transactionTime)}</td>
+            <td style="padding: 4px;">${formatTime(tx.transactionTime || tx.createdAt)}</td>
             <td style="padding: 4px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               ${tx.content || tx.rawContent || '-'}
             </td>
