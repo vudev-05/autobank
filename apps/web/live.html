@@ -4258,6 +4258,11 @@
         isInitialSnapshotLoaded = true;
       }
 
+      // Kiểm tra xem dữ liệu có thực sự thay đổi không để tránh render lại DOM làm giật màn hình
+      const currentIdsStr = (window._lastRenderedTxIds || '');
+      const newIdsStr = filteredList.map(t => String(t.id || t.fingerprint)).join(',');
+      const isDataChanged = currentIdsStr !== newIdsStr || !window._lastRenderedTxIds;
+
       transactions = filteredList;
 
       // Lưu tức thì vào localStorage để khi F5 không bao giờ bị mất biến động số dư
@@ -4277,7 +4282,10 @@
       const net = incomingTotal - outgoingTotal;
       document.getElementById('statNetTotal').textContent = share.shareShowAmount === false ? '***.***đ' : ((net >= 0 ? '+' : '') + formatVND(net));
 
-      renderFeedList();
+      if (isDataChanged) {
+        window._lastRenderedTxIds = newIdsStr;
+        renderFeedList();
+      }
     }
 
     // 6. RENDER FEED WITH PAGINATION
