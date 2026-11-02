@@ -127,8 +127,8 @@ export class AdminController {
 
   @Public()
   @Get('phone-status')
-  getPhoneStatus() {
-    return this.adminService.getPhoneStatus();
+  getPhoneStatus(@Query('email') email?: string) {
+    return this.adminService.getPhoneStatus(email);
   }
 
   @Get('push')

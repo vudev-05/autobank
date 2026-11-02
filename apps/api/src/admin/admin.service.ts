@@ -633,6 +633,7 @@ export class AdminService implements OnModuleInit {
   }
 
   private currentLivePin: string = process.env.ADMIN_LIVE_PIN || '606060';
+  private phoneHeartbeatsByUser = new Map<string, any>();
   private lastPhoneHeartbeat: {
     timestamp: number;
     deviceName: string;
@@ -653,7 +654,8 @@ export class AdminService implements OnModuleInit {
     if (!dto || !dto.deviceName) {
       throw new BadRequestException('Thông tin thiết bị không hợp lệ');
     }
-    this.lastPhoneHeartbeat = {
+    const email = (dto.email || dto.userEmail || '').trim().toLowerCase();
+    const heartbeatData = {
       timestamp: Date.now(),
       deviceName: dto.deviceName,
       batteryLevel: typeof dto.batteryLevel === 'number' ? dto.batteryLevel : undefined,
@@ -664,22 +666,31 @@ export class AdminService implements OnModuleInit {
       repeatCount: dto.repeatCount || 1,
       autoSpeechCredit: dto.autoSpeechCredit !== false,
       autoSpeechDebit: dto.autoSpeechDebit === true,
-      email: dto.email || dto.userEmail || undefined,
-      userEmail: dto.userEmail || dto.email || undefined,
+      email: email || undefined,
+      userEmail: email || undefined,
       shopName: dto.shopName || undefined,
     };
+    this.lastPhoneHeartbeat = heartbeatData;
+    if (email) {
+      this.phoneHeartbeatsByUser.set(email, heartbeatData);
+    }
     return { success: true, serverTime: Date.now() };
   }
 
-  getPhoneStatus() {
+  getPhoneStatus(email?: string) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    let hb = cleanEmail ? this.phoneHeartbeatsByUser.get(cleanEmail) : null;
+    if (!hb && !cleanEmail) {
+      hb = this.lastPhoneHeartbeat;
+    }
     const now = Date.now();
-    // Phone considered online if heartbeat ping received within the last 35 seconds (app pings every 10s)
-    const isOnline = this.lastPhoneHeartbeat != null && (now - this.lastPhoneHeartbeat.timestamp) < 35000;
-    const diffSec = this.lastPhoneHeartbeat ? Math.round((now - this.lastPhoneHeartbeat.timestamp) / 1000) : null;
+    // Phone considered online if heartbeat ping received within the last 45 seconds (app pings every 10s)
+    const isOnline = hb != null && (now - hb.timestamp) < 45000;
+    const diffSec = hb ? Math.round((now - hb.timestamp) / 1000) : null;
 
     return {
       isOnline,
-      lastHeartbeat: this.lastPhoneHeartbeat,
+      lastHeartbeat: hb,
       offlineSeconds: diffSec,
       instruction: isOnline
         ? 'Thiết bị điện thoại đang hoạt động nền 24/24 và kết nối tín hiệu ổn định.'

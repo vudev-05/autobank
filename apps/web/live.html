@@ -2961,7 +2961,7 @@
 
     const STORAGE_KEY_UNLOCKED_AT = 'autobank_live_pin_unlocked_at';
     const STORAGE_KEY_PIN = 'autobank_live_pin_code';
-    const STORAGE_KEY_CACHED_TXS = 'autobank_live_cached_txs_v3';
+    const STORAGE_KEY_CACHED_TXS = 'autobank_live_cached_txs_v4';
     const EXPIRE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 giờ
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -2976,6 +2976,29 @@
         phoneStatus?.lastHeartbeat?.userEmail ||
         ''
       );
+    }
+
+    async function syncPinEmailAsync(pin) {
+      if (!pin) return;
+      try {
+        const queryEmail = (urlParams.get('u') || urlParams.get('email') || '').trim();
+        const res = await safeApiFetch('/admin/verify-live-pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: pin, email: queryEmail })
+        });
+        if (res && res.ok) {
+          const data = await res.json();
+          if (data && data.isValid && data.email) {
+            const oldEmail = localStorage.getItem('live_matched_email');
+            localStorage.setItem('live_matched_email', data.email);
+            if (oldEmail !== data.email) {
+              loadUserShareAndVoiceConfig();
+              fetchLiveTransactions();
+            }
+          }
+        }
+      } catch (_) {}
     }
 
     let userTtsConfig = {
@@ -3135,6 +3158,7 @@
           const remainingMs = EXPIRE_DURATION_MS - elapsed;
           if (storedPin) {
             const remainingHours = Math.max(1, Math.ceil(remainingMs / (1000 * 60 * 60)));
+            syncPinEmailAsync(storedPin);
             unlockLivePortal(storedPin, false);
             showToast(`Đã khôi phục phiên bảo mật (Còn ${remainingHours}h hiệu lực)`);
           } else {
@@ -3477,20 +3501,19 @@
     // 2. PHONE SIGNAL POLLING & REALTIME SYNC
     async function fetchPhoneStatus() {
       try {
-        const prevEmail = getTargetEmail();
-        const res = await safeApiFetch('/admin/phone-status');
+        const currentEmail = getTargetEmail();
+        const ep = currentEmail ? `/admin/phone-status?email=${encodeURIComponent(currentEmail)}` : '/admin/phone-status';
+        const res = await safeApiFetch(ep);
         if (res && res.ok) {
           const data = await res.json();
           phoneStatus = data;
           renderPhoneSignalUI();
 
+          // TUYỆT ĐỐI không ghi đè email đã xác thực từ mã PIN bảo mật
+          const existingEmail = localStorage.getItem('live_matched_email');
           const hbEmail = (data?.lastHeartbeat?.email || data?.lastHeartbeat?.userEmail || '').trim().toLowerCase();
-          if (hbEmail) {
+          if (!existingEmail && hbEmail) {
             localStorage.setItem('live_matched_email', hbEmail);
-          }
-
-          const newEmail = getTargetEmail();
-          if (newEmail && newEmail !== prevEmail) {
             loadUserShareAndVoiceConfig();
             fetchLiveTransactions();
           }
