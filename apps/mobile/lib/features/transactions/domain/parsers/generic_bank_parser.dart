@@ -11,40 +11,53 @@ class GenericBankParser implements IBankParser {
 
   @override
   bool canParse(String packageName, String title, String body) {
-    // Không bắt thông báo nếu phát ra từ chính app AutoBank
+    // 1. Tuyệt đối chặn thông báo từ chính app AutoBank
     if (packageName.contains('autobank')) return false;
 
     final combined = '$title $body'.toLowerCase();
 
-    return combined.contains('vnd') ||
-        combined.contains('đ') ||
-        combined.contains('d') ||
+    // 2. CHẶN TRIỆT ĐỂ MỌI THÔNG BÁO QUẢNG CÁO, VOUCHER, ĐẶT MÓN, KHUYẾN MÃI
+    final spamKeywords = [
+      'voucher', 'giảm', 'giam', 'khuyến mãi', 'khuyen mai', 'ưu đãi', 'uu dai',
+      'qc', '[qc]', 'phiên live', 'phien live', 'bữa sáng', 'bua sang', 'bánh tráng',
+      'đặt món', 'dat mon', 'mã giảm', 'ma giam', 'freeship', 'freeshipxtra',
+      'hoàn xu', 'hoan xu', 'quà tặng', 'qua tang', 'tặng bạn', 'tang ban',
+      'cơ hội nhận', 'co hoi nhan', 'nhập mã', 'nhap ma', 'livestream', 'flash sale',
+      'đến từ shop', 'shopee tặng', 'tiktok shop', 'mua sắm', 'mua sam'
+    ];
+
+    for (final spam in spamKeywords) {
+      if (combined.contains(spam)) return false;
+    }
+
+    // 3. CHỈ BẮT KHI CÓ DẤU HIỆU CỦA GIAO DỊCH TÀI CHÍNH / BIẾN ĐỘNG SỐ DƯ NGÂN HÀNG THẬT
+    final hasBankingSignature = combined.contains('số dư') ||
         combined.contains('so du') ||
-        combined.contains('số dư') ||
         combined.contains('biến động') ||
         combined.contains('bien dong') ||
-        combined.contains('nhận tiền') ||
-        combined.contains('nhan tien') ||
+        combined.contains('tài khoản') ||
+        combined.contains('tai khoan') ||
+        combined.contains('gd:') ||
+        combined.contains('giao dịch') ||
+        combined.contains('giao dich') ||
         combined.contains('chuyển tiền') ||
         combined.contains('chuyen tien') ||
-        combined.contains('thanh toán') ||
-        combined.contains('thanh toan') ||
-        combined.contains('thành công') ||
-        combined.contains('giao dịch') ||
-        combined.contains('gd:') ||
-        combined.contains('cộng') ||
-        combined.contains('cong') ||
-        combined.contains('nạp') ||
-        combined.contains('nap') ||
+        combined.contains('nhận tiền') ||
+        combined.contains('nhan tien') ||
         combined.contains('momo') ||
         combined.contains('zalopay') ||
-        combined.contains('shopeepay') ||
-        combined.contains('viettel') ||
         combined.contains('vnpay') ||
-        combined.contains('ví') ||
-        combined.contains('tai khoan') ||
-        combined.contains('tài khoản') ||
-        (combined.contains('+') && (combined.contains('vnd') || combined.contains('đ') || combined.contains('tk')));
+        combined.contains('viettel') ||
+        combined.contains('tk ') ||
+        combined.contains('stk:');
+
+    if (!hasBankingSignature) return false;
+
+    return combined.contains('vnd') ||
+        combined.contains('đ') ||
+        combined.contains('d\b') ||
+        (combined.contains('+') && combined.contains('tk')) ||
+        (combined.contains('-') && combined.contains('tk'));
   }
 
   @override
