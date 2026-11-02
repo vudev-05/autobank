@@ -4272,15 +4272,28 @@
         }
       } catch (_) {}
 
-      // Update KPI Cards (Tính chuẩn xác cho ngày hôm nay, tự động reset lúc 0h sáng)
-      document.getElementById('statCreditTotal').textContent = share.shareShowAmount === false ? '***.***đ' : formatVND(incomingTotal);
-      document.getElementById('statCreditCount').textContent = `${incomingCount} giao dịch nhận hôm nay (từ 0h)`;
-
-      document.getElementById('statDebitTotal').textContent = share.shareShowAmount === false ? '***.***đ' : formatVND(outgoingTotal);
-      document.getElementById('statDebitCount').textContent = `${outgoingCount} giao dịch chuyển hôm nay (từ 0h)`;
-
+      // Update KPI Cards chỉ khi giá trị có sự thay đổi (tránh ghi đè textContent liên tục gây giật lag trình duyệt)
+      const creditTotalText = share.shareShowAmount === false ? '***.***đ' : formatVND(incomingTotal);
+      const creditCountText = `${incomingCount} giao dịch nhận hôm nay (từ 0h)`;
+      const debitTotalText = share.shareShowAmount === false ? '***.***đ' : formatVND(outgoingTotal);
+      const debitCountText = `${outgoingCount} giao dịch chuyển hôm nay (từ 0h)`;
       const net = incomingTotal - outgoingTotal;
-      document.getElementById('statNetTotal').textContent = share.shareShowAmount === false ? '***.***đ' : ((net >= 0 ? '+' : '') + formatVND(net));
+      const netTotalText = share.shareShowAmount === false ? '***.***đ' : ((net >= 0 ? '+' : '') + formatVND(net));
+
+      const elCreditTotal = document.getElementById('statCreditTotal');
+      if (elCreditTotal && elCreditTotal.textContent !== creditTotalText) elCreditTotal.textContent = creditTotalText;
+
+      const elCreditCount = document.getElementById('statCreditCount');
+      if (elCreditCount && elCreditCount.textContent !== creditCountText) elCreditCount.textContent = creditCountText;
+
+      const elDebitTotal = document.getElementById('statDebitTotal');
+      if (elDebitTotal && elDebitTotal.textContent !== debitTotalText) elDebitTotal.textContent = debitTotalText;
+
+      const elDebitCount = document.getElementById('statDebitCount');
+      if (elDebitCount && elDebitCount.textContent !== debitCountText) elDebitCount.textContent = debitCountText;
+
+      const elNetTotal = document.getElementById('statNetTotal');
+      if (elNetTotal && elNetTotal.textContent !== netTotalText) elNetTotal.textContent = netTotalText;
 
       if (isDataChanged) {
         window._lastRenderedTxIds = newIdsStr;
